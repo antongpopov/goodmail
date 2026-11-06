@@ -16,7 +16,9 @@ test('unseal rejects expired, tampered and garbage tokens', () => {
   const expired = v.seal({ email: 'a@example.com', pass: 'x', exp: Date.now() - 1 });
   assert.equal(v.unseal(expired), undefined);
   const good = v.seal({ email: 'a@example.com', pass: 'x', exp: Date.now() + 60_000 });
-  const flipped = good.slice(0, -2) + (good.endsWith('A') ? 'B' : 'A') + good.slice(-1);
+  // change one character inside the ciphertext (always to a different one, so the token really is altered)
+  const i = good.length - 5;
+  const flipped = good.slice(0, i) + (good[i] === 'A' ? 'B' : 'A') + good.slice(i + 1);
   assert.equal(v.unseal(flipped), undefined);
   assert.equal(v.unseal('not-a-token'), undefined);
   assert.equal(v.unseal(''), undefined);
