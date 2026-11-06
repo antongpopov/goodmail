@@ -70,6 +70,7 @@ The file is re-read automatically when it changes.
 | `GOODMAIL_CONFIG` | `./goodmail.conf` | config file |
 | `GOODMAIL_DATA` | `./data` | `secret.key` (cookie encryption key), `accounts/`, `contacts/`, `calendar/` (one JSON file per account) |
 | `GOODMAIL_SECRET` | — | use this instead of `secret.key` |
+| `GOODMAIL_SOURCE_URL` | this repo | where the in-app "Source code" link points (AGPL §13 — set it for modified versions) |
 | `GOODMAIL_TRUST_PROXY` | `false` | trust `X-Forwarded-For` (set behind a proxy) |
 
 ## Security model
@@ -82,4 +83,13 @@ The file is re-read automatically when it changes.
 
 ## License
 
-MIT
+Copyright (C) 2026 Anton Popov
+
+goodmail is free software: you can redistribute it and/or modify it under the terms of the
+**GNU Affero General Public License v3.0 or later** (AGPL-3.0-or-later) — see [LICENSE](LICENSE).
+
+In short: you may use, self-host, modify and share it. If you run a **modified** version for other people
+over a network, you must offer those users the source code of your version. goodmail shows a
+"Source code" link for this; point it at your fork with `GOODMAIL_SOURCE_URL`.
+
+Third-party dependencies keep their own (permissive: MIT, BSD, ISC, Apache-2.0/MPL-2.0) licenses.

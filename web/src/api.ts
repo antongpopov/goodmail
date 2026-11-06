@@ -53,7 +53,7 @@ export const currentAccount = () => cur;
 const q = (o: Record<string, string | number>) => new URLSearchParams(Object.entries(o).map(([k, v]) => [k, String(v)])).toString();
 
 export const api = {
-  config: () => call<{ appName: string }>('GET', '/api/config'),
+  config: () => call<{ appName: string; source: string }>('GET', '/api/config'),
   me: () => call<Me>('GET', '/api/me'),
   login: (body: Record<string, unknown>) => call<Me>('POST', '/api/login', body),
   logout: () => call('POST', '/api/logout', {}),

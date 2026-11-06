@@ -372,6 +372,8 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .acct-tree + .acct-tree { margin-top: 10px; }
 .menu-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 4px; border-radius: 4px; text-align: left; }
 .menu-btn:hover { background: var(--hover); }
+.about { font-size: 12px; color: var(--text-3); margin-top: 10px; text-align: center; }
+.about a { color: inherit; text-decoration: underline; }
 .accounts-dialog { padding: 0 20px 18px; max-width: 520px; }
 .dlg-head { display: flex; align-items: center; gap: 8px; padding: 14px 0 6px; position: sticky; top: 0; background: var(--surface); }
 .dlg-head h2 { flex: 1; margin: 0; font-size: 18px; font-weight: 600; }

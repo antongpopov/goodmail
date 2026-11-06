@@ -3,7 +3,7 @@ import { api } from './api.ts';
 import type { Me } from './api.ts';
 import { store, save } from './util.ts';
 
-export function Login({ onLogin, appName }: { onLogin: (m: Me) => void; appName: string }) {
+export function Login({ onLogin, appName, source }: { onLogin: (m: Me) => void; appName: string; source: string }) {
   const [email, setEmail] = useState(() => store('lastEmail', ''));
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(() => store('remember', true));
@@ -49,6 +49,10 @@ export function Login({ onLogin, appName }: { onLogin: (m: Me) => void; appName:
         <button className="primary" disabled={busy}>
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
+        <p className="muted small about">
+          Powered by goodmail · AGPL-3.0 ·{' '}
+          <a href={source} target="_blank" rel="noopener noreferrer">Source code</a>
+        </p>
       </form>
     </div>
   );

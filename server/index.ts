@@ -1,3 +1,5 @@
+// goodmail — webmail for any IMAP server. Copyright (C) 2026 Anton Popov
+// SPDX-License-Identifier: AGPL-3.0-or-later
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -225,7 +227,7 @@ function throttled(ip: string) {
 }
 
 app.get('/api/config', (_req, res) => {
-  res.json({ appName: appTitle() });
+  res.json({ appName: appTitle(), source: process.env.GOODMAIL_SOURCE_URL || 'https://github.com/antongpopov/goodmail' });
 });
 
 app.post(

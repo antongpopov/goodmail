@@ -20,7 +20,7 @@ const POLL_MS = 30_000;
 
 export default function App() {
   const [me, setMe] = useState<Me | null | undefined>(undefined);
-  const [cfg, setCfg] = useState({ appName: 'goodmail' });
+  const [cfg, setCfg] = useState({ appName: 'goodmail', source: 'https://github.com/antongpopov/goodmail' });
 
   useEffect(() => {
     setUnauthorizedHandler(() => setMe(null));
@@ -33,8 +33,8 @@ export default function App() {
   }, [cfg.appName]);
 
   if (me === undefined) return <div className="splash" />;
-  if (!me) return <Login onLogin={setMe} appName={cfg.appName} />;
-  return <Mail me={me} appName={cfg.appName} onLogout={() => api.logout().finally(() => setMe(null))} />;
+  if (!me) return <Login onLogin={setMe} appName={cfg.appName} source={cfg.source} />;
+  return <Mail me={me} appName={cfg.appName} source={cfg.source} onLogout={() => api.logout().finally(() => setMe(null))} />;
 }
 
 function Avatar({ addr, size = 32 }: { addr: { name: string; address: string }; size?: number }) {
@@ -100,7 +100,7 @@ const PANES: { id: PaneMode; label: string }[] = [
   { id: 'hidden', label: 'Hidden' },
 ];
 
-function ViewMenu({ pane, onPane, preview, onPreview, onAccounts }: { pane: PaneMode; onPane: (p: PaneMode) => void; preview: boolean; onPreview: (v: boolean) => void; onAccounts: () => void }) {
+function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, source }: { pane: PaneMode; onPane: (p: PaneMode) => void; preview: boolean; onPreview: (v: boolean) => void; onAccounts: () => void; source: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -134,6 +134,10 @@ function ViewMenu({ pane, onPane, preview, onPreview, onAccounts }: { pane: Pane
           <button className="menu-btn" onClick={() => { setOpen(false); onAccounts(); }}>
             <Icon name="people" size={16} /> Manage accounts…
           </button>
+          <div className="about">
+            goodmail · AGPL-3.0 ·{' '}
+            <a href={source} target="_blank" rel="noopener noreferrer">Source code</a>
+          </div>
         </div>
       )}
     </div>
@@ -188,7 +192,7 @@ function buildTree(list: Folder[]): FolderNode[] {
   return roots;
 }
 
-function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: () => void }) {
+function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; source: string; onLogout: () => void }) {
   const mainAcct: MailAccount = { id: 'main', email: me.email, name: me.name, provider: 'main', imapHost: me.imapHost, locked: false };
   const [accounts, setAccounts] = useState<MailAccount[]>([mainAcct]);
   const [acct, setAcctState] = useState(() => store('acct', 'main'));
@@ -646,7 +650,7 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
         </form>
         <div className="top-right">
           <span className="desk-only">
-            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} onAccounts={() => setAcctDialog(true)} />
+            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} onAccounts={() => setAcctDialog(true)} source={source} />
           </span>
           <span className="who" title={`${me.email} · ${me.imapHost}`}>
             <Avatar addr={{ name: me.name, address: me.email }} size={28} />
