@@ -199,6 +199,10 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .item.compact .meta { min-width: 72px; justify-content: flex-end; }
 .item.compact .item-actions { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: inherit; padding-left: 6px; }
 .item.compact:hover .meta { visibility: hidden; }
+/* mail the filter treats as spam: whole entry greyed out (the red bar stays) */
+.item.spam .sender, .item.spam .subject, .item.spam .c-sender, .item.spam .c-subject, .item.spam .c-snip, .item.spam .row3, .item.spam .time,
+.item.spam.unread .subject, .item.spam.unread .c-subject, .item.spam.unread .time { color: var(--text-2); }
+.item.spam .avatar { filter: grayscale(1); opacity: .55; }
 .empty, .more { padding: 40px 16px; text-align: center; color: var(--text-2); }
 .more { padding: 16px; }
 

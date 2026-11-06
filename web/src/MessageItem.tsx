@@ -59,7 +59,7 @@ export function MessageItem({ m, who, isSentFolder, selected, selectedUids, prev
       e.dataTransfer.setData('application/x-goodmail', JSON.stringify(uids));
     },
   };
-  const state = `${m.seen ? '' : 'unread'} ${selected ? 'sel' : ''} ${m.flagged ? 'flagged' : ''}`;
+  const state = `${m.seen ? '' : 'unread'} ${selected ? 'sel' : ''} ${m.flagged ? 'flagged' : ''} ${isSpam ? 'spam' : ''}`;
 
   if (compact) {
     return (
