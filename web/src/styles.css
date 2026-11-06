@@ -393,6 +393,23 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-bottom: 12px; }
 .preset { height: 44px; border: 1px solid var(--border); border-radius: 8px; font-weight: 600; background: var(--surface); }
 .preset:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
+.mfa-alts { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; margin-top: 4px; }
+.security { max-width: 600px; }
+.sec-status { margin: 4px 0 12px; padding: 8px 12px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--border); font-size: 13px; }
+.sec-status.on { border-color: color-mix(in srgb, #498205 50%, var(--border)); background: color-mix(in srgb, #498205 10%, var(--surface)); }
+.sec-item { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+.sec-head { display: flex; align-items: center; gap: 12px; padding: 10px 12px; }
+.sec-sub { display: flex; align-items: center; gap: 8px; padding: 8px 12px 8px 44px; border-top: 1px solid var(--border); font-size: 13px; }
+.sec-setup { display: flex; gap: 16px; padding: 4px 12px 12px; align-items: flex-start; flex-wrap: wrap; }
+.sec-setup img { border-radius: 6px; background: #fff; padding: 4px; }
+.sec-setup > div { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 8px; }
+.sec-setup p { margin: 0; }
+.secret { font-size: 13px; letter-spacing: .05em; background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; word-break: break-all; }
+.sec-pad { padding: 0 12px 12px; }
+.sec-codes { border: 2px solid var(--brand); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+.sec-codes p { margin: 4px 0 10px; }
+.code-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 10px; }
+.code-grid code { font-size: 14px; background: var(--surface-2); border-radius: 4px; padding: 4px 8px; text-align: center; letter-spacing: .05em; }
 .unlock-box { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 8px 0; background: var(--surface-2); font-size: 13px; }
 .unlock-box p { margin: 0 0 8px; }
 .unlock-row { display: flex; gap: 8px; }

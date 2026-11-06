@@ -33,6 +33,10 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
   duplicate merge by email, "add sender" button, To/Cc autocomplete
 - **Calendar**: Outlook-style day / work week / week / month views, mini month, recurring events,
   .ics import/export, and an "Add to calendar" button on invitations (Outlook/Teams time zones understood)
+- **Two-step sign-in** (per user, ⚙ → Sign-in security): authenticator app (TOTP), passkeys (Face ID / Touch ID /
+  Windows Hello / security keys), a code mailed to a backup address (sent through the user's own mailbox), and
+  one-time recovery codes. The login cookie is issued only after the second step. Passkeys need the site's real
+  host name — behind a proxy keep `Host` (`ProxyPreserveHost On`) or set `GOODMAIL_ORIGIN=https://mail.example.com`
 - **Spam meter** under the date: green → yellow → red from the filter's score (rspamd or SpamAssassin headers;
   only the topmost header is trusted). Fully red at the junk threshold — rspamd 6 by default, `spamthreshold=` to change
 - **Fast on slow servers**: opened messages are cached server-side (`GOODMAIL_CACHE_MB`, default 150), folder lists
@@ -86,7 +90,7 @@ The file is re-read automatically when it changes.
 |---|---|---|
 | `PORT` / `HOST` | `3000` / `0.0.0.0` | listen address |
 | `GOODMAIL_CONFIG` | `./goodmail.conf` | config file |
-| `GOODMAIL_DATA` | `./data` | `secret.key` (cookie encryption key), `accounts/`, `contacts/`, `calendar/` (one JSON file per account) |
+| `GOODMAIL_DATA` | `./data` | `secret.key` (cookie encryption key), `accounts/`, `contacts/`, `calendar/`, `mfa/` (one JSON file per account) |
 | `GOODMAIL_SECRET` | — | use this instead of `secret.key` |
 | `GOODMAIL_SOURCE_URL` | this repo | where the in-app "Source code" link points (AGPL §13 — set it for modified versions) |
 | `GOODMAIL_CACHE_MB` | `150` | memory for cached parsed messages |

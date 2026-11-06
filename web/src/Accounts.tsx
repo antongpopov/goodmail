@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from './api.ts';
 import type { MailAccount } from './api.ts';
 import { Icon } from './icons.tsx';
@@ -132,6 +132,13 @@ export function AccountsDialog({ accounts, onClose, onChanged, flash }: { accoun
     pick(p);
     setForm((f) => ({ ...f, email: a.email, imapHost: p.id === 'imap' ? a.imapHost : f.imapHost }));
   };
+
+  // Escape closes the dialog wherever the focus is
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   return (
     <div className="modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>

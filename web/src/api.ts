@@ -18,6 +18,8 @@ export interface CalEvent {
   location: string; notes: string; color: string; rrule?: RRule; exdates?: (number | string)[]; updated: number;
 }
 export interface MailAccount { id: string; email: string; name: string; provider: string; imapHost: string; locked: boolean }
+export interface MfaChallenge { ticket: string; totp: boolean; passkey: boolean; email: string | null; recovery: boolean }
+export interface MfaStatus { enabled: boolean; totp: boolean; passkeys: { id: string; name: string; added: number }[]; email: string | null; recoveryLeft: number; recovery?: string[] }
 export interface Me { email: string; name: string; imapHost: string; appName?: string }
 export interface ListResult { total: number; messages: Summary[]; hasMore: boolean }
 
@@ -40,7 +42,7 @@ async function call<T>(method: string, url: string, body?: unknown): Promise<T> 
   });
   const data = await r.json().catch(() => ({}));
   if (!r.ok) {
-    if (r.status === 401 && !url.endsWith('/login')) onUnauthorized();
+    if (r.status === 401 && !url.startsWith('/api/login')) onUnauthorized();
     throw new ApiError(r.status, tErr(data.error || r.statusText));
   }
   return data as T;
@@ -58,7 +60,19 @@ const q = (o: Record<string, string | number>) => new URLSearchParams(Object.ent
 export const api = {
   config: () => call<{ appName: string; source: string }>('GET', '/api/config'),
   me: () => call<Me>('GET', '/api/me'),
-  login: (body: Record<string, unknown>) => call<Me>('POST', '/api/login', body),
+  login: (body: Record<string, unknown>) => call<Me & { mfa?: MfaChallenge }>('POST', '/api/login', body),
+  mfaVerify: (body: Record<string, unknown>) => call<Me>('POST', '/api/login/mfa', body),
+  mfaSendEmail: (ticket: string) => call<{ to: string }>('POST', '/api/login/mfa/email', { ticket }),
+  mfaPasskeyOptions: (ticket: string) => call<any>('POST', '/api/login/mfa/passkey-options', { ticket }),
+  mfaStatus: () => call<MfaStatus>('GET', '/api/mfa'),
+  totpStart: () => call<{ secret: string; uri: string }>('POST', '/api/mfa/totp/start', {}),
+  totpConfirm: (code: string) => call<MfaStatus>('POST', '/api/mfa/totp/confirm', { code }),
+  passkeyOptions: () => call<any>('POST', '/api/mfa/passkey/options', {}),
+  passkeyVerify: (response: unknown, name: string) => call<MfaStatus>('POST', '/api/mfa/passkey/verify', { response, name }),
+  backupEmailStart: (address: string) => call('POST', '/api/mfa/email/start', { address }),
+  backupEmailConfirm: (code: string) => call<MfaStatus>('POST', '/api/mfa/email/confirm', { code }),
+  mfaRemove: (what: string, password: string, id?: string) => call<MfaStatus>('POST', '/api/mfa/remove', { what, password, id }),
+  recoveryNew: (password: string) => call<MfaStatus>('POST', '/api/mfa/recovery', { password }),
   logout: () => call('POST', '/api/logout', {}),
   folders: (account = cur, fresh = false) => call<Folder[]>('GET', `/api/folders?${q({ account, ...(fresh ? { fresh: 1 } : {}) })}`),
   messages: (folder: string, page: number) => call<ListResult>('GET', `/api/messages?${q({ folder, page, account: cur })}`),

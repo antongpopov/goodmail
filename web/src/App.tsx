@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, setUnauthorizedHandler, useAccount, currentAccount } from './api.ts';
 import type { MailAccount } from './api.ts';
 import { AccountsDialog } from './Accounts.tsx';
+import { SecurityDialog } from './Security.tsx';
 import { LangPicker } from './LangPicker.tsx';
 import type { Folder, Me, Message, Summary } from './api.ts';
 import { Icon, folderIcon } from './icons.tsx';
@@ -114,7 +115,7 @@ const PANES: { id: PaneMode; label: string }[] = [
   { id: 'hidden', label: t('Hidden') },
 ];
 
-function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, source }: { pane: PaneMode; onPane: (p: PaneMode) => void; preview: boolean; onPreview: (v: boolean) => void; onAccounts: () => void; source: string }) {
+function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, onSecurity, source }: { pane: PaneMode; onPane: (p: PaneMode) => void; preview: boolean; onPreview: (v: boolean) => void; onAccounts: () => void; onSecurity: () => void; source: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -149,6 +150,9 @@ function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, source }: { pa
           <div className="menu-label">{t('Mail accounts')}</div>
           <button className="menu-btn" onClick={() => { setOpen(false); onAccounts(); }}>
             <Icon name="people" size={16} /> {t('Manage accounts…')}
+          </button>
+          <button className="menu-btn" onClick={() => { setOpen(false); onSecurity(); }}>
+            <Icon name="check" size={16} /> {t('Sign-in security…')}
           </button>
           <div className="about">
             goodmail · AGPL-3.0 ·{' '}
@@ -243,6 +247,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   const setFolders = (fn: (f: Folder[]) => Folder[]) => setAllFolders((all) => ({ ...all, [acct]: fn(all[acct] ?? []) }));
   const [folder, setFolder] = useState(() => store('folder', 'INBOX'));
   const [acctDialog, setAcctDialog] = useState(false);
+  const [secDialog, setSecDialog] = useState(false);
   const goto = (id: string, path: string) => {
     useAccount(id);
     setAcctState(id);
@@ -741,7 +746,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
         </form>
         <div className="top-right">
           <span className="desk-only">
-            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} onAccounts={() => setAcctDialog(true)} source={source} />
+            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} onAccounts={() => setAcctDialog(true)} onSecurity={() => setSecDialog(true)} source={source} />
           </span>
           <span className="who" title={`${me.email} · ${me.imapHost}`}>
             <Avatar addr={{ name: me.name, address: me.email }} size={28} />
@@ -875,6 +880,10 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                   <Icon name="people" size={16} /> <span className="fname">{t('Add account')}</span>
                 </button>
                 <div className="drawer-foot phone-only">
+                  <button className="folder" onClick={() => { setSecDialog(true); setDrawer(false); }}>
+                    <span className="twisty" />
+                    <Icon name="check" size={18} /> <span className="fname">{t('Sign-in security…')}</span>
+                  </button>
                   <button className="folder" onClick={() => { setView('calendar'); setDrawer(false); }}>
                     <span className="twisty" />
                     <Icon name="calendar" size={18} /> <span className="fname">{t('Calendar')}</span>
@@ -1125,6 +1134,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
           <Icon name="compose" /> {t('New mail')}
         </button>
       )}
+      {secDialog && <SecurityDialog onClose={() => setSecDialog(false)} flash={flash} />}
       {acctDialog && (
         <AccountsDialog
           accounts={accounts}
