@@ -1,6 +1,7 @@
 import path from 'node:path';
 import type { ImapFlow, ListResponse, FetchMessageObject } from 'imapflow';
 import { previewPart, attachments, makeSnippet } from './mime.ts';
+import { spamInfo, parseHeaderLines } from './spam.ts';
 import { Conn } from './session.ts';
 import { checkValidity } from './cache.ts';
 
@@ -68,6 +69,8 @@ export function summarize(m: FetchMessageObject, snippet: string) {
     hasAttachments: attachments(m.bodyStructure).some((a) => !a.inline),
     size: m.size ?? 0,
     snippet,
+    // score from the filter's headers (only the topmost one counts, see spam.ts); null when the server adds none
+    spam: spamInfo(parseHeaderLines(m.headers)),
   };
 }
 
@@ -76,7 +79,7 @@ export async function listMessages(s: Conn, c: ImapFlow, folder: string, range: 
   const msgs: FetchMessageObject[] = [];
   for await (const m of c.fetch(
     range,
-    { uid: true, envelope: true, flags: true, internalDate: true, size: true, bodyStructure: true },
+    { uid: true, envelope: true, flags: true, internalDate: true, size: true, bodyStructure: true, headers: ['x-spamd-result', 'x-rspamd-score', 'x-spam-status', 'x-spam-score'] },
     { uid: byUid },
   ))
     msgs.push(m);

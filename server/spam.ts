@@ -9,6 +9,22 @@ export interface SpamInfo {
   engine: 'rspamd' | 'spamassassin';
 }
 
+/** Raw header block (as returned by IMAP HEADER.FIELDS) -> unfolded { key, line } entries, in message order. */
+export function parseHeaderLines(block: Buffer | string | undefined | null): { key: string; line: string }[] {
+  if (!block) return [];
+  const out: { key: string; line: string }[] = [];
+  for (const raw of String(block).split(/\r?\n/)) {
+    if (!raw.trim()) continue;
+    if (/^\s/.test(raw) && out.length) {
+      out[out.length - 1].line += ' ' + raw.trim(); // folded continuation line
+      continue;
+    }
+    const i = raw.indexOf(':');
+    if (i > 0) out.push({ key: raw.slice(0, i).trim().toLowerCase(), line: raw });
+  }
+  return out;
+}
+
 export function spamInfo(headerLines: readonly { key: string; line: string }[]): SpamInfo | null {
   const first = (k: string) => headerLines.find((h) => h.key === k)?.line.replace(/^[^:]+:\s*/, '').replace(/\r?\n\s+/g, ' ');
   const rs = first('x-spamd-result');

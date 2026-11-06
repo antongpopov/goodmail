@@ -22,7 +22,6 @@ import { Splitter } from './Splitter.tsx';
 import { MessageItem } from './MessageItem.tsx';
 import { FolderRow } from './FolderRow.tsx';
 import { ViewMenu, Appearance } from './ViewMenu.tsx';
-import { SpamBar } from './SpamBar.tsx';
 import { useAddressBook, useLayout, usePhoneWidth, useToast } from './hooks.ts';
 
 const POLL_MS = 30_000;
@@ -810,7 +809,6 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                             </>
                           )}
                         </div>
-                        {open.spam && <SpamBar spam={open.spam} />}
                       </div>
                       <div className="date-col">
                         <div className="date">{fullTime(open.date)}</div>

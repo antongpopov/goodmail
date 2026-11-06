@@ -218,7 +218,9 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .date { color: var(--text-2); font-size: 12px; white-space: nowrap; padding-top: 2px; }
 .date-col { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .spam { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-2); cursor: help; }
-.sender-info .spam { margin-top: 4px; }
+.item .spam { margin-top: 3px; }
+.item.compact .spam { margin-top: 0; flex: none; }
+.spam.compact .spam-track { width: 44px; }
 .spam-track { width: 72px; height: 6px; border-radius: 3px; background: var(--hover); overflow: hidden; box-shadow: inset 0 0 0 1px var(--border); }
 .spam-fill { display: block; height: 100%; border-radius: 3px; transition: width .3s; }
 .banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 13px; margin: 0 4px 12px; }

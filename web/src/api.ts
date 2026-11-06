@@ -3,6 +3,7 @@ export interface Folder { path: string; name: string; delimiter: string; special
 export interface Summary {
   uid: number; date: number; from: Addr; to: Addr[]; cc: Addr[]; subject: string; messageId: string;
   seen: boolean; flagged: boolean; answered: boolean; hasAttachments: boolean; size: number; snippet: string;
+  spam?: { score: number; threshold: number; reject?: number; engine: string } | null;
 }
 export interface Attachment { part: string; filename: string; type: string; size: number; cid?: string; inline: boolean }
 export interface Message {

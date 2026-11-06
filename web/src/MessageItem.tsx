@@ -1,5 +1,6 @@
 import type React from 'react';
 import { Avatar } from './Avatar.tsx';
+import { SpamBar } from './SpamBar.tsx';
 import { Icon } from './icons.tsx';
 import type { Addr, Summary } from './api.ts';
 import { displayName, listTime } from './util.ts';
@@ -66,6 +67,7 @@ export function MessageItem({ m, who, isSentFolder, selected, selectedUids, prev
           <span className="c-subject">{m.subject || t('(no subject)')}</span>
           {m.snippet && <span className="c-snip"> – {m.snippet}</span>}
         </span>
+        {m.spam && <SpamBar spam={m.spam} compact />}
         {meta}
         {actions}
       </div>
@@ -85,6 +87,7 @@ export function MessageItem({ m, who, isSentFolder, selected, selectedUids, prev
           {meta}
         </div>
         {preview && <div className="row3">{m.snippet || ' '}</div>}
+        {m.spam && <SpamBar spam={m.spam} />}
       </div>
     </div>
   );
