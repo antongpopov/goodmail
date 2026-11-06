@@ -6,6 +6,8 @@ import { Login } from './Login.tsx';
 import { Compose } from './Compose.tsx';
 import type { ComposeInit } from './Compose.tsx';
 import { MailBody } from './MailBody.tsx';
+import { loadTheme, setTheme } from './theme.ts';
+import type { Theme } from './theme.ts';
 import { avatarColor, bucket, displayName, fullAddr, fullTime, humanSize, initials, listTime, save, store } from './util.ts';
 
 const SPECIAL_ORDER = ['\\Inbox', '\\Drafts', '\\Sent', '\\Archive', '\\Junk', '\\Trash'];
@@ -76,6 +78,42 @@ function Splitter({ width, min, max, onChange, storeKey }: { width: number; min:
         el.addEventListener('pointercancel', up);
       }}
     />
+  );
+}
+
+const THEMES: { id: Theme; label: string; icon: string }[] = [
+  { id: 'auto', label: 'Auto (system)', icon: 'auto' },
+  { id: 'light', label: 'Light', icon: 'sun' },
+  { id: 'dark', label: 'Dark', icon: 'moon' },
+];
+
+function ThemePicker() {
+  const [theme, set] = useState<Theme>(loadTheme);
+  const [open, setOpen] = useState(false);
+  const cur = THEMES.find((t) => t.id === theme)!;
+  return (
+    <div className="menu-wrap">
+      <button className="top-btn" title={`Theme: ${cur.label}`} onClick={() => setOpen((v) => !v)}>
+        <Icon name={cur.icon} />
+      </button>
+      {open && (
+        <div className="menu theme-menu" onMouseLeave={() => setOpen(false)}>
+          {THEMES.map((t) => (
+            <button
+              key={t.id}
+              className={t.id === theme ? 'on' : ''}
+              onClick={() => {
+                set(t.id);
+                setTheme(t.id);
+                setOpen(false);
+              }}
+            >
+              <Icon name={t.icon} size={16} /> {t.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -449,6 +487,7 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
           )}
         </form>
         <div className="top-right">
+          <ThemePicker />
           <span className="who" title={`${me.email} · ${me.imapHost}`}>
             <Avatar addr={{ name: me.name, address: me.email }} size={28} />
           </span>
