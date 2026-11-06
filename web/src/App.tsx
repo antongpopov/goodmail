@@ -40,14 +40,15 @@ function Avatar({ addr, size = 32 }: { addr: { name: string; address: string }; 
   );
 }
 
-/** Drag handle between two panes; resizes the pane on its left. Double-click resets. */
-function Splitter({ width, min, max, onChange, storeKey }: { width: number; min: number; max: number; onChange: (w: number) => void; storeKey: string }) {
-  const defaults: Record<string, number> = { folderW: 220, listW: 380 };
+/** Drag handle between two panes; resizes the pane before it (left, or above for axis="y"). Double-click resets. */
+function Splitter({ width, min, max, onChange, storeKey, axis = 'x' }: { width: number; min: number; max: number; onChange: (w: number) => void; storeKey: string; axis?: 'x' | 'y' }) {
+  const defaults: Record<string, number> = { folderW: 220, listW: 380, listH: 300 };
+  const pos = (e: { clientX: number; clientY: number }) => (axis === 'x' ? e.clientX : e.clientY);
   return (
     <div
-      className="splitter"
+      className={`splitter ${axis === 'y' ? 'h' : ''}`}
       role="separator"
-      aria-orientation="vertical"
+      aria-orientation={axis === 'x' ? 'vertical' : 'horizontal'}
       title="Drag to resize · double-click to reset"
       onDoubleClick={() => {
         onChange(defaults[storeKey]);
@@ -58,11 +59,11 @@ function Splitter({ width, min, max, onChange, storeKey }: { width: number; min:
         const el = e.currentTarget;
         el.setPointerCapture(e.pointerId);
         el.classList.add('dragging');
-        document.body.classList.add('resizing');
-        const startX = e.clientX;
+        document.body.classList.add(axis === 'x' ? 'resizing' : 'resizing-h');
+        const startX = pos(e);
         let w = width;
         const move = (ev: PointerEvent) => {
-          w = Math.round(Math.min(max, Math.max(min, width + ev.clientX - startX)));
+          w = Math.round(Math.min(max, Math.max(min, width + pos(ev) - startX)));
           onChange(w);
         };
         const up = () => {
@@ -70,7 +71,7 @@ function Splitter({ width, min, max, onChange, storeKey }: { width: number; min:
           el.removeEventListener('pointerup', up);
           el.removeEventListener('pointercancel', up);
           el.classList.remove('dragging');
-          document.body.classList.remove('resizing');
+          document.body.classList.remove('resizing', 'resizing-h');
           save(storeKey, w);
         };
         el.addEventListener('pointermove', move);
@@ -87,30 +88,43 @@ const THEMES: { id: Theme; label: string; icon: string }[] = [
   { id: 'dark', label: 'Dark', icon: 'moon' },
 ];
 
-function ThemePicker() {
-  const [theme, set] = useState<Theme>(loadTheme);
+export type PaneMode = 'right' | 'below' | 'hidden';
+const PANES: { id: PaneMode; label: string }[] = [
+  { id: 'right', label: 'Right' },
+  { id: 'below', label: 'Below' },
+  { id: 'hidden', label: 'Hidden' },
+];
+
+function ViewMenu({ pane, onPane, preview, onPreview }: { pane: PaneMode; onPane: (p: PaneMode) => void; preview: boolean; onPreview: (v: boolean) => void }) {
   const [open, setOpen] = useState(false);
-  const cur = THEMES.find((t) => t.id === theme)!;
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
   return (
-    <div className="menu-wrap">
-      <button className="top-btn" title={`Theme: ${cur.label}`} onClick={() => setOpen((v) => !v)}>
-        <Icon name={cur.icon} />
+    <div className="menu-wrap" ref={ref}>
+      <button className="top-btn" title="View settings" onClick={() => setOpen((v) => !v)}>
+        <Icon name="settings" />
       </button>
       {open && (
-        <div className="menu theme-menu" onMouseLeave={() => setOpen(false)}>
-          {THEMES.map((t) => (
-            <button
-              key={t.id}
-              className={t.id === theme ? 'on' : ''}
-              onClick={() => {
-                set(t.id);
-                setTheme(t.id);
-                setOpen(false);
-              }}
-            >
-              <Icon name={t.icon} size={16} /> {t.label}
-            </button>
-          ))}
+        <div className="menu view-menu">
+          <div className="menu-label">Theme</div>
+          <ThemeSegment />
+          <div className="menu-label">Reading pane</div>
+          <div className="segment">
+            {PANES.map((p) => (
+              <button key={p.id} className={p.id === pane ? 'on' : ''} onClick={() => onPane(p.id)}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <div className="menu-label">Message list</div>
+          <label className="menu-check">
+            <input type="checkbox" checked={preview} onChange={(e) => onPreview(e.target.checked)} /> Show preview text
+          </label>
         </div>
       )}
     </div>
@@ -185,6 +199,17 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
   const [toast, setToast] = useState('');
   const [moveOpen, setMoveOpen] = useState(false);
   const [drawer, setDrawer] = useState(false);
+  const [pane, setPaneState] = useState<PaneMode>(() => store('pane', 'right'));
+  const [preview, setPreviewState] = useState(() => store('preview', false));
+  const [listH, setListH] = useState(() => store('listH', 300));
+  const setPane = (p: PaneMode) => {
+    setPaneState(p);
+    save('pane', p);
+  };
+  const setPreview = (v: boolean) => {
+    setPreviewState(v);
+    save('preview', v);
+  };
   const [remoteOk, setRemoteOk] = useState<Record<string, boolean>>(() => store('remoteOk', {}));
   const [showRemoteOnce, setShowRemoteOnce] = useState(false);
   const [blocked, setBlocked] = useState(false);
@@ -309,9 +334,10 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
 
   const isPhone = () => window.matchMedia('(max-width: 760px)').matches;
   const overlay = !!(open || compose);
+  const readingActive = !!(open || compose || openLoading);
   useEffect(() => {
-    if (overlay && isPhone() && !history.state?.gm) history.pushState({ gm: 1 }, '');
-  }, [overlay]);
+    if (overlay && (isPhone() || pane === 'hidden') && !history.state?.gm) history.pushState({ gm: 1 }, '');
+  }, [overlay, pane]);
   useEffect(() => {
     const onPop = () => {
       setOpen(null);
@@ -535,7 +561,7 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
         </form>
         <div className="top-right">
           <span className="desk-only">
-            <ThemePicker />
+            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} />
           </span>
           <span className="who" title={`${me.email} · ${me.imapHost}`}>
             <Avatar addr={{ name: me.name, address: me.email }} size={28} />
@@ -602,7 +628,7 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
             </button>
           </div>
 
-          <div className="panes">
+          <div className={`panes pane-${pane}`}>
             {drawer && <div className="backdrop" onClick={() => setDrawer(false)} />}
             {(!foldersHidden || drawer) && (
               <aside className={`folders ${drawer ? 'drawer-open' : ''}`} style={{ width: folderW }}>
@@ -630,6 +656,9 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
                 </button>
                 <div className="drawer-foot phone-only">
                   <ThemeSegment />
+                  <label className="menu-check">
+                    <input type="checkbox" checked={preview} onChange={(e) => setPreview(e.target.checked)} /> Show preview text
+                  </label>
                   <button className="folder" onClick={onLogout}>
                     <span className="twisty" />
                     <Icon name="signout" size={18} /> <span className="fname">Sign out</span>
@@ -639,7 +668,14 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
             )}
             {!foldersHidden && <Splitter width={folderW} min={150} max={480} onChange={setFolderW} storeKey="folderW" />}
 
-            <section className="list" style={{ width: listW }}>
+            <div className="work">
+            <section
+              className="list"
+              style={{
+                ...(pane === 'right' ? { width: listW } : pane === 'below' ? { height: listH } : {}),
+                ...(pane === 'hidden' && readingActive ? { display: 'none' } : {}),
+              }}
+            >
               <div className="list-head">
                 <div className="tabs">
                   {(['all', 'unread', 'flagged'] as const).map((f) => (
@@ -694,7 +730,7 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
                                 <span className="time">{listTime(m.date)}</span>
                               </span>
                             </div>
-                            <div className="row3">{m.snippet || ' '}</div>
+                            {preview && <div className="row3">{m.snippet || ' '}</div>}
                           </div>
                         </div>
                       );
@@ -704,7 +740,9 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
                 {hasMore && !searching && <div className="more">{loading ? 'Loading…' : ''}</div>}
               </div>
             </section>
-            <Splitter width={listW} min={260} max={900} onChange={setListW} storeKey="listW" />
+            {pane === 'right' && <Splitter width={listW} min={260} max={900} onChange={setListW} storeKey="listW" />}
+            {pane === 'below' && <Splitter axis="y" width={listH} min={120} max={900} onChange={setListH} storeKey="listH" />}
+            {(pane !== 'hidden' || readingActive) && (
 
             <main className="reading">
               {compose ? (
@@ -816,6 +854,8 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
                 </div>
               )}
             </main>
+            )}
+            </div>
           </div>
         </div>
       </div>
