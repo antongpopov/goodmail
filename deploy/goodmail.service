@@ -1,0 +1,27 @@
+[Unit]
+Description=goodmail webmail
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=goodmail
+Group=goodmail
+WorkingDirectory=/opt/goodmail
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=3077
+Environment=GOODMAIL_CONFIG=/etc/goodmail/goodmail.conf
+Environment=GOODMAIL_DATA=/var/lib/goodmail
+Environment=GOODMAIL_TRUST_PROXY=true
+ExecStart=/usr/bin/node /opt/goodmail/dist-server/index.mjs
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/goodmail
+StateDirectory=goodmail
+
+[Install]
+WantedBy=multi-user.target
