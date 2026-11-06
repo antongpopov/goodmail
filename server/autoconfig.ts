@@ -22,9 +22,9 @@ function pick(xml: string, type: 'incomingServer' | 'outgoingServer', proto: str
   return undefined;
 }
 
-async function ispdb(domain: string, email: string): Promise<GuessedSettings | undefined> {
+async function ispdb(domain: string, email: string, skipDomain = false): Promise<GuessedSettings | undefined> {
   const urls = [
-    `https://autoconfig.${domain}/mail/config-v1.1.xml?emailaddress=${encodeURIComponent(email)}`,
+    ...(skipDomain ? [] : [`https://autoconfig.${domain}/mail/config-v1.1.xml?emailaddress=${encodeURIComponent(email)}`]),
     `https://autoconfig.thunderbird.net/v1.1/${domain}`,
   ];
   for (const url of urls) {
@@ -48,16 +48,17 @@ async function ispdb(domain: string, email: string): Promise<GuessedSettings | u
   return undefined;
 }
 
-export async function guessSettings(email: string): Promise<GuessedSettings> {
+/** skipDomainAutoconfig: don't fetch from a user-supplied domain (used for user-added accounts). */
+export async function guessSettings(email: string, opts: { skipDomainAutoconfig?: boolean } = {}): Promise<GuessedSettings> {
   const domain = email.split('@')[1]?.toLowerCase() || '';
-  const found = domain ? await ispdb(domain, email) : undefined;
+  const found = domain ? await ispdb(domain, email, opts.skipDomainAutoconfig) : undefined;
   if (found) return found;
   // Fall back to the MX host's domain (catches Google Workspace / M365 custom domains via ISPDB).
   try {
     const mx = (await dns.resolveMx(domain)).sort((a, b) => a.priority - b.priority)[0]?.exchange;
     const mxDomain = mx?.split('.').slice(-2).join('.');
     if (mxDomain && mxDomain !== domain) {
-      const viaMx = await ispdb(mxDomain, email);
+      const viaMx = await ispdb(mxDomain, email, opts.skipDomainAutoconfig);
       if (viaMx) return viaMx;
     }
   } catch {

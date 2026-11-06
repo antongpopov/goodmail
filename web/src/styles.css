@@ -365,6 +365,32 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .ev-hint { margin: -4px 0 0; }
 .att.ics { color: var(--brand); font-weight: 600; cursor: pointer; }
 
+/* ---------- accounts ---------- */
+.folders .account { width: 100%; text-align: left; cursor: pointer; border-radius: 4px; }
+.folders .account:hover { background: var(--hover); }
+.folders .account .count { margin-left: auto; color: var(--brand); font-size: 12px; }
+.acct-tree + .acct-tree { margin-top: 10px; }
+.menu-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 4px; border-radius: 4px; text-align: left; }
+.menu-btn:hover { background: var(--hover); }
+.accounts-dialog { padding: 0 20px 18px; max-width: 520px; }
+.dlg-head { display: flex; align-items: center; gap: 8px; padding: 14px 0 6px; position: sticky; top: 0; background: var(--surface); }
+.dlg-head h2 { flex: 1; margin: 0; font-size: 18px; font-weight: 600; }
+.acct-list { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 6px 0 4px; }
+.acct-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; }
+.acct-row + .acct-row { border-top: 1px solid var(--border); }
+.preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.preset { height: 44px; border: 1px solid var(--border); border-radius: 8px; font-weight: 600; background: var(--surface); }
+.preset:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
+.acct-note { background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; font-size: 13px; margin: 6px 0 0; }
+.acct-note a { color: var(--brand); font-weight: 600; }
+.acct-form { display: flex; flex-direction: column; gap: 12px; }
+.acct-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 500; }
+.acct-form input, .acct-form select { font: inherit; font-size: 14px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 7px 10px; }
+.acct-form input:focus { outline: none; border-color: var(--brand); }
+.srv-grid { display: grid; grid-template-columns: 1fr 130px; gap: 10px; }
+.srv-grid .wide { grid-column: 1 / -1; }
+.from-select { flex: 1; min-width: 0; border: 0; background: none; color: var(--text); font: inherit; height: 38px; outline: none; }
+
 .phone-only, .backdrop { display: none !important; }
 .segment { display: flex; gap: 2px; margin: 8px 8px 4px 12px; padding: 2px; border-radius: 6px; background: var(--hover); }
 .segment button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 30px; border-radius: 4px; font-size: 13px; color: var(--text-2); }
@@ -426,7 +452,7 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
   .contact-detail { position: absolute; inset: 0; z-index: 5; }
   .contacts:not(.detail-open) .contact-detail { display: none; }
   .contacts .back { display: inline-flex !important; }
-  .contact-form input, .contact-form textarea { font-size: 16px; }
+  .contact-form input, .contact-form textarea, .acct-form input, .acct-form select { font-size: 16px; }
   .calendar { padding-top: 0; }
   .cal-side, .desk-view { display: none !important; }
   .cal-main { border-radius: 0; box-shadow: none; }

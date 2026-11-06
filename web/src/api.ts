@@ -8,7 +8,7 @@ export interface Attachment { part: string; filename: string; type: string; size
 export interface Message {
   uid: number; folder: string; subject: string; date: number; from: Addr; to: Addr[]; cc: Addr[]; replyTo: Addr[];
   messageId: string; references: string[]; html: string; text: string; flagged: boolean; listUnsubscribe: string;
-  attachments: Attachment[];
+  attachments: Attachment[]; account?: string;
 }
 export interface Contact { id: string; name: string; emails: string[]; phones: string[]; company: string; notes: string; updated: number }
 export interface RRule { freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'; interval: number; until?: number; count?: number; byday?: string[] }
@@ -16,6 +16,7 @@ export interface CalEvent {
   id: string; uid: string; title: string; allDay: boolean; start: number | string; end: number | string;
   location: string; notes: string; color: string; rrule?: RRule; exdates?: (number | string)[]; updated: number;
 }
+export interface MailAccount { id: string; email: string; name: string; provider: string; imapHost: string; locked: boolean }
 export interface Me { email: string; name: string; imapHost: string }
 export interface ListResult { total: number; messages: Summary[]; hasMore: boolean }
 
@@ -42,6 +43,13 @@ async function call<T>(method: string, url: string, body?: unknown): Promise<T> 
   return data as T;
 }
 
+// The mailbox the mail calls below act on ("main" = the login mailbox). The UI shows one at a time.
+let cur = 'main';
+export const useAccount = (id: string) => {
+  cur = id;
+};
+export const currentAccount = () => cur;
+
 const q = (o: Record<string, string | number>) => new URLSearchParams(Object.entries(o).map(([k, v]) => [k, String(v)])).toString();
 
 export const api = {
@@ -49,16 +57,21 @@ export const api = {
   me: () => call<Me>('GET', '/api/me'),
   login: (body: Record<string, unknown>) => call<Me>('POST', '/api/login', body),
   logout: () => call('POST', '/api/logout', {}),
-  folders: () => call<Folder[]>('GET', '/api/folders'),
-  messages: (folder: string, page: number) => call<ListResult>('GET', `/api/messages?${q({ folder, page })}`),
-  search: (folder: string, text: string) => call<ListResult>('GET', `/api/search?${q({ folder, q: text })}`),
-  message: (folder: string, uid: number) => call<Message>('GET', `/api/message?${q({ folder, uid })}`),
+  folders: (account = cur) => call<Folder[]>('GET', `/api/folders?${q({ account })}`),
+  messages: (folder: string, page: number) => call<ListResult>('GET', `/api/messages?${q({ folder, page, account: cur })}`),
+  search: (folder: string, text: string) => call<ListResult>('GET', `/api/search?${q({ folder, q: text, account: cur })}`),
+  message: (folder: string, uid: number) => call<Message>('GET', `/api/message?${q({ folder, uid, account: cur })}`).then((m) => ({ ...m, account: cur })),
   flags: (folder: string, uids: number[], add: string[], remove: string[] = []) =>
-    call('POST', '/api/flags', { folder, uids, add, remove }),
-  move: (folder: string, uids: number[], to: string) => call<{ to: string }>('POST', '/api/move', { folder, uids, to }),
-  remove: (folder: string, uids: number[]) => call<{ permanent: boolean }>('POST', '/api/delete', { folder, uids }),
-  createFolder: (name: string) => call('POST', '/api/folder', { name }),
+    call('POST', '/api/flags', { folder, uids, add, remove, account: cur }),
+  move: (folder: string, uids: number[], to: string) => call<{ to: string }>('POST', '/api/move', { folder, uids, to, account: cur }),
+  remove: (folder: string, uids: number[]) => call<{ permanent: boolean }>('POST', '/api/delete', { folder, uids, account: cur }),
+  createFolder: (name: string) => call('POST', '/api/folder', { name, account: cur }),
   send: (body: Record<string, unknown>) => call('POST', '/api/send', body),
+  accounts: () => call<MailAccount[]>('GET', '/api/accounts'),
+  addAccount: (body: Record<string, unknown>) => call<MailAccount>('POST', '/api/accounts', body),
+  removeAccount: (id: string) => call('POST', '/api/accounts/delete', { id }),
+  guessAccount: (email: string) =>
+    call<{ imapHost: string; imapPort: number; smtpHost: string; smtpPort: number }>('POST', '/api/accounts/guess', { email }),
   contacts: () => call<Contact[]>('GET', '/api/contacts'),
   saveContact: (c: Partial<Contact>) => call<Contact>('POST', '/api/contacts', c),
   deleteContacts: (ids: string[]) => call('POST', '/api/contacts/delete', { ids }),
@@ -75,5 +88,5 @@ export const api = {
     }),
   icsExportUrl: '/api/events/export',
   attachmentUrl: (folder: string, uid: number, a: Attachment, inline = false) =>
-    `/api/attachment?${q({ folder, uid, part: a.part, name: a.filename, ...(inline ? { inline: 1 } : {}) })}`,
+    `/api/attachment?${q({ folder, uid, part: a.part, name: a.filename, account: cur, ...(inline ? { inline: 1 } : {}) })}`,
 };

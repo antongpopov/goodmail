@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { api, setUnauthorizedHandler } from './api.ts';
+import { api, setUnauthorizedHandler, useAccount } from './api.ts';
+import type { MailAccount } from './api.ts';
+import { AccountsDialog } from './Accounts.tsx';
 import type { Folder, Me, Message, Summary } from './api.ts';
 import { Icon, folderIcon } from './icons.tsx';
 import { Login } from './Login.tsx';
@@ -98,7 +100,7 @@ const PANES: { id: PaneMode; label: string }[] = [
   { id: 'hidden', label: 'Hidden' },
 ];
 
-function ViewMenu({ pane, onPane, preview, onPreview }: { pane: PaneMode; onPane: (p: PaneMode) => void; preview: boolean; onPreview: (v: boolean) => void }) {
+function ViewMenu({ pane, onPane, preview, onPreview, onAccounts }: { pane: PaneMode; onPane: (p: PaneMode) => void; preview: boolean; onPreview: (v: boolean) => void; onAccounts: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -128,6 +130,10 @@ function ViewMenu({ pane, onPane, preview, onPreview }: { pane: PaneMode; onPane
           <label className="menu-check">
             <input type="checkbox" checked={preview} onChange={(e) => onPreview(e.target.checked)} /> Show preview text
           </label>
+          <div className="menu-label">Mail accounts</div>
+          <button className="menu-btn" onClick={() => { setOpen(false); onAccounts(); }}>
+            <Icon name="people" size={16} /> Manage accounts…
+          </button>
         </div>
       )}
     </div>
@@ -183,8 +189,21 @@ function buildTree(list: Folder[]): FolderNode[] {
 }
 
 function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: () => void }) {
-  const [folders, setFolders] = useState<Folder[]>([]);
+  const mainAcct: MailAccount = { id: 'main', email: me.email, name: me.name, provider: 'main', imapHost: me.imapHost, locked: false };
+  const [accounts, setAccounts] = useState<MailAccount[]>([mainAcct]);
+  const [acct, setAcctState] = useState(() => store('acct', 'main'));
+  useAccount(acct); // every mail API call below acts on this mailbox
+  const [allFolders, setAllFolders] = useState<Record<string, Folder[]>>({});
+  const folders = allFolders[acct] ?? [];
+  const setFolders = (fn: (f: Folder[]) => Folder[]) => setAllFolders((all) => ({ ...all, [acct]: fn(all[acct] ?? []) }));
   const [folder, setFolder] = useState(() => store('folder', 'INBOX'));
+  const [acctDialog, setAcctDialog] = useState(false);
+  const goto = (id: string, path: string) => {
+    useAccount(id);
+    setAcctState(id);
+    save('acct', id);
+    setFolder(path);
+  };
   const [list, setList] = useState<Summary[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(0);
@@ -249,7 +268,39 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
     setTimeout(() => setToast((t) => (t === msg ? '' : t)), 3500);
   }, []);
 
-  const loadFolders = useCallback(() => api.folders().then(setFolders).catch(() => {}), []);
+  const acctRef = useRef(acct);
+  acctRef.current = acct;
+  const accountsRef = useRef(accounts);
+  accountsRef.current = accounts;
+  const loadFolders = useCallback(
+    () =>
+      Promise.all(
+        accountsRef.current
+          .filter((a) => !a.locked)
+          .map((a) =>
+            api
+              .folders(a.id)
+              .then((f) => setAllFolders((all) => ({ ...all, [a.id]: f })))
+              .catch(() => {}),
+          ),
+      ),
+    [],
+  );
+  const loadAccounts = useCallback(async () => {
+    try {
+      const list = await api.accounts();
+      setAccounts(list);
+      accountsRef.current = list;
+      if (!list.some((a) => a.id === acctRef.current && !a.locked)) goto('main', 'INBOX');
+      void loadFolders();
+    } catch {
+      /* keep what we have */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadFolders]);
+  useEffect(() => {
+    void loadAccounts();
+  }, [loadAccounts]);
 
   const loadList = useCallback(
     async (f: string, p: number, q: string, merge = false) => {
@@ -279,13 +330,14 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
 
   useEffect(() => {
     save('folder', folder);
+    useAccount(acct);
     setPage(0);
     setSelected(new Set());
     setOpen(null);
     setFilter('all');
     listRef.current?.scrollTo(0, 0);
     void loadList(folder, 0, searching);
-  }, [folder, searching, loadList]);
+  }, [folder, acct, searching, loadList]);
 
   // Background refresh: re-fetch the first page and folder counts.
   useEffect(() => {
@@ -298,7 +350,7 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
   }, [folder, page, searching, loadFolders, loadList]);
 
   const current = folders.find((f) => f.path === folder);
-  const tree = useMemo(() => buildTree(folders), [folders]);
+  const trees = useMemo(() => Object.fromEntries(Object.entries(allFolders).map(([id, f]) => [id, buildTree(f)])), [allFolders]);
   const visible = useMemo(
     () => list.filter((m) => (filter === 'unread' ? !m.seen : filter === 'flagged' ? m.flagged : true)),
     [list, filter],
@@ -518,22 +570,22 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
   const toggleJunk = (uids = targetUids()) => doMove(inJunk ? 'INBOX' : 'junk', uids);
   const has = targetUids().length > 0;
 
-  const renderFolder = (n: FolderNode): React.ReactNode => (
+  const renderFolder = (n: FolderNode, aid: string): React.ReactNode => (
     <div key={n.path}>
       <div
-        className={`folder ${n.path === folder ? 'active' : ''}`}
+        className={`folder ${n.path === folder && aid === acct ? 'active' : ''}`}
         style={{ paddingLeft: 12 + n.depth * 14 }}
         onClick={() => {
           setSearching('');
           setQuery('');
-          setFolder(n.path);
+          goto(aid, n.path);
           setDrawer(false);
         }}
-        onDragOver={(e) => e.preventDefault()}
+        onDragOver={(e) => aid === acct && e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault();
           const uids = JSON.parse(e.dataTransfer.getData('application/x-goodmail') || '[]');
-          if (uids.length && n.path !== folder) void doMove(n.path, uids);
+          if (uids.length && aid === acct && n.path !== folder) void doMove(n.path, uids);
         }}
       >
         {n.children.length > 0 ? (
@@ -541,12 +593,13 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
             className="twisty"
             onClick={(e) => {
               e.stopPropagation();
-              const c = { ...collapsed, [n.path]: !collapsed[n.path] };
+              const k = `${aid}:${n.path}`;
+              const c = { ...collapsed, [k]: !collapsed[k] };
               setCollapsed(c);
               save('collapsed', c);
             }}
           >
-            <Icon name={collapsed[n.path] ? 'chevronRight' : 'chevronDown'} size={14} />
+            <Icon name={collapsed[`${aid}:${n.path}`] ? 'chevronRight' : 'chevronDown'} size={14} />
           </button>
         ) : (
           <span className="twisty" />
@@ -555,7 +608,7 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
         <span className="fname">{n.name}</span>
         {n.unseen > 0 && n.specialUse !== '\\Sent' && <span className="count">{n.unseen}</span>}
       </div>
-      {!collapsed[n.path] && n.children.map(renderFolder)}
+      {!collapsed[`${aid}:${n.path}`] && n.children.map((c) => renderFolder(c, aid))}
     </div>
   );
 
@@ -593,7 +646,7 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
         </form>
         <div className="top-right">
           <span className="desk-only">
-            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} />
+            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} onAccounts={() => setAcctDialog(true)} />
           </span>
           <span className="who" title={`${me.email} · ${me.imapHost}`}>
             <Avatar addr={{ name: me.name, address: me.email }} size={28} />
@@ -691,11 +744,34 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
             {drawer && <div className="backdrop" onClick={() => setDrawer(false)} />}
             {(!foldersHidden || drawer) && (
               <aside className={`folders ${drawer ? 'drawer-open' : ''}`} style={{ width: folderW }}>
-                <div className="account">
-                  <Icon name="chevronDown" size={14} />
-                  <span title={me.email}>{me.email}</span>
-                </div>
-                {tree.map(renderFolder)}
+                {accounts.map((a) => {
+                  const k = `acct:${a.id}`;
+                  const unseen = (allFolders[a.id] || []).find((f) => f.specialUse === '\\Inbox')?.unseen || 0;
+                  return (
+                    <div key={a.id} className="acct-tree">
+                      <button
+                        className="account"
+                        onClick={() => {
+                          const c = { ...collapsed, [k]: !collapsed[k] };
+                          setCollapsed(c);
+                          save('collapsed', c);
+                        }}
+                        title={a.email}
+                      >
+                        <Icon name={collapsed[k] ? 'chevronRight' : 'chevronDown'} size={14} />
+                        <span>{a.email}</span>
+                        {collapsed[k] && unseen > 0 && <span className="count">{unseen}</span>}
+                      </button>
+                      {a.locked && (
+                        <button className="folder muted" onClick={() => setAcctDialog(true)}>
+                          <span className="twisty" />
+                          <Icon name="close" size={16} /> <span className="fname">Locked — re-enter password</span>
+                        </button>
+                      )}
+                      {!collapsed[k] && (trees[a.id] || []).map((n) => renderFolder(n, a.id))}
+                    </div>
+                  );
+                })}
                 <button
                   className="folder add"
                   onClick={async () => {
@@ -712,6 +788,10 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
                 >
                   <span className="twisty" />
                   <Icon name="plus" size={16} /> <span className="fname">Create new folder</span>
+                </button>
+                <button className="folder add" onClick={() => setAcctDialog(true)}>
+                  <span className="twisty" />
+                  <Icon name="people" size={16} /> <span className="fname">Add account</span>
                 </button>
                 <div className="drawer-foot phone-only">
                   <button className="folder" onClick={() => { setView('calendar'); setDrawer(false); }}>
@@ -820,6 +900,8 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
                   key={`${compose.mode}-${compose.source?.uid ?? 'new'}`}
                   me={me}
                   init={compose}
+                  accounts={accounts.filter((a) => !a.locked)}
+                  defaultFrom={compose.source?.account || acct}
                   contacts={contacts}
                   onClose={() => setCompose(null)}
                   onSent={() => {
@@ -957,6 +1039,14 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
         <button className="fab phone-only" onClick={() => setCompose({ mode: 'new' })}>
           <Icon name="compose" /> New mail
         </button>
+      )}
+      {acctDialog && (
+        <AccountsDialog
+          accounts={accounts}
+          onClose={() => setAcctDialog(false)}
+          onChanged={() => void loadAccounts()}
+          flash={flash}
+        />
       )}
       {toast && <div className="toast">{toast}</div>}
     </div>

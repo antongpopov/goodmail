@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from './api.ts';
-import type { Me, Message } from './api.ts';
+import type { Me, Message, MailAccount } from './api.ts';
 import { Icon } from './icons.tsx';
 import { escapeHtml, fullAddr, fullTime, humanSize, parseRecipients, textToHtml } from './util.ts';
 import DOMPurify from 'dompurify';
@@ -35,7 +35,8 @@ function initial(me: Me, init: ComposeInit) {
   return { to, cc, subject: prefix(s.subject, 'Re'), quote };
 }
 
-export function Compose({ me, init, contacts, onClose, onSent }: { me: Me; init: ComposeInit; contacts: string[]; onClose: () => void; onSent: () => void }) {
+export function Compose({ me, init, contacts, onClose, onSent, accounts, defaultFrom }: { me: Me; init: ComposeInit; contacts: string[]; onClose: () => void; onSent: () => void; accounts: MailAccount[]; defaultFrom: string }) {
+  const [from, setFrom] = useState(() => (accounts.some((a) => a.id === defaultFrom) ? defaultFrom : 'main'));
   const start = useRef(initial(me, init)).current;
   const [to, setTo] = useState(start.to);
   const [cc, setCc] = useState(start.cc);
@@ -89,6 +90,7 @@ export function Compose({ me, init, contacts, onClose, onSent }: { me: Me; init:
     const s = init.source;
     try {
       await api.send({
+        account: from,
         to: parseRecipients(to),
         cc: parseRecipients(cc),
         bcc: parseRecipients(bcc),
@@ -97,7 +99,7 @@ export function Compose({ me, init, contacts, onClose, onSent }: { me: Me; init:
         text: editor.current?.innerText || '',
         inReplyTo: s && init.mode !== 'forward' ? s.messageId : undefined,
         references: s && init.mode !== 'forward' ? [...s.references, s.messageId].filter(Boolean) : undefined,
-        replyTo: s && init.mode !== 'forward' ? { folder: s.folder, uid: s.uid } : undefined,
+        replyTo: s && init.mode !== 'forward' ? { folder: s.folder, uid: s.uid, account: s.account } : undefined,
         attachments: atts.map(({ filename, type, content }) => ({ filename, type, content })),
       });
       onSent();
@@ -166,6 +168,18 @@ export function Compose({ me, init, contacts, onClose, onSent }: { me: Me; init:
         ))}
       </datalist>
       <div className="compose-fields">
+        {accounts.length > 1 && (
+          <div className="field">
+            <span className="field-label">From</span>
+            <select className="from-select" value={from} onChange={(e) => setFrom(e.target.value)}>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name ? `${a.name} <${a.email}>` : a.email}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="field">
           <span className="field-label">To</span>
           <input id="gm-to" list="gm-contacts" value={to} onChange={(e) => setTo(e.target.value)} />

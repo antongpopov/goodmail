@@ -43,3 +43,26 @@ export function unseal(token: string): Sealed | undefined {
     return undefined;
   }
 }
+
+/** Per-user key for stored extra-account passwords: needs both the server key and the user's own password. */
+export function userKey(email: string, pass: string) {
+  return Buffer.from(crypto.hkdfSync('sha256', Buffer.concat([KEY, Buffer.from(pass, 'utf8')]), email.toLowerCase(), 'goodmail accounts v1', 32));
+}
+
+export function encryptWith(key: Buffer, text: string) {
+  const iv = crypto.randomBytes(12);
+  const c = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const body = Buffer.concat([c.update(text, 'utf8'), c.final()]);
+  return Buffer.concat([iv, c.getAuthTag(), body]).toString('base64');
+}
+
+export function decryptWith(key: Buffer, token: string): string | undefined {
+  try {
+    const buf = Buffer.from(token, 'base64');
+    const d = crypto.createDecipheriv('aes-256-gcm', key, buf.subarray(0, 12));
+    d.setAuthTag(buf.subarray(12, 28));
+    return Buffer.concat([d.update(buf.subarray(28)), d.final()]).toString('utf8');
+  } catch {
+    return undefined;
+  }
+}

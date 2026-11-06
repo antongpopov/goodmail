@@ -22,28 +22,17 @@ export interface Account {
 const IDLE_CLOSE_MS = 10 * 60 * 1000; // drop the IMAP socket after 10 min of no requests
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // force re-login after 12 h of inactivity
 
-/**
- * One logged-in browser, keyed by a hash of its login cookie. The cookie carries the
- * sealed credentials (see vault.ts), so after a restart the session is rebuilt from it.
- */
-export class Session {
-  readonly id: string;
-  readonly account: Account;
-  lastUsed = Date.now();
+/** One mailbox: its settings plus a lazily opened, reused IMAP connection. */
+export class Conn {
+  account: Account;
   private client: ImapFlow | null = null;
   private connecting: Promise<ImapFlow> | null = null;
 
-  constructor(account: Account, id = crypto.randomBytes(32).toString('base64url')) {
+  constructor(account: Account) {
     this.account = account;
-    this.id = id;
-  }
-
-  touch() {
-    this.lastUsed = Date.now();
   }
 
   async imap(): Promise<ImapFlow> {
-    this.touch();
     if (this.client?.usable) return this.client;
     if (this.connecting) return this.connecting;
     this.connecting = connectImap(this.account)
@@ -80,6 +69,42 @@ export class Session {
   }
 }
 
+/**
+ * One logged-in browser, keyed by a hash of its login cookie. The cookie carries the
+ * sealed credentials (see vault.ts), so after a restart the session is rebuilt from it.
+ * Besides the main mailbox it holds the user's own extra accounts (see accounts.ts).
+ */
+export class Session extends Conn {
+  readonly id: string;
+  lastUsed = Date.now();
+  /** Key for the user's stored extra-account passwords; derived from their main password, memory only. */
+  userKey: Buffer | null = null;
+  readonly extra = new Map<string, Conn>();
+
+  constructor(account: Account, id = crypto.randomBytes(32).toString('base64url')) {
+    super(account);
+    this.id = id;
+  }
+
+  touch() {
+    this.lastUsed = Date.now();
+  }
+
+  override imap() {
+    this.touch();
+    return super.imap();
+  }
+
+  /** "main" (or nothing) = the login mailbox; otherwise an extra account id. */
+  acct(id: string | undefined): Conn | undefined {
+    return !id || id === 'main' ? this : this.extra.get(id);
+  }
+
+  async closeAll() {
+    await Promise.all([this.closeImap(), ...[...this.extra.values()].map((c) => c.closeImap())]);
+  }
+}
+
 export function connectImap(a: Account): Promise<ImapFlow> {
   const c = new ImapFlow({
     host: a.imapHost,
@@ -107,13 +132,13 @@ export function getSession(id: string | undefined) {
 export async function dropSession(id: string) {
   const s = sessions.get(id);
   sessions.delete(id);
-  await s?.closeImap();
+  await s?.closeAll();
 }
 
 setInterval(() => {
   const now = Date.now();
   for (const s of sessions.values()) {
     if (now - s.lastUsed > SESSION_TTL_MS) void dropSession(s.id);
-    else if (now - s.lastUsed > IDLE_CLOSE_MS) void s.closeImap();
+    else if (now - s.lastUsed > IDLE_CLOSE_MS) void s.closeAll();
   }
 }, 60_000).unref();

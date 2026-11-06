@@ -7,10 +7,13 @@ import nodemailer from 'nodemailer';
 import { simpleParser } from 'mailparser';
 import type { ImapFlow, ListResponse, MessageStructureObject, FetchMessageObject } from 'imapflow';
 import { Session, addSession, getSession, dropSession, connectImap } from './session.ts';
+import type { Conn } from './session.ts';
+import { attachAccounts, listAccounts, addAccount, removeAccount } from './accounts.ts';
+import { guessSettings } from './autoconfig.ts';
 import type { Account } from './session.ts';
 import crypto from 'node:crypto';
 import { serversFor, appTitle, normalizeLogin } from './config.ts';
-import { seal, unseal } from './vault.ts';
+import { seal, unseal, userKey } from './vault.ts';
 import { previewPart, attachments, makeSnippet } from './mime.ts';
 import { loadEvents, saveEvent, deleteEvents, importEvents, parseIcs, toIcs } from './calendar.ts';
 import { loadContacts, saveContact, deleteContacts, importContacts, parseVCard, parseCsv, toVCard, toCsv } from './contacts.ts';
@@ -51,6 +54,14 @@ function cookie(req: Request, name: string) {
 
 type Authed = Request & { session: Session };
 
+/** The mailbox a mail request is about: ?account= / body.account, default the login mailbox. */
+function conn(req: Authed): Conn {
+  const id = String((req.method === 'GET' ? req.query.account : req.body?.account) || 'main');
+  const c = req.session.acct(id);
+  if (!c) throw Object.assign(new Error('That account is no longer available — refresh the page'), { status: 404 });
+  return c;
+}
+
 function requireCsrfHeader(req: Request, res: Response, next: NextFunction) {
   // Browsers can't send custom headers cross-site without a CORS preflight we never approve.
   if (req.method !== 'GET' && req.get('x-goodmail') !== '1') return res.status(403).json({ error: 'csrf' });
@@ -78,6 +89,8 @@ async function auth(req: Request, res: Response, next: NextFunction) {
     const account = v && (await accountFor(v.email, v.pass).catch(() => undefined));
     if (!account) return res.status(401).json({ error: 'not logged in' });
     s = new Session(account, id);
+    s.userKey = userKey(v!.email, v!.pass);
+    await attachAccounts(s).catch((e) => console.warn('extra accounts:', e.message));
     addSession(s);
   }
   (req as Authed).session = s;
@@ -92,7 +105,7 @@ const wrap =
         res.status(err?.status || 500).json({ error: err?.responseText || err?.message || 'server error' });
     });
 
-async function withFolder<T>(s: Session, folder: string, fn: (c: ImapFlow) => Promise<T>, readOnly = false): Promise<T> {
+async function withFolder<T>(s: Conn, folder: string, fn: (c: ImapFlow) => Promise<T>, readOnly = false): Promise<T> {
   const c = await s.imap();
   const lock = await c.getMailboxLock(folder, { readOnly });
   try {
@@ -102,9 +115,9 @@ async function withFolder<T>(s: Session, folder: string, fn: (c: ImapFlow) => Pr
   }
 }
 
-const folderCache = new WeakMap<Session, ListResponse[]>();
+const folderCache = new WeakMap<Conn, ListResponse[]>();
 
-async function folders(s: Session, refresh = false) {
+async function folders(s: Conn, refresh = false) {
   let list = folderCache.get(s);
   if (!list || refresh) {
     const c = await s.imap();
@@ -122,7 +135,7 @@ const NAME_FALLBACK: Record<string, RegExp> = {
   '\\Archive': /^(archive|archiv)$/i,
 };
 
-async function special(s: Session, use: string): Promise<string | undefined> {
+async function special(s: Conn, use: string): Promise<string | undefined> {
   const list = await folders(s);
   return (
     list.find((f) => f.specialUse === use)?.path ??
@@ -159,7 +172,7 @@ function summarize(m: FetchMessageObject, snippet: string) {
 }
 
 /** Fetch envelopes for a uid/seq range, then preview text grouped by part key (one FETCH per distinct key). */
-async function listMessages(s: Session, c: ImapFlow, folder: string, range: string | number[], byUid: boolean) {
+async function listMessages(s: Conn, c: ImapFlow, folder: string, range: string | number[], byUid: boolean) {
   const msgs: FetchMessageObject[] = [];
   for await (const m of c.fetch(
     range,
@@ -237,7 +250,10 @@ app.post(
     attempts.delete(req.ip || '?');
     const remember = b.remember !== false;
     const token = seal({ email, pass, exp: Date.now() + (remember ? YEAR : 12 * 3600) * 1000 });
-    addSession(new Session(account, tokenId(token)));
+    const sess = new Session(account, tokenId(token));
+    sess.userKey = userKey(email, pass);
+    await attachAccounts(sess).catch((e) => console.warn('extra accounts:', e.message));
+    addSession(sess);
     res.setHeader(
       'Set-Cookie',
       `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict${remember ? `; Max-Age=${YEAR}` : ''}${SECURE_COOKIE ? '; Secure' : ''}`,
@@ -264,7 +280,7 @@ app.get(
   '/api/folders',
   auth,
   wrap(async (req, res) => {
-    const list = await folders(req.session, true);
+    const list = await folders(conn(req), true);
     res.json(
       list
         .filter((f) => !f.flags?.has('\\Noselect') && !f.flags?.has('\\NonExistent'))
@@ -292,14 +308,14 @@ app.get(
     const folder = String(req.query.folder || 'INBOX');
     const page = Math.max(0, Number(req.query.page || 0));
     const out = await withFolder(
-      req.session,
+      conn(req),
       folder,
       async (c) => {
         const exists = c.mailbox ? c.mailbox.exists : 0;
         const to = exists - page * PAGE;
         if (to < 1) return { total: exists, messages: [], hasMore: false };
         const from = Math.max(1, to - PAGE + 1);
-        const messages = await listMessages(req.session, c, folder, `${from}:${to}`, false);
+        const messages = await listMessages(conn(req), c, folder, `${from}:${to}`, false);
         return { total: exists, messages, hasMore: from > 1 };
       },
       true,
@@ -316,12 +332,12 @@ app.get(
     const q = String(req.query.q || '').trim();
     if (!q) return res.json({ total: 0, messages: [], hasMore: false });
     const out = await withFolder(
-      req.session,
+      conn(req),
       folder,
       async (c) => {
         const uids = (await c.search({ or: [{ subject: q }, { from: q }, { to: q }, { body: q }] }, { uid: true })) || [];
         const top = uids.sort((a, b) => b - a).slice(0, 200);
-        const messages = top.length ? await listMessages(req.session, c, folder, top, true) : [];
+        const messages = top.length ? await listMessages(conn(req), c, folder, top, true) : [];
         return { total: uids.length, messages, hasMore: false };
       },
       true,
@@ -336,7 +352,7 @@ app.get(
   wrap(async (req, res) => {
     const folder = String(req.query.folder || 'INBOX');
     const uid = Number(req.query.uid);
-    const out = await withFolder(req.session, folder, async (c) => {
+    const out = await withFolder(conn(req), folder, async (c) => {
       const m = await c.fetchOne(String(uid), { uid: true, source: true, bodyStructure: true, flags: true, envelope: true }, { uid: true });
       if (!m || !m.source) throw Object.assign(new Error('message not found'), { status: 404 });
       const parsed = await simpleParser(m.source);
@@ -376,7 +392,7 @@ app.get(
     const uid = String(Number(req.query.uid));
     const part = String(req.query.part || '1');
     if (!/^[0-9.]+$/.test(part)) return res.status(400).json({ error: 'bad part' });
-    await withFolder(req.session, folder, async (c) => {
+    await withFolder(conn(req), folder, async (c) => {
       const dl = await c.download(uid, part, { uid: true });
       if (!dl?.content) throw Object.assign(new Error('attachment not found'), { status: 404 });
       const content = dl.content;
@@ -403,7 +419,7 @@ app.post(
     const { folder = 'INBOX', add = [], remove = [] } = req.body || {};
     const allowed = new Set(['\\Seen', '\\Flagged', '\\Answered']);
     const uids = uidList(req.body);
-    await withFolder(req.session, folder, async (c) => {
+    await withFolder(conn(req), folder, async (c) => {
       const a = add.filter((f: string) => allowed.has(f));
       const r = remove.filter((f: string) => allowed.has(f));
       if (a.length) await c.messageFlagsAdd(uids, a, { uid: true });
@@ -421,16 +437,16 @@ app.post(
     const uids = uidList(req.body);
     let dest: string | undefined = to;
     if (to === 'archive' || to === 'junk') {
-      dest = await special(req.session, to === 'archive' ? '\\Archive' : '\\Junk');
+      dest = await special(conn(req), to === 'archive' ? '\\Archive' : '\\Junk');
       if (!dest && to === 'archive') {
-        const c = await req.session.imap();
+        const c = await conn(req).imap();
         await c.mailboxCreate('Archive').catch(() => {});
-        await folders(req.session, true);
+        await folders(conn(req), true);
         dest = 'Archive';
       }
     }
     if (!dest) return res.status(400).json({ error: `no ${to} folder on this server` });
-    await withFolder(req.session, folder, (c) => c.messageMove(uids, dest!, { uid: true }));
+    await withFolder(conn(req), folder, (c) => c.messageMove(uids, dest!, { uid: true }));
     res.json({ ok: true, to: dest });
   }),
 );
@@ -441,8 +457,8 @@ app.post(
   wrap(async (req, res) => {
     const { folder = 'INBOX' } = req.body || {};
     const uids = uidList(req.body);
-    const trash = await special(req.session, '\\Trash');
-    await withFolder(req.session, folder, async (c) => {
+    const trash = await special(conn(req), '\\Trash');
+    await withFolder(conn(req), folder, async (c) => {
       if (trash && trash !== folder) await c.messageMove(uids, trash, { uid: true });
       else await c.messageDelete(uids, { uid: true });
     });
@@ -456,7 +472,7 @@ app.post(
   wrap(async (req, res) => {
     const name = String(req.body?.name || '').trim();
     if (!name) return res.status(400).json({ error: 'name required' });
-    const c = await req.session.imap();
+    const c = await conn(req).imap();
     await c.mailboxCreate(name);
     res.json({ ok: true });
   }),
@@ -468,7 +484,7 @@ app.post(
   '/api/send',
   auth,
   wrap(async (req, res) => {
-    const s = req.session;
+    const s = conn(req);
     const b = req.body || {};
     const from = s.account.name ? { name: s.account.name, address: s.account.email } : s.account.email;
     const mail = {
@@ -496,9 +512,48 @@ app.post(
       if (sent) await (await s.imap()).append(sent, raw, ['\\Seen']).catch((e) => console.warn('save to Sent failed', e.message));
     }
     if (b.replyTo?.uid && b.replyTo?.folder) {
-      await withFolder(s, b.replyTo.folder, (c) => c.messageFlagsAdd(String(b.replyTo.uid), ['\\Answered'], { uid: true })).catch(() => {});
+      const rc = req.session.acct(b.replyTo.account) ?? s;
+      await withFolder(rc, b.replyTo.folder, (c) => c.messageFlagsAdd(String(b.replyTo.uid), ['\\Answered'], { uid: true })).catch(() => {});
     }
     res.json({ ok: true, messageId: built.messageId });
+  }),
+);
+
+// ---------- extra accounts (user-managed) ----------
+
+app.get(
+  '/api/accounts',
+  auth,
+  wrap(async (req, res) => {
+    const a = req.session.account;
+    res.json([{ id: 'main', email: a.email, name: a.name, provider: 'main', imapHost: a.imapHost, locked: false }, ...(await listAccounts(req.session))]);
+  }),
+);
+
+app.post(
+  '/api/accounts',
+  auth,
+  wrap(async (req, res) => {
+    res.json(await addAccount(req.session, req.body || {}));
+  }),
+);
+
+app.post(
+  '/api/accounts/delete',
+  auth,
+  wrap(async (req, res) => {
+    await removeAccount(req.session, String(req.body?.id || ''));
+    res.json({ ok: true });
+  }),
+);
+
+app.post(
+  '/api/accounts/guess',
+  auth,
+  wrap(async (req, res) => {
+    const email = String(req.body?.email || '').trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'invalid email' });
+    res.json(await guessSettings(email, { skipDomainAutoconfig: true }));
   }),
 );
 
