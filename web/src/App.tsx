@@ -12,13 +12,15 @@ import type { ComposeInit } from './Compose.tsx';
 import { MailBody } from './MailBody.tsx';
 import { Contacts } from './Contacts.tsx';
 import { Calendar } from './Calendar.tsx';
-import { bucket, displayName, fullAddr, fullTime, humanSize, listTime, save, store } from './util.ts';
+import { bucket, displayName, fullAddr, fullTime, humanSize, save, store } from './util.ts';
 import { t } from './i18n.ts';
 import { listCache, msgCache, msgKey, rememberMsg } from './cache.ts';
 import { folderLabel, buildTree } from './folders.ts';
 import type { FolderNode } from './folders.ts';
 import { Avatar } from './Avatar.tsx';
 import { Splitter } from './Splitter.tsx';
+import { MessageItem } from './MessageItem.tsx';
+import { FolderRow } from './FolderRow.tsx';
 import { ViewMenu, Appearance } from './ViewMenu.tsx';
 import { SpamBar } from './SpamBar.tsx';
 import { useAddressBook, useLayout, usePhoneWidth, useToast } from './hooks.ts';
@@ -452,46 +454,22 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   const toggleJunk = (uids = targetUids()) => doMove(inJunk ? 'INBOX' : 'junk', uids);
   const has = targetUids().length > 0;
 
+  const openFolder = (aid: string, path: string) => {
+    setSearching('');
+    setQuery('');
+    goto(aid, path);
+    setDrawer(false);
+  };
+  const toggleCollapsed = (k: string) => {
+    const c = { ...collapsed, [k]: !collapsed[k] };
+    setCollapsed(c);
+    save('collapsed', c);
+  };
+  const dropOnFolder = (aid: string, path: string, uids: number[]) => {
+    if (uids.length && aid === acct && path !== folder) void doMove(path, uids);
+  };
   const renderFolder = (n: FolderNode, aid: string): React.ReactNode => (
-    <div key={n.path}>
-      <div
-        className={`folder ${n.path === folder && aid === acct ? 'active' : ''}`}
-        style={{ paddingLeft: 12 + n.depth * 14 }}
-        onClick={() => {
-          setSearching('');
-          setQuery('');
-          goto(aid, n.path);
-          setDrawer(false);
-        }}
-        onDragOver={(e) => aid === acct && e.preventDefault()}
-        onDrop={(e) => {
-          e.preventDefault();
-          const uids = JSON.parse(e.dataTransfer.getData('application/x-goodmail') || '[]');
-          if (uids.length && aid === acct && n.path !== folder) void doMove(n.path, uids);
-        }}
-      >
-        {n.children.length > 0 ? (
-          <button
-            className="twisty"
-            onClick={(e) => {
-              e.stopPropagation();
-              const k = `${aid}:${n.path}`;
-              const c = { ...collapsed, [k]: !collapsed[k] };
-              setCollapsed(c);
-              save('collapsed', c);
-            }}
-          >
-            <Icon name={collapsed[`${aid}:${n.path}`] ? 'chevronRight' : 'chevronDown'} size={14} />
-          </button>
-        ) : (
-          <span className="twisty" />
-        )}
-        <Icon name={folderIcon(n.specialUse)} size={18} />
-        <span className="fname">{folderLabel(n)}</span>
-        {n.unseen > 0 && n.specialUse !== '\\Sent' && <span className="count">{n.unseen}</span>}
-      </div>
-      {!collapsed[`${aid}:${n.path}`] && n.children.map((c) => renderFolder(c, aid))}
-    </div>
+    <FolderRow key={n.path} n={n} aid={aid} acct={acct} folder={folder} collapsed={collapsed} onOpen={openFolder} onToggle={toggleCollapsed} onDrop={dropOnFolder} />
   );
 
   return (
@@ -724,53 +702,22 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                 {groups.map((g) => (
                   <div key={g.label}>
                     <div className="group">{g.label}</div>
-                    {g.items.map((m) => {
-                      const who = isSentFolder ? m.to[0] || m.from : m.from;
-                      return (
-                        <div
-                          key={m.uid}
-                          data-uid={m.uid}
-                          className={`item ${m.seen ? '' : 'unread'} ${selected.has(m.uid) ? 'sel' : ''} ${m.flagged ? 'flagged' : ''}`}
-                          onClick={(e) => select(m, e)}
-                          draggable
-                          onDragStart={(e) => {
-                            const uids = selected.has(m.uid) ? [...selected] : [m.uid];
-                            e.dataTransfer.setData('application/x-goodmail', JSON.stringify(uids));
-                          }}
-                        >
-                          <Avatar addr={who} />
-                          <div className="item-main">
-                            <div className="row1">
-                              <span className="sender">{isSentFolder ? t('To: {name}', { name: displayName(who) }) : displayName(who)}</span>
-                              <span className="item-actions">
-                                <button title={t('Flag')} className={m.flagged ? 'on' : ''} onClick={(e) => { e.stopPropagation(); void setFlag([m.uid], '\\Flagged', !m.flagged); }}>
-                                  <Icon name="flag" size={16} filled={m.flagged} />
-                                </button>
-                                <button title={m.seen ? t('Mark unread') : t('Mark read')} onClick={(e) => { e.stopPropagation(); void setFlag([m.uid], '\\Seen', !m.seen); }}>
-                                  <Icon name="unread" size={16} />
-                                </button>
-                                <button title={inJunk ? t('Not junk') : t('Mark as junk')} onClick={(e) => { e.stopPropagation(); void toggleJunk([m.uid]); }}>
-                                  <Icon name={inJunk ? 'inbox' : 'junk'} size={16} />
-                                </button>
-                                <button title={t('Delete')} onClick={(e) => { e.stopPropagation(); void doDelete([m.uid]); }}>
-                                  <Icon name="trash" size={16} />
-                                </button>
-                              </span>
-                            </div>
-                            <div className="row2">
-                              <span className="subject">{m.subject || t('(no subject)')}</span>
-                              <span className="meta">
-                                {m.hasAttachments && <Icon name="clip" size={14} />}
-                                {m.answered && <Icon name="reply" size={14} />}
-                                {m.flagged && <span className="flag-mark"><Icon name="flag" size={14} filled /></span>}
-                                <span className="time">{listTime(m.date)}</span>
-                              </span>
-                            </div>
-                            {preview && <div className="row3">{m.snippet || ' '}</div>}
-                          </div>
-                        </div>
-                      );
-                    })}
+                    {g.items.map((m) => (
+                      <MessageItem
+                        key={m.uid}
+                        m={m}
+                        who={isSentFolder ? m.to[0] || m.from : m.from}
+                        isSentFolder={isSentFolder}
+                        selected={selected.has(m.uid)}
+                        selectedUids={selected}
+                        preview={preview}
+                        inJunk={inJunk}
+                        onSelect={select}
+                        onFlag={setFlag}
+                        onToggleJunk={toggleJunk}
+                        onDelete={doDelete}
+                      />
+                    ))}
                   </div>
                 ))}
                 {hasMore && !searching && <div className="more">{loading ? t('Loading…') : ''}</div>}
