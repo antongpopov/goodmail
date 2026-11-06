@@ -93,4 +93,10 @@ export const fr: Dict = {
   'At most {x} extra accounts': 'Au maximum {x} comptes supplémentaires', 'Please sign in again to add accounts': 'Reconnectez-vous pour ajouter des comptes',
   'Email address and password are required': "L'adresse e-mail et le mot de passe sont obligatoires",
   'That is the account you are signed in with': "C'est le compte avec lequel vous êtes connecté",
+  // spam bar
+  "Not spam": "Pas de spam",
+  "Possibly spam": "Peut-être du spam",
+  "Likely spam": "Probablement du spam",
+  "Spam score {score} (junk at {threshold}{reject}) · {engine}": "Score de spam {score} (indésirable dès {threshold}{reject}) · {engine}",
+  ", rejected at {n}": ", rejeté dès {n}",
 };

@@ -17,6 +17,8 @@ import crypto from 'node:crypto';
 import { serversFor, appTitle, titleFor, normalizeLogin } from './config.ts';
 import { seal, unseal, userKey } from './vault.ts';
 import { previewPart, attachments, makeSnippet } from './mime.ts';
+import { spamInfo } from './spam.ts';
+import { messageCache, msgKey, checkValidity, dropMessages, patchFlag } from './cache.ts';
 import { loadEvents, saveEvent, deleteEvents, importEvents, parseIcs, toIcs } from './calendar.ts';
 import { loadContacts, saveContact, deleteContacts, importContacts, parseVCard, parseCsv, toVCard, toCsv } from './contacts.ts';
 
@@ -111,21 +113,22 @@ async function withFolder<T>(s: Conn, folder: string, fn: (c: ImapFlow) => Promi
   const c = await s.imap();
   const lock = await c.getMailboxLock(folder, { readOnly });
   try {
+    if (c.mailbox) checkValidity(s.account.email, folder, c.mailbox.uidValidity);
     return await fn(c);
   } finally {
     lock.release();
   }
 }
 
-const folderCache = new WeakMap<Conn, ListResponse[]>();
+const folderCache = new WeakMap<Conn, { list: ListResponse[]; at: number }>();
 
-async function folders(s: Conn, refresh = false) {
-  let list = folderCache.get(s);
-  if (!list || refresh) {
-    const c = await s.imap();
-    list = await c.list({ statusQuery: { unseen: true, messages: true } });
-    folderCache.set(s, list);
-  }
+/** maxAgeMs: reuse a list younger than this (0 = always ask the server). */
+async function folders(s: Conn, refresh = false, maxAgeMs = 0) {
+  const hit = folderCache.get(s);
+  if (hit && (!refresh || Date.now() - hit.at < maxAgeMs)) return hit.list;
+  const c = await s.imap();
+  const list = await c.list({ statusQuery: { unseen: true, messages: true } });
+  folderCache.set(s, { list, at: Date.now() });
   return list;
 }
 
@@ -282,7 +285,7 @@ app.get(
   '/api/folders',
   auth,
   wrap(async (req, res) => {
-    const list = await folders(conn(req), true);
+    const list = await folders(conn(req), true, req.query.fresh ? 0 : 20_000);
     res.json(
       list
         .filter((f) => !f.flags?.has('\\Noselect') && !f.flags?.has('\\NonExistent'))
@@ -354,11 +357,25 @@ app.get(
   wrap(async (req, res) => {
     const folder = String(req.query.folder || 'INBOX');
     const uid = Number(req.query.uid);
-    const out = await withFolder(conn(req), folder, async (c) => {
+    const peek = req.query.peek === '1'; // prefetch: don't mark as read
+    const cn = conn(req);
+    const key = msgKey(cn.account.email, folder, uid);
+    const cached = messageCache.get(key);
+    if (cached) {
+      res.json(cached);
+      if (!peek && !cached.seen) {
+        cached.seen = true;
+        void withFolder(cn, folder, (c) => c.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true })).catch(() => {});
+      }
+      return;
+    }
+    const out = await withFolder(cn, folder, async (c) => {
       const m = await c.fetchOne(String(uid), { uid: true, source: true, bodyStructure: true, flags: true, envelope: true }, { uid: true });
       if (!m || !m.source) throw Object.assign(new Error('message not found'), { status: 404 });
       const parsed = await simpleParser(m.source);
-      if (!m.flags?.has('\\Seen')) await c.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true });
+      const wasSeen = m.flags?.has('\\Seen') ?? false;
+      if (!peek && !wasSeen) await c.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true });
+      const sourceBytes = m.source.length;
       const addr = (v: any) =>
         (Array.isArray(v) ? v : v ? [v] : []).flatMap((x: any) => x.value || []).map((a: any) => ({ name: a.name || '', address: a.address || '' }));
       // mailparser inlines cid: images as data URIs and marks those attachments `related`.
@@ -377,12 +394,17 @@ app.get(
         html: parsed.html || '',
         text: parsed.text || '',
         flagged: m.flags?.has('\\Flagged') ?? false,
+        spam: spamInfo(parsed.headerLines),
         listUnsubscribe: parsed.headers.get('list-unsubscribe') ? String((parsed.headers.get('list-unsubscribe') as any)?.url || '') : '',
         // cid-referenced parts are already embedded in the HTML by mailparser; list everything else.
         attachments: attachments(m.bodyStructure).filter((a) => !(a.cid && usedCids.has(a.cid))),
+        seen: wasSeen || !peek,
+        _bytes: sourceBytes,
       };
     });
-    res.json(out);
+    const { _bytes, ...msg } = out;
+    messageCache.set(key, msg, Math.max(_bytes, (msg.html?.length || 0) + (msg.text?.length || 0)) * 2);
+    res.json(msg);
   }),
 );
 
@@ -427,6 +449,9 @@ app.post(
       if (a.length) await c.messageFlagsAdd(uids, a, { uid: true });
       if (r.length) await c.messageFlagsRemove(uids, r, { uid: true });
     });
+    const nums = uids.split(',').map(Number);
+    if (add.includes('\\Flagged')) patchFlag(conn(req).account.email, folder, nums, true);
+    if (remove.includes('\\Flagged')) patchFlag(conn(req).account.email, folder, nums, false);
     res.json({ ok: true });
   }),
 );
@@ -449,6 +474,7 @@ app.post(
     }
     if (!dest) return res.status(400).json({ error: `no ${to} folder on this server` });
     await withFolder(conn(req), folder, (c) => c.messageMove(uids, dest!, { uid: true }));
+    dropMessages(conn(req).account.email, folder, uids.split(',').map(Number));
     res.json({ ok: true, to: dest });
   }),
 );
@@ -464,6 +490,7 @@ app.post(
       if (trash && trash !== folder) await c.messageMove(uids, trash, { uid: true });
       else await c.messageDelete(uids, { uid: true });
     });
+    dropMessages(conn(req).account.email, folder, uids.split(',').map(Number));
     res.json({ ok: true, permanent: !trash || trash === folder });
   }),
 );

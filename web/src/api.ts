@@ -8,6 +8,7 @@ export interface Attachment { part: string; filename: string; type: string; size
 export interface Message {
   uid: number; folder: string; subject: string; date: number; from: Addr; to: Addr[]; cc: Addr[]; replyTo: Addr[];
   messageId: string; references: string[]; html: string; text: string; flagged: boolean; listUnsubscribe: string;
+  spam?: { score: number; threshold: number; reject?: number; engine: string } | null;
   attachments: Attachment[]; account?: string;
 }
 export interface Contact { id: string; name: string; emails: string[]; phones: string[]; company: string; notes: string; updated: number }
@@ -59,10 +60,11 @@ export const api = {
   me: () => call<Me>('GET', '/api/me'),
   login: (body: Record<string, unknown>) => call<Me>('POST', '/api/login', body),
   logout: () => call('POST', '/api/logout', {}),
-  folders: (account = cur) => call<Folder[]>('GET', `/api/folders?${q({ account })}`),
+  folders: (account = cur, fresh = false) => call<Folder[]>('GET', `/api/folders?${q({ account, ...(fresh ? { fresh: 1 } : {}) })}`),
   messages: (folder: string, page: number) => call<ListResult>('GET', `/api/messages?${q({ folder, page, account: cur })}`),
   search: (folder: string, text: string) => call<ListResult>('GET', `/api/search?${q({ folder, q: text, account: cur })}`),
-  message: (folder: string, uid: number) => call<Message>('GET', `/api/message?${q({ folder, uid, account: cur })}`).then((m) => ({ ...m, account: cur })),
+  message: (folder: string, uid: number, peek = false, account = cur) =>
+    call<Message>('GET', `/api/message?${q({ folder, uid, account, ...(peek ? { peek: 1 } : {}) })}`).then((m) => ({ ...m, account })),
   flags: (folder: string, uids: number[], add: string[], remove: string[] = []) =>
     call('POST', '/api/flags', { folder, uids, add, remove, account: cur }),
   move: (folder: string, uids: number[], to: string) => call<{ to: string }>('POST', '/api/move', { folder, uids, to, account: cur }),

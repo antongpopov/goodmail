@@ -93,4 +93,10 @@ export const nb: Dict = {
   'At most {x} extra accounts': 'Maks {x} ekstra kontoer', 'Please sign in again to add accounts': 'Logg på igjen for å legge til kontoer',
   'Email address and password are required': 'E-postadresse og passord må fylles ut',
   'That is the account you are signed in with': 'Det er kontoen du er pålogget med',
+  // spam bar
+  "Not spam": "Ikke søppelpost",
+  "Possibly spam": "Muligens søppelpost",
+  "Likely spam": "Sannsynligvis søppelpost",
+  "Spam score {score} (junk at {threshold}{reject}) · {engine}": "Søppelpostpoeng {score} (søppelpost fra {threshold}{reject}) · {engine}",
+  ", rejected at {n}": ", avvises ved {n}",
 };

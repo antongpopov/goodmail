@@ -93,4 +93,10 @@ export const sv: Dict = {
   'At most {x} extra accounts': 'Högst {x} extra konton', 'Please sign in again to add accounts': 'Logga in igen för att lägga till konton',
   'Email address and password are required': 'E-postadress och lösenord krävs',
   'That is the account you are signed in with': 'Det är kontot du är inloggad med',
+  // spam bar
+  "Not spam": "Inte skräppost",
+  "Possibly spam": "Möjligen skräppost",
+  "Likely spam": "Troligen skräppost",
+  "Spam score {score} (junk at {threshold}{reject}) · {engine}": "Skräppostpoäng {score} (skräppost från {threshold}{reject}) · {engine}",
+  ", rejected at {n}": ", avvisas vid {n}",
 };

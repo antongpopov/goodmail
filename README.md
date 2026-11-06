@@ -33,6 +33,10 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
   duplicate merge by email, "add sender" button, To/Cc autocomplete
 - **Calendar**: Outlook-style day / work week / week / month views, mini month, recurring events,
   .ics import/export, and an "Add to calendar" button on invitations (Outlook/Teams time zones understood)
+- **Spam meter** under the date: green → yellow → red from the filter's score (rspamd or SpamAssassin headers;
+  only the topmost header is trusted). Fully red at the junk threshold — rspamd 6 by default, `spamthreshold=` to change
+- **Fast on slow servers**: opened messages are cached server-side (`GOODMAIL_CACHE_MB`, default 150), folder lists
+  show instantly from the last visit and refresh behind, and the next messages are prefetched without marking them read
 - **Languages**: English, Dansk, Deutsch, Svenska, Norsk, Français, Español — picked from the browser,
   switchable on the sign-in page and under ⚙. Dates and weekdays follow the language. Adding a language is one
   file in `web/src/locales/` (English text is the key, so anything untranslated falls back to English).
@@ -85,6 +89,7 @@ The file is re-read automatically when it changes.
 | `GOODMAIL_DATA` | `./data` | `secret.key` (cookie encryption key), `accounts/`, `contacts/`, `calendar/` (one JSON file per account) |
 | `GOODMAIL_SECRET` | — | use this instead of `secret.key` |
 | `GOODMAIL_SOURCE_URL` | this repo | where the in-app "Source code" link points (AGPL §13 — set it for modified versions) |
+| `GOODMAIL_CACHE_MB` | `150` | memory for cached parsed messages |
 | `GOODMAIL_TRUST_PROXY` | `false` | trust `X-Forwarded-For` (set behind a proxy) |
 
 ## Security model

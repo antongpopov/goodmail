@@ -13,6 +13,7 @@
 //   defaultdomain=example.com     # a login without @ becomes user@defaultdomain
 //
 //   autodiscover=false             # true = guess servers for domains not listed (ISPDB / imap.<domain>)
+//   spamthreshold=6                # optional: spam score shown as fully red (default: rspamd 6 / SpamAssassin required=)
 //   title=goodmail                 # optional app name (sign-in page, and domains without their own titleN)
 import fs from 'node:fs';
 import path from 'node:path';
@@ -37,6 +38,7 @@ interface Config {
   autodiscover: boolean;
   title: string;
   defaultDomain: string;
+  spamThreshold?: number;
 }
 
 export const CONFIG_PATH = path.resolve(process.env.GOODMAIL_CONFIG || 'goodmail.conf');
@@ -88,6 +90,7 @@ export function parseConfig(text: string): Config {
     autodiscover: kv.get('autodiscover') === 'true',
     title: kv.get('title') || 'goodmail',
     defaultDomain: (kv.get('defaultdomain') || '').toLowerCase(),
+    spamThreshold: kv.get('spamthreshold') ? Number(kv.get('spamthreshold')) : undefined,
   };
 }
 
@@ -113,6 +116,8 @@ fs.watchFile(CONFIG_PATH, { interval: 5000 }, () => {
 }).unref?.();
 
 export const appTitle = () => config.title;
+/** Score at which the spam bar turns fully red (the filter's junk threshold). Default: rspamd 6, SpamAssassin required=. */
+export const spamThreshold = () => config.spamThreshold;
 
 /** App name for a signed-in user: their domain's titleN, else the global title. Config lookup only, no network. */
 export function titleFor(email: string) {

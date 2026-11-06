@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { api, setUnauthorizedHandler, useAccount } from './api.ts';
+import { api, setUnauthorizedHandler, useAccount, currentAccount } from './api.ts';
 import type { MailAccount } from './api.ts';
 import { AccountsDialog } from './Accounts.tsx';
 import { LangPicker } from './LangPicker.tsx';
@@ -19,6 +19,17 @@ import { t } from './i18n.ts';
 
 const SPECIAL_ORDER = ['\\Inbox', '\\Drafts', '\\Sent', '\\Archive', '\\Junk', '\\Trash'];
 const POLL_MS = 30_000;
+
+// Browser-side caches so switching folders and opening mail is instant on slow servers.
+// Lists show the last copy immediately and refresh behind it; messages never change for a UID.
+const listCache = new Map<string, { messages: Summary[]; hasMore: boolean }>();
+const msgCache = new Map<string, Message>();
+const msgKey = (acct: string, folder: string, uid: number) => `${acct}\u0000${folder}\u0000${uid}`;
+function rememberMsg(k: string, m: Message) {
+  msgCache.delete(k);
+  msgCache.set(k, m);
+  if (msgCache.size > 300) msgCache.delete(msgCache.keys().next().value!);
+}
 
 export default function App() {
   const [me, setMe] = useState<Me | null | undefined>(undefined);
@@ -173,6 +184,27 @@ const SPECIAL_NAMES: Record<string, string> = { '\\Inbox': 'Inbox', '\\Sent': 'S
 /** Special-use folders get the UI language's name (like Outlook); everything else keeps its server name. */
 const folderLabel = (f: { specialUse: string; name: string }) => (SPECIAL_NAMES[f.specialUse] ? t(SPECIAL_NAMES[f.specialUse]) : f.name);
 
+/** Green → yellow → red as the spam score approaches the filter's junk threshold. */
+function SpamBar({ spam }: { spam: { score: number; threshold: number; reject?: number; engine: string } }) {
+  const level = Math.max(0, Math.min(1, spam.score / Math.max(0.1, spam.threshold)));
+  const color = `hsl(${Math.round(120 * (1 - level))} 70% 45%)`;
+  const label = level < 0.34 ? t('Not spam') : level < 1 ? t('Possibly spam') : t('Likely spam');
+  const tip = t('Spam score {score} (junk at {threshold}{reject}) · {engine}', {
+    score: spam.score.toFixed(1),
+    threshold: spam.threshold,
+    reject: spam.reject ? t(', rejected at {n}', { n: spam.reject }) : '',
+    engine: spam.engine,
+  });
+  return (
+    <div className="spam" title={tip} aria-label={tip}>
+      <span className="spam-label">{label}</span>
+      <span className="spam-track">
+        <span className="spam-fill" style={{ width: `${Math.max(6, level * 100)}%`, background: color }} />
+      </span>
+    </div>
+  );
+}
+
 interface FolderNode extends Folder { children: FolderNode[]; depth: number }
 
 function buildTree(list: Folder[]): FolderNode[] {
@@ -286,13 +318,13 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   const accountsRef = useRef(accounts);
   accountsRef.current = accounts;
   const loadFolders = useCallback(
-    () =>
+    (fresh = false) =>
       Promise.all(
         accountsRef.current
           .filter((a) => !a.locked)
           .map((a) =>
             api
-              .folders(a.id)
+              .folders(a.id, fresh)
               .then((f) => setAllFolders((all) => ({ ...all, [a.id]: f })))
               .catch(() => {}),
           ),
@@ -305,7 +337,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
       setAccounts(list);
       accountsRef.current = list;
       if (!list.some((a) => a.id === acctRef.current && !a.locked)) goto('main', 'INBOX');
-      void loadFolders();
+      void loadFolders(true);
     } catch {
       /* keep what we have */
     }
@@ -315,13 +347,38 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
     void loadAccounts();
   }, [loadAccounts]);
 
+  /** Quietly fetch a few messages (without marking them read) so opening them is instant. */
+  const prefetch = useCallback(async (acctId: string, f: string, msgs: Summary[], id?: number) => {
+    for (const m of msgs) {
+      if (id !== undefined && id !== reqId.current) return; // user moved on
+      const k = msgKey(acctId, f, m.uid);
+      if (msgCache.has(k) || m.size > 600_000) continue;
+      try {
+        rememberMsg(k, await api.message(f, m.uid, true, acctId));
+      } catch {
+        /* best effort */
+      }
+    }
+  }, []);
+
   const loadList = useCallback(
     async (f: string, p: number, q: string, merge = false) => {
       const id = ++reqId.current;
+      const acctId = currentAccount();
+      const lkey = `${acctId}\u0000${f}\u0000${q}`;
+      const cachedList = p === 0 ? listCache.get(lkey) : undefined;
+      if (cachedList && !merge) {
+        setList(cachedList.messages);
+        setHasMore(cachedList.hasMore);
+      }
       if (!merge) setLoading(true);
       try {
         const r = q ? await api.search(f, q) : await api.messages(f, p);
         if (id !== reqId.current) return;
+        if (p === 0) {
+          listCache.set(lkey, { messages: r.messages, hasMore: r.hasMore });
+          void prefetch(acctId, f, r.messages.slice(0, 4), id);
+        }
         setHasMore(r.hasMore);
         setList((old) => {
           if (p === 0) return r.messages;
@@ -354,20 +411,22 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
 
   // Background refresh: re-fetch the first page and folder counts.
   useEffect(() => {
-    const t = setInterval(() => {
+    const timer = setInterval(() => {
       if (document.hidden) return;
       void loadFolders();
       if (!searching && page === 0) void loadList(folder, 0, '', true);
     }, POLL_MS);
-    return () => clearInterval(t);
+    return () => clearInterval(timer);
   }, [folder, page, searching, loadFolders, loadList]);
 
   const current = folders.find((f) => f.path === folder);
   const trees = useMemo(() => Object.fromEntries(Object.entries(allFolders).map(([id, f]) => [id, buildTree(f)])), [allFolders]);
+  const visibleRef = useRef<Summary[]>([]);
   const visible = useMemo(
     () => list.filter((m) => (filter === 'unread' ? !m.seen : filter === 'flagged' ? m.flagged : true)),
     [list, filter],
   );
+  visibleRef.current = visible;
   const contacts = useMemo(() => {
     const s = new Set<string>();
     for (const c of book) for (const e of c.emails) s.add(c.name ? `${c.name} <${e}>` : e);
@@ -385,10 +444,19 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
     async (m: Summary) => {
       setCompose(null);
       setShowRemoteOnce(false);
-      setOpenLoading(true);
+      const acctId = currentAccount();
+      const k = msgKey(acctId, folder, m.uid);
+      const hit = msgCache.get(k);
+      if (!hit) setOpenLoading(true);
       try {
-        const full = await api.message(folder, m.uid);
+        const full = hit ?? (await api.message(folder, m.uid));
+        rememberMsg(k, full);
         setOpen(full);
+        if (hit && !m.seen) void api.flags(folder, [m.uid], ['\\Seen']).catch(() => {});
+        // warm up the next message in the list, the usual next click (or j)
+        const idx = visibleRef.current.findIndex((x) => x.uid === m.uid);
+        const next = visibleRef.current[idx + 1];
+        if (next) void prefetch(acctId, folder, [next]);
         if (!m.seen) {
           patch([m.uid], { seen: true });
           setFolders((fs) => fs.map((f) => (f.path === folder ? { ...f, unseen: Math.max(0, f.unseen - 1) } : f)));
@@ -399,7 +467,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
         setOpenLoading(false);
       }
     },
-    [folder, flash],
+    [folder, flash, prefetch],
   );
 
   const select = (m: Summary, e?: React.MouseEvent) => {
@@ -470,7 +538,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
     try {
       const r = await api.remove(folder, uids);
       flash(r.permanent ? t('Deleted {n} permanently', { n: uids.length }) : t('Moved {n} to the trash', { n: uids.length }));
-      void loadFolders();
+      void loadFolders(true);
     } catch (err) {
       flash((err as Error).message);
       void loadList(folder, 0, searching);
@@ -484,7 +552,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
     try {
       const r = await api.move(folder, uids, to);
       flash(t('Moved {n} to {folder}', { n: uids.length, folder: (() => { const f = folders.find((x) => x.path === r.to); return f ? folderLabel(f) : r.to; })() }));
-      void loadFolders();
+      void loadFolders(true);
     } catch (err) {
       flash((err as Error).message);
       void loadList(folder, 0, searching);
@@ -494,10 +562,11 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   const setFlag = async (uids: number[], flag: '\\Seen' | '\\Flagged', on: boolean) => {
     if (!uids.length) return;
     patch(uids, flag === '\\Seen' ? { seen: on } : { flagged: on });
+    if (flag === '\\Flagged') for (const u of uids) { const c = msgCache.get(msgKey(currentAccount(), folder, u)); if (c) c.flagged = on; }
     if (open && uids.includes(open.uid) && flag === '\\Flagged') setOpen({ ...open, flagged: on });
     try {
       await api.flags(folder, uids, on ? [flag] : [], on ? [] : [flag]);
-      if (flag === '\\Seen') void loadFolders();
+      if (flag === '\\Seen') void loadFolders(true);
     } catch (err) {
       flash((err as Error).message);
     }
@@ -515,7 +584,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   };
 
   const sync = () => {
-    void loadFolders();
+    void loadFolders(true);
     void loadList(folder, 0, searching);
     setPage(0);
   };
@@ -791,7 +860,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                     if (name) {
                       try {
                         await api.createFolder(name);
-                        void loadFolders();
+                        void loadFolders(true);
                       } catch (err) {
                         flash((err as Error).message);
                       }
@@ -921,7 +990,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                     setCompose(null);
                     flash(t('Message sent'));
                     if (compose.source && compose.mode !== 'forward') patch([compose.source.uid], { answered: true });
-                    void loadFolders();
+                    void loadFolders(true);
                   }}
                 />
               ) : open ? (
@@ -990,7 +1059,10 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                           )}
                         </div>
                       </div>
-                      <div className="date">{fullTime(open.date)}</div>
+                      <div className="date-col">
+                        <div className="date">{fullTime(open.date)}</div>
+                        {open.spam && <SpamBar spam={open.spam} />}
+                      </div>
                     </div>
                     {blocked && !remote && (
                       <div className="banner">

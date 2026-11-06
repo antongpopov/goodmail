@@ -105,4 +105,10 @@ export const da: Dict = {
   'At most {x} extra accounts': 'Højst {x} ekstra konti', 'Please sign in again to add accounts': 'Log ind igen for at tilføje konti',
   'Email address and password are required': 'Mailadresse og adgangskode skal udfyldes',
   'That is the account you are signed in with': 'Det er den konto, du er logget ind med',
+  // spam bar
+  "Not spam": "Ikke spam",
+  "Possibly spam": "Muligvis spam",
+  "Likely spam": "Sandsynligvis spam",
+  "Spam score {score} (junk at {threshold}{reject}) · {engine}": "Spamscore {score} (uønsket fra {threshold}{reject}) · {engine}",
+  ", rejected at {n}": ", afvises ved {n}",
 };
