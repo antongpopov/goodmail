@@ -99,4 +99,11 @@ export const es: Dict = {
   "Likely spam": "Probable spam",
   "Spam score {score} (junk at {threshold}{reject}) · {engine}": "Puntuación de spam {score} (no deseado desde {threshold}{reject}) · {engine}",
   ", rejected at {n}": ", rechazado desde {n}",
+  // unlock after password change
+  "Unlocked {n} account(s)": "{n} cuenta(s) desbloqueada(s)",
+  "Enter its password": "Introducir su contraseña",
+  "Changed your sign-in password? Locked accounts were saved with the old one. Enter your previous sign-in password to unlock them all.": "¿Cambiaste tu contraseña de inicio de sesión? Las cuentas bloqueadas se guardaron con la anterior. Introduce tu contraseña anterior para desbloquearlas todas.",
+  "Previous sign-in password": "Contraseña anterior",
+  "Unlock": "Desbloquear",
+  "That password did not unlock any account": "Esa contraseña no desbloqueó ninguna cuenta",
 };

@@ -66,3 +66,7 @@ export function decryptWith(key: Buffer, token: string): string | undefined {
     return undefined;
   }
 }
+
+/** Encrypt small secrets (e.g. TOTP seeds) with the server key alone. */
+export const serverEncrypt = (text: string) => encryptWith(KEY, text);
+export const serverDecrypt = (token: string) => decryptWith(KEY, token);

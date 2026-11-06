@@ -99,4 +99,11 @@ export const sv: Dict = {
   "Likely spam": "Troligen skräppost",
   "Spam score {score} (junk at {threshold}{reject}) · {engine}": "Skräppostpoäng {score} (skräppost från {threshold}{reject}) · {engine}",
   ", rejected at {n}": ", avvisas vid {n}",
+  // unlock after password change
+  "Unlocked {n} account(s)": "{n} konto(n) upplåsta",
+  "Enter its password": "Ange dess lösenord",
+  "Changed your sign-in password? Locked accounts were saved with the old one. Enter your previous sign-in password to unlock them all.": "Har du bytt inloggningslösenord? Låsta konton sparades med det gamla. Ange ditt tidigare inloggningslösenord för att låsa upp alla.",
+  "Previous sign-in password": "Tidigare inloggningslösenord",
+  "Unlock": "Lås upp",
+  "That password did not unlock any account": "Lösenordet låste inte upp något konto",
 };

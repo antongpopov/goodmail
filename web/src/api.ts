@@ -73,6 +73,7 @@ export const api = {
   send: (body: Record<string, unknown>) => call('POST', '/api/send', body),
   accounts: () => call<MailAccount[]>('GET', '/api/accounts'),
   addAccount: (body: Record<string, unknown>) => call<MailAccount>('POST', '/api/accounts', body),
+  unlockAccounts: (oldPassword: string) => call<{ unlocked: number }>('POST', '/api/accounts/unlock', { oldPassword }),
   removeAccount: (id: string) => call('POST', '/api/accounts/delete', { id }),
   guessAccount: (email: string) =>
     call<{ imapHost: string; imapPort: number; smtpHost: string; smtpPort: number }>('POST', '/api/accounts/guess', { email }),

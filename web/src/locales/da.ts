@@ -111,4 +111,11 @@ export const da: Dict = {
   "Likely spam": "Sandsynligvis spam",
   "Spam score {score} (junk at {threshold}{reject}) · {engine}": "Spamscore {score} (uønsket fra {threshold}{reject}) · {engine}",
   ", rejected at {n}": ", afvises ved {n}",
+  // unlock after password change
+  "Unlocked {n} account(s)": "{n} konto(er) låst op",
+  "Enter its password": "Indtast dens adgangskode",
+  "Changed your sign-in password? Locked accounts were saved with the old one. Enter your previous sign-in password to unlock them all.": "Har du skiftet login-adgangskode? Låste konti blev gemt med den gamle. Indtast din tidligere login-adgangskode for at låse dem alle op.",
+  "Previous sign-in password": "Tidligere login-adgangskode",
+  "Unlock": "Lås op",
+  "That password did not unlock any account": "Den adgangskode låste ikke nogen konto op",
 };

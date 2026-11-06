@@ -55,6 +55,7 @@ export function AccountsDialog({ accounts, onClose, onChanged, flash }: { accoun
   const [adding, setAdding] = useState<Preset | null>(null);
   const [form, setForm] = useState({ email: '', password: '', name: '', imapHost: '', imapPort: 993, smtpHost: '', smtpPort: 587, user: '' });
   const [busy, setBusy] = useState(false);
+  const [oldPw, setOldPw] = useState('');
   const [error, setError] = useState('');
   const set = (k: keyof typeof form, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -108,6 +109,29 @@ export function AccountsDialog({ accounts, onClose, onChanged, flash }: { accoun
   };
 
   const extras = accounts.filter((a) => a.id !== 'main');
+  const locked = extras.filter((a) => a.locked);
+
+  const unlock = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const r = await api.unlockAccounts(oldPw);
+      setOldPw('');
+      flash(t('Unlocked {n} account(s)', { n: r.unlocked }));
+      onChanged();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** Re-enter just this account's own (app) password. */
+  const reenter = (a: MailAccount) => {
+    const p = PRESETS.find((x) => x.id === a.provider) ?? PRESETS[PRESETS.length - 1];
+    pick(p);
+    setForm((f) => ({ ...f, email: a.email, imapHost: p.id === 'imap' ? a.imapHost : f.imapHost }));
+  };
 
   return (
     <div className="modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -129,6 +153,11 @@ export function AccountsDialog({ accounts, onClose, onChanged, flash }: { accoun
                     <div>{a.email}</div>
                     <div className="muted small">{a.id === 'main' ? t('Signed-in account') : a.locked ? t('Locked — add it again with its password') : a.imapHost}</div>
                   </div>
+                  {a.locked && (
+                    <button className="link-btn" onClick={() => reenter(a)}>
+                      {t('Enter its password')}
+                    </button>
+                  )}
                   {a.id !== 'main' && (
                     <button className="tb icon" title={t('Remove')} onClick={() => void remove(a)}>
                       <Icon name="trash" />
@@ -137,6 +166,22 @@ export function AccountsDialog({ accounts, onClose, onChanged, flash }: { accoun
                 </div>
               ))}
             </div>
+            {locked.length > 0 && (
+              <form
+                className="unlock-box"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void unlock();
+                }}
+              >
+                <p>{t('Changed your sign-in password? Locked accounts were saved with the old one. Enter your previous sign-in password to unlock them all.')}</p>
+                <div className="unlock-row">
+                  <input type="password" autoComplete="off" placeholder={t('Previous sign-in password')} value={oldPw} onChange={(e) => setOldPw(e.target.value)} required />
+                  <button className="primary" disabled={busy || !oldPw}>{t('Unlock')}</button>
+                </div>
+                {error && <div className="error">{error}</div>}
+              </form>
+            )}
             <div className="menu-label">{t('Add an account')}</div>
             <div className="preset-grid">
               {PRESETS.map((p) => (

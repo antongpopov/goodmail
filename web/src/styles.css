@@ -393,6 +393,11 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-bottom: 12px; }
 .preset { height: 44px; border: 1px solid var(--border); border-radius: 8px; font-weight: 600; background: var(--surface); }
 .preset:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
+.unlock-box { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 8px 0; background: var(--surface-2); font-size: 13px; }
+.unlock-box p { margin: 0 0 8px; }
+.unlock-row { display: flex; gap: 8px; }
+.unlock-row input { flex: 1; min-width: 0; font: inherit; font-size: 14px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 6px 10px; }
+.unlock-box .error { margin-top: 8px; }
 .acct-note { background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; font-size: 13px; margin: 6px 0 0; }
 .acct-note a { color: var(--brand); font-weight: 600; }
 .acct-form { display: flex; flex-direction: column; gap: 12px; }

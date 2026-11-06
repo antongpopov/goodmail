@@ -6,7 +6,7 @@ import dns from 'node:dns/promises';
 import fs from 'node:fs/promises';
 import net from 'node:net';
 import path from 'node:path';
-import { DATA, encryptWith, decryptWith } from './vault.ts';
+import { DATA, encryptWith, decryptWith, userKey } from './vault.ts';
 import { Conn, connectImap } from './session.ts';
 import type { Account, Session } from './session.ts';
 
@@ -184,4 +184,28 @@ export async function removeAccount(s: Session, id: string) {
   });
   await s.extra.get(id)?.closeImap();
   s.extra.delete(id);
+}
+
+/**
+ * After the user changed their sign-in password, saved accounts can't be decrypted with the new key.
+ * Given the PREVIOUS password, re-encrypt every locked account under the current key and unlock it.
+ */
+export async function unlockWithOldPassword(s: Session, oldPassword: string) {
+  if (!s.userKey) throw Object.assign(new Error('Please sign in again to add accounts'), { status: 401 });
+  const oldKey = userKey(s.account.email, oldPassword);
+  let unlocked = 0;
+  await serial(s.account.email, async () => {
+    const list = await load(s.account.email);
+    for (const a of list) {
+      if (decryptWith(s.userKey!, a.secret) !== undefined) continue; // already readable
+      const pass = decryptWith(oldKey, a.secret);
+      if (pass === undefined) continue;
+      a.secret = encryptWith(s.userKey!, pass);
+      s.extra.set(a.id, new Conn(toAccount(a, pass)));
+      unlocked++;
+    }
+    if (unlocked) await store(s.account.email, list);
+  });
+  if (!unlocked) throw Object.assign(new Error('That password did not unlock any account'), { status: 400 });
+  return unlocked;
 }

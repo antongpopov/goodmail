@@ -9,8 +9,7 @@ import nodemailer from 'nodemailer';
 import { simpleParser } from 'mailparser';
 import type { ImapFlow, ListResponse, MessageStructureObject, FetchMessageObject } from 'imapflow';
 import { Session, addSession, getSession, dropSession, connectImap } from './session.ts';
-import type { Conn } from './session.ts';
-import { attachAccounts, listAccounts, addAccount, removeAccount } from './accounts.ts';
+import { attachAccounts, listAccounts, addAccount, removeAccount, unlockWithOldPassword } from './accounts.ts';
 import { guessSettings } from './autoconfig.ts';
 import type { Account } from './session.ts';
 import crypto from 'node:crypto';
@@ -18,6 +17,9 @@ import { serversFor, appTitle, titleFor, normalizeLogin } from './config.ts';
 import { seal, unseal, userKey } from './vault.ts';
 import { previewPart, attachments, makeSnippet } from './mime.ts';
 import { spamInfo } from './spam.ts';
+import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
+import * as mfa from './mfa.ts';
+import { Conn } from './session.ts';
 import { messageCache, msgKey, checkValidity, dropMessages, patchFlag } from './cache.ts';
 import { loadEvents, saveEvent, deleteEvents, importEvents, parseIcs, toIcs } from './calendar.ts';
 import { loadContacts, saveContact, deleteContacts, importContacts, parseVCard, parseCsv, toVCard, toCsv } from './contacts.ts';
@@ -254,16 +256,301 @@ app.post(
     await client.logout().catch(() => {});
     attempts.delete(req.ip || '?');
     const remember = b.remember !== false;
-    const token = seal({ email, pass, exp: Date.now() + (remember ? YEAR : 12 * 3600) * 1000 });
-    const sess = new Session(account, tokenId(token));
-    sess.userKey = userKey(email, pass);
-    await attachAccounts(sess).catch((e) => console.warn('extra accounts:', e.message));
-    addSession(sess);
-    res.setHeader(
-      'Set-Cookie',
-      `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict${remember ? `; Max-Age=${YEAR}` : ''}${SECURE_COOKIE ? '; Secure' : ''}`,
+    // Password is right. With 2FA set up, hand out a short-lived ticket instead of the session cookie.
+    const m = await mfa.loadMfa(email);
+    if (mfa.mfaEnabled(m)) {
+      const ticket = mfa.newTicket({ email, pass, remember });
+      return res.json({
+        mfa: { ticket, totp: !!m.totp, passkey: m.passkeys.length > 0, email: m.email ? mfa.maskEmail(m.email) : null, recovery: m.recovery.length > 0 },
+      });
+    }
+    await issueLogin(res, account, remember);
+  }),
+);
+
+async function issueLogin(res: Response, account: Account, remember: boolean) {
+  const token = seal({ email: account.email, pass: account.pass, exp: Date.now() + (remember ? YEAR : 12 * 3600) * 1000 });
+  const sess = new Session(account, tokenId(token));
+  sess.userKey = userKey(account.email, account.pass);
+  await attachAccounts(sess).catch((e) => console.warn('extra accounts:', e.message));
+  addSession(sess);
+  res.setHeader(
+    'Set-Cookie',
+    `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict${remember ? `; Max-Age=${YEAR}` : ''}${SECURE_COOKIE ? '; Secure' : ''}`,
+  );
+  res.json({ email: account.email, name: account.name, imapHost: account.imapHost, appName: titleFor(account.email) });
+}
+
+// ---------- two-factor ----------
+
+/** WebAuthn is bound to the site's host name. Behind a proxy this needs trust proxy + ProxyPreserveHost. */
+function rp(req: Request) {
+  const origin = process.env.GOODMAIL_ORIGIN || `${req.protocol}://${req.get('host')}`;
+  return { origin, rpID: new URL(origin).hostname };
+}
+
+/** Mail a 6-digit code from the user's own mailbox (their SMTP) to the given address. */
+async function mailCode(account: Account, to: string, code: string, purpose: 'signin' | 'setup') {
+  const text =
+    purpose === 'signin'
+      ? `Your goodmail sign-in code is ${code}\n\nIt is valid for 10 minutes. If you did not try to sign in to ${account.email}, change your mail password.`
+      : `Your goodmail confirmation code is ${code}\n\nEnter it to use this address as the backup for signing in to ${account.email}.`;
+  await new Conn(account).smtp().sendMail({ from: account.email, to, subject: `goodmail code: ${code}`, text });
+}
+
+function ticketFrom(req: Request) {
+  const t = mfa.getTicket(String(req.body?.ticket || ''));
+  if (!t) throw Object.assign(new Error('Sign-in expired, please start again'), { status: 401 });
+  return t;
+}
+
+app.post(
+  '/api/login/mfa/email',
+  wrap(async (req, res) => {
+    const t = ticketFrom(req);
+    const m = await mfa.loadMfa(t.email);
+    if (!m.email) return res.status(400).json({ error: 'No backup email set up' });
+    if (t.emailSentAt && Date.now() - t.emailSentAt < 30_000) return res.status(429).json({ error: 'Please wait a moment before requesting another code' });
+    const account = await accountFor(t.email, t.pass);
+    if (!account) return res.status(401).json({ error: 'Sign-in expired, please start again' });
+    t.emailCode = mfa.sixDigits();
+    t.emailCodeExp = Date.now() + 10 * 60_000;
+    t.emailSentAt = Date.now();
+    await mailCode(account, m.email, t.emailCode, 'signin');
+    res.json({ ok: true, to: mfa.maskEmail(m.email) });
+  }),
+);
+
+app.post(
+  '/api/login/mfa/passkey-options',
+  wrap(async (req, res) => {
+    const t = ticketFrom(req);
+    const m = await mfa.loadMfa(t.email);
+    const opts = await generateAuthenticationOptions({
+      rpID: rp(req).rpID,
+      allowCredentials: m.passkeys.map((p) => ({ id: p.id, transports: p.transports })),
+      userVerification: 'preferred',
+    });
+    t.challenge = opts.challenge;
+    res.json(opts);
+  }),
+);
+
+app.post(
+  '/api/login/mfa',
+  wrap(async (req, res) => {
+    const id = String(req.body?.ticket || '');
+    const t = ticketFrom(req);
+    if (++t.attempts > 8) {
+      mfa.dropTicket(id);
+      return res.status(429).json({ error: 'Too many attempts, please sign in again' });
+    }
+    const method = String(req.body?.method || '');
+    const code = String(req.body?.code || '');
+    let ok = false;
+    await mfa.updateMfa(t.email, async (m) => {
+      if (method === 'totp' && m.totp) {
+        const secret = mfa.openTotp(m.totp.secret);
+        const step = secret ? mfa.checkTotp(secret, code, m.totp.last ?? -1) : null;
+        if (step !== null) {
+          m.totp.last = step;
+          ok = true;
+        }
+      } else if (method === 'recovery') {
+        ok = mfa.useRecoveryCode(m, code);
+      } else if (method === 'email') {
+        ok = !!t.emailCodeExp && t.emailCodeExp > Date.now() && mfa.sameCode(t.emailCode, code);
+      } else if (method === 'passkey' && t.challenge) {
+        const resp = req.body?.response;
+        const pk = m.passkeys.find((p) => p.id === resp?.id);
+        if (pk) {
+          const { origin, rpID } = rp(req);
+          const v = await verifyAuthenticationResponse({
+            response: resp,
+            expectedChallenge: t.challenge,
+            expectedOrigin: origin,
+            expectedRPID: rpID,
+            credential: { id: pk.id, publicKey: Buffer.from(pk.publicKey, 'base64url'), counter: pk.counter, transports: pk.transports },
+          }).catch(() => ({ verified: false }) as const);
+          if (v.verified) {
+            pk.counter = v.authenticationInfo.newCounter;
+            ok = true;
+          }
+        }
+      }
+    });
+    if (!ok) return res.status(401).json({ error: method === 'passkey' ? 'Passkey not recognised' : 'That code is not right' });
+    mfa.dropTicket(id);
+    const account = await accountFor(t.email, t.pass);
+    if (!account) return res.status(401).json({ error: 'Sign-in expired, please start again' });
+    await issueLogin(res, account, t.remember);
+  }),
+);
+
+// Security settings (signed in). Removing protection needs the mail password again.
+function needPassword(req: Authed) {
+  const given = Buffer.from(String(req.body?.password || ''));
+  const real = Buffer.from(req.session.account.pass);
+  if (given.length !== real.length || !crypto.timingSafeEqual(given, real))
+    throw Object.assign(new Error('Wrong password'), { status: 403 });
+}
+/** The first method added also creates recovery codes; they are shown once. */
+function ensureRecovery(m: mfa.MfaData) {
+  if (m.recovery.length) return undefined;
+  const r = mfa.newRecoveryCodes();
+  m.recovery = r.hashed;
+  return r.plain;
+}
+function afterRemove(m: mfa.MfaData) {
+  if (!mfa.mfaEnabled(m)) m.recovery = [];
+}
+
+app.get(
+  '/api/mfa',
+  auth,
+  wrap(async (req, res) => {
+    res.json(mfa.publicStatus(await mfa.loadMfa(req.session.account.email)));
+  }),
+);
+
+app.post(
+  '/api/mfa/totp/start',
+  auth,
+  wrap(async (req, res) => {
+    const p = mfa.pendingFor(req.session.id);
+    p.totpSecret = mfa.newTotpSecret();
+    res.json({ secret: p.totpSecret, uri: mfa.otpauthUri(p.totpSecret, req.session.account.email, appTitle()) });
+  }),
+);
+
+app.post(
+  '/api/mfa/totp/confirm',
+  auth,
+  wrap(async (req, res) => {
+    const p = mfa.pendingFor(req.session.id);
+    const step = p.totpSecret ? mfa.checkTotp(p.totpSecret, String(req.body?.code || '')) : null;
+    if (step === null) return res.status(400).json({ error: 'That code is not right' });
+    let recovery: string[] | undefined;
+    const m = await mfa.updateMfa(req.session.account.email, (m) => {
+      m.totp = { secret: mfa.sealTotp(p.totpSecret!), last: step };
+      recovery = ensureRecovery(m);
+    });
+    p.totpSecret = undefined;
+    res.json({ ...mfa.publicStatus(m), recovery });
+  }),
+);
+
+app.post(
+  '/api/mfa/passkey/options',
+  auth,
+  wrap(async (req, res) => {
+    const m = await mfa.loadMfa(req.session.account.email);
+    const opts = await generateRegistrationOptions({
+      rpName: appTitle(),
+      rpID: rp(req).rpID,
+      userName: req.session.account.email,
+      attestationType: 'none',
+      excludeCredentials: m.passkeys.map((p) => ({ id: p.id, transports: p.transports })),
+      authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' },
+    });
+    mfa.pendingFor(req.session.id).challenge = opts.challenge;
+    res.json(opts);
+  }),
+);
+
+app.post(
+  '/api/mfa/passkey/verify',
+  auth,
+  wrap(async (req, res) => {
+    const p = mfa.pendingFor(req.session.id);
+    if (!p.challenge) return res.status(400).json({ error: 'Start again' });
+    const { origin, rpID } = rp(req);
+    const v = await verifyRegistrationResponse({ response: req.body?.response, expectedChallenge: p.challenge, expectedOrigin: origin, expectedRPID: rpID }).catch(
+      (e) => {
+        throw Object.assign(new Error(`Passkey could not be verified (${e.message})`), { status: 400 });
+      },
     );
-    res.json({ email: account.email, name: account.name, imapHost: account.imapHost, appName: titleFor(account.email) });
+    p.challenge = undefined;
+    if (!v.verified) return res.status(400).json({ error: 'Passkey could not be verified' });
+    const c = v.registrationInfo.credential;
+    let recovery: string[] | undefined;
+    const m = await mfa.updateMfa(req.session.account.email, (m) => {
+      m.passkeys = m.passkeys.filter((x) => x.id !== c.id);
+      m.passkeys.push({
+        id: c.id,
+        publicKey: Buffer.from(c.publicKey).toString('base64url'),
+        counter: c.counter,
+        transports: c.transports,
+        name: String(req.body?.name || 'Passkey').slice(0, 60),
+        added: Date.now(),
+      });
+      recovery = ensureRecovery(m);
+    });
+    res.json({ ...mfa.publicStatus(m), recovery });
+  }),
+);
+
+app.post(
+  '/api/mfa/email/start',
+  auth,
+  wrap(async (req, res) => {
+    const to = String(req.body?.address || '').trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return res.status(400).json({ error: 'Enter a valid email address' });
+    if (to === req.session.account.email.toLowerCase()) return res.status(400).json({ error: 'Use a different address than this mailbox' });
+    const p = mfa.pendingFor(req.session.id);
+    p.emailAddr = to;
+    p.emailCode = mfa.sixDigits();
+    p.emailCodeExp = Date.now() + 10 * 60_000;
+    p.attempts = 0;
+    await mailCode(req.session.account, to, p.emailCode, 'setup');
+    res.json({ ok: true });
+  }),
+);
+
+app.post(
+  '/api/mfa/email/confirm',
+  auth,
+  wrap(async (req, res) => {
+    const p = mfa.pendingFor(req.session.id);
+    if (!p.emailAddr || !p.emailCodeExp || p.emailCodeExp < Date.now() || ++p.attempts > 6) return res.status(400).json({ error: 'Start again' });
+    if (!mfa.sameCode(p.emailCode, String(req.body?.code || ''))) return res.status(400).json({ error: 'That code is not right' });
+    let recovery: string[] | undefined;
+    const m = await mfa.updateMfa(req.session.account.email, (m) => {
+      m.email = p.emailAddr;
+      recovery = ensureRecovery(m);
+    });
+    p.emailAddr = p.emailCode = undefined;
+    res.json({ ...mfa.publicStatus(m), recovery });
+  }),
+);
+
+app.post(
+  '/api/mfa/remove',
+  auth,
+  wrap(async (req, res) => {
+    needPassword(req);
+    const what = String(req.body?.what || '');
+    const m = await mfa.updateMfa(req.session.account.email, (m) => {
+      if (what === 'totp') delete m.totp;
+      else if (what === 'email') delete m.email;
+      else if (what === 'passkey') m.passkeys = m.passkeys.filter((p) => p.id !== String(req.body?.id || ''));
+      afterRemove(m);
+    });
+    res.json(mfa.publicStatus(m));
+  }),
+);
+
+app.post(
+  '/api/mfa/recovery',
+  auth,
+  wrap(async (req, res) => {
+    needPassword(req);
+    const r = mfa.newRecoveryCodes();
+    const m = await mfa.updateMfa(req.session.account.email, (m) => {
+      if (!mfa.mfaEnabled(m)) throw Object.assign(new Error('Set up a sign-in method first'), { status: 400 });
+      m.recovery = r.hashed;
+    });
+    res.json({ ...mfa.publicStatus(m), recovery: r.plain });
   }),
 );
 
@@ -573,6 +860,14 @@ app.post(
   wrap(async (req, res) => {
     await removeAccount(req.session, String(req.body?.id || ''));
     res.json({ ok: true });
+  }),
+);
+
+app.post(
+  '/api/accounts/unlock',
+  auth,
+  wrap(async (req, res) => {
+    res.json({ unlocked: await unlockWithOldPassword(req.session, String(req.body?.oldPassword || '')) });
   }),
 );
 

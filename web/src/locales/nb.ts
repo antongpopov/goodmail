@@ -99,4 +99,11 @@ export const nb: Dict = {
   "Likely spam": "Sannsynligvis søppelpost",
   "Spam score {score} (junk at {threshold}{reject}) · {engine}": "Søppelpostpoeng {score} (søppelpost fra {threshold}{reject}) · {engine}",
   ", rejected at {n}": ", avvises ved {n}",
+  // unlock after password change
+  "Unlocked {n} account(s)": "{n} konto(er) låst opp",
+  "Enter its password": "Skriv inn passordet",
+  "Changed your sign-in password? Locked accounts were saved with the old one. Enter your previous sign-in password to unlock them all.": "Har du byttet påloggingspassord? Låste kontoer ble lagret med det gamle. Skriv inn det forrige påloggingspassordet for å låse opp alle.",
+  "Previous sign-in password": "Forrige påloggingspassord",
+  "Unlock": "Lås opp",
+  "That password did not unlock any account": "Passordet låste ikke opp noen konto",
 };
