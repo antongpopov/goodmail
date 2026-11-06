@@ -12,7 +12,6 @@ import type { ComposeInit } from './Compose.tsx';
 import { MailBody } from './MailBody.tsx';
 import { Contacts } from './Contacts.tsx';
 import { Calendar } from './Calendar.tsx';
-import type { Contact } from './api.ts';
 import { bucket, displayName, fullAddr, fullTime, humanSize, listTime, save, store } from './util.ts';
 import { t } from './i18n.ts';
 import { listCache, msgCache, msgKey, rememberMsg } from './cache.ts';
@@ -21,8 +20,8 @@ import type { FolderNode } from './folders.ts';
 import { Avatar } from './Avatar.tsx';
 import { Splitter } from './Splitter.tsx';
 import { ViewMenu, Appearance } from './ViewMenu.tsx';
-import type { PaneMode } from './ViewMenu.tsx';
 import { SpamBar } from './SpamBar.tsx';
+import { useAddressBook, useLayout, usePhoneWidth, useToast } from './hooks.ts';
 
 const POLL_MS = 30_000;
 
@@ -77,25 +76,13 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   const [filter, setFilter] = useState<'all' | 'unread' | 'flagged'>('all');
   const filterRef = useRef(filter);
   filterRef.current = filter;
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => store('collapsed', {}));
-  const [foldersHidden, setFoldersHidden] = useState(() => store('foldersHidden', false));
-  const [toast, setToast] = useState('');
+  const { collapsed, setCollapsed, foldersHidden, setFoldersHidden, pane, setPane, preview, setPreview, listH, setListH, folderW, setFolderW, listW, setListW } = useLayout();
+  const { toast, flash } = useToast();
   const [moveOpen, setMoveOpen] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const [view, setView] = useState<'mail' | 'contacts' | 'calendar'>(() => (location.hash === '#calendar' ? 'calendar' : 'mail'));
-  const [book, setBook] = useState<Contact[]>([]);
-  const [addContact, setAddContact] = useState<Partial<Contact> | null>(null);
-  const reloadBook = useCallback(() => api.contacts().then(setBook).catch(() => {}), []);
-  useEffect(() => {
-    void reloadBook();
-  }, [reloadBook, view === 'contacts']); // refresh when the Contacts view opens (edits from other devices)
-  const [phoneWidth, setPhoneWidth] = useState(() => window.matchMedia('(max-width: 760px)').matches);
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 760px)');
-    const on = () => setPhoneWidth(mq.matches);
-    mq.addEventListener('change', on);
-    return () => mq.removeEventListener('change', on);
-  }, []);
+  const { book, addContact, setAddContact, reloadBook, known } = useAddressBook(view === 'contacts');
+  const phoneWidth = usePhoneWidth();
   const addToCalendar = async (url: string) => {
     try {
       const r = await api.importEvents(await (await fetch(url, { credentials: 'same-origin' })).text());
@@ -104,30 +91,11 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
       flash((err as Error).message);
     }
   };
-  const known = useMemo(() => new Set(book.flatMap((c) => c.emails)), [book]);
-  const [pane, setPaneState] = useState<PaneMode>(() => store('pane', 'right'));
-  const [preview, setPreviewState] = useState(() => store('preview', false));
-  const [listH, setListH] = useState(() => store('listH', 300));
-  const setPane = (p: PaneMode) => {
-    setPaneState(p);
-    save('pane', p);
-  };
-  const setPreview = (v: boolean) => {
-    setPreviewState(v);
-    save('preview', v);
-  };
   const [remoteOk, setRemoteOk] = useState<Record<string, boolean>>(() => store('remoteOk', {}));
   const [showRemoteOnce, setShowRemoteOnce] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
-  const [folderW, setFolderW] = useState(() => store('folderW', 220));
-  const [listW, setListW] = useState(() => store('listW', 380));
   const reqId = useRef(0);
-
-  const flash = useCallback((msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast((cur) => (cur === msg ? '' : cur)), 3500);
-  }, []);
 
   const acctRef = useRef(acct);
   acctRef.current = acct;
