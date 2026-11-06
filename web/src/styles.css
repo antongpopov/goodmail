@@ -143,7 +143,7 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .pane-hidden .list { flex: 1; }
 .reading { min-height: 0; }
 .pane-hidden .back { display: inline-flex !important; }
-.menu.view-menu { right: 0; left: auto; top: 40px; width: 260px; color: var(--text); padding: 6px 8px 10px; }
+.menu.view-menu { right: 0; left: auto; top: 40px; width: 330px; color: var(--text); padding: 6px 8px 10px; }
 .menu.view-menu .segment { margin: 0; }
 .menu.view-menu .segment button { width: auto; padding: 0; justify-content: center; border-radius: 4px; }
 .menu-label { font-size: 12px; font-weight: 600; color: var(--text-2); margin: 10px 2px 6px; }
@@ -430,9 +430,19 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .segment { display: flex; gap: 2px; margin: 8px 8px 4px 12px; padding: 2px; border-radius: 6px; background: var(--hover); }
 .segment button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 30px; border-radius: 4px; font-size: 13px; color: var(--text-2); }
 .swatches-row { display: flex; gap: 8px; flex-wrap: wrap; padding: 2px; }
-.accent-dot { width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 2px rgba(255,255,255,.35); }
+/* the menu styles every button as a full-width row; dots must stay dots */
+.menu .accent-dot, .menu .mode-dot, .drawer-foot .accent-dot, .drawer-foot .mode-dot { width: 21px; height: 21px; padding: 0; flex: none; border-radius: 50%; }
+.menu .accent-dot { display: block; }
+.menu .mode-dot { display: grid; place-items: center; }
+.appearance { align-items: center; gap: 5px; flex-wrap: wrap; row-gap: 8px; padding: 3px; }
+.accent-dots { display: flex; gap: 5px; flex-wrap: wrap; }
+.mode-dot { width: 21px; height: 21px; border-radius: 50%; display: grid; place-items: center; color: var(--text-2); background: var(--hover); }
+.mode-dot.on { color: var(--brand); outline: 2px solid var(--text); outline-offset: 2px; background: var(--surface); }
+.dot-sep { width: 1px; height: 18px; background: var(--border); margin: 0 3px; flex: none; }
+.accent-dot { flex: none; width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 2px rgba(255,255,255,.35); }
 .accent-dot.on { outline: 2px solid var(--text); outline-offset: 2px; }
 .drawer-foot .swatches-row { margin: 8px 8px 4px 12px; }
+.drawer-foot .appearance { margin: 10px 8px 6px 12px; }
 .segment button.on { background: var(--surface); color: var(--brand); box-shadow: var(--shadow); font-weight: 600; }
 
 @media (max-width: 760px) {

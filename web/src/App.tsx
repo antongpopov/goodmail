@@ -132,9 +132,7 @@ function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, onSecurity, so
       {open && (
         <div className="menu view-menu">
           <div className="menu-label">{t('Theme')}</div>
-          <ThemeSegment />
-          <div className="menu-label">{t('Color')}</div>
-          <AccentPicker />
+          <Appearance />
           <div className="menu-label">{t('Reading pane')}</div>
           <div className="segment">
             {PANES.map((p) => (
@@ -166,10 +164,36 @@ function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, onSecurity, so
   );
 }
 
+/** One compact row: auto / light / dark as icon dots, then the accent color dots. */
+function Appearance() {
+  const [theme, setThemeState] = useState<Theme>(loadTheme);
+  return (
+    <div className="swatches-row appearance">
+      {THEMES.map((th) => (
+        <button
+          key={th.id}
+          className={`mode-dot ${th.id === theme ? 'on' : ''}`}
+          title={t(th.label)}
+          aria-label={t(th.label)}
+          aria-pressed={th.id === theme}
+          onClick={() => {
+            setThemeState(th.id);
+            setTheme(th.id);
+          }}
+        >
+          <Icon name={th.icon} size={15} />
+        </button>
+      ))}
+      <span className="dot-sep" />
+      <AccentPicker />
+    </div>
+  );
+}
+
 function AccentPicker() {
   const [accent, set] = useState(loadAccent);
   return (
-    <div className="swatches-row" role="radiogroup" aria-label={t('Color')}>
+    <div className="accent-dots" role="radiogroup" aria-label={t('Color')}>
       {ACCENTS.map((a) => (
         <button
           key={a.id}
@@ -917,8 +941,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                     <span className="twisty" />
                     <Icon name="people" size={18} /> <span className="fname">{t('Contacts')}</span>
                   </button>
-                  <ThemeSegment />
-                  <AccentPicker />
+                  <Appearance />
                   <LangPicker className="wide drawer-lang" />
                   <label className="menu-check">
                     <input type="checkbox" checked={preview} onChange={(e) => setPreview(e.target.checked)} /> {t('Show preview text')}
