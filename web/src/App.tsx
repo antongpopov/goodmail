@@ -479,6 +479,7 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
         case 'f': if (open) { e.preventDefault(); setCompose({ mode: 'forward', source: open }); } break;
         case 'u': e.preventDefault(); toggleRead(); break;
         case 'e': e.preventDefault(); void doMove('archive'); break;
+        case '!': e.preventDefault(); void toggleJunk(); break;
         case '/': e.preventDefault(); document.getElementById('gm-search')?.focus(); break;
         case 'Escape': setSelected(new Set()); setOpen(null); break;
       }
@@ -511,6 +512,10 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
   }, [visible]);
 
   const isSentFolder = current?.specialUse === '\\Sent' || current?.specialUse === '\\Drafts';
+  // In the Junk folder the junk buttons turn into "Not junk" (move back to Inbox). On servers that learn from
+  // Junk moves (rspamd/IMAPSieve) this is also what trains the spam filter.
+  const inJunk = current?.specialUse === '\\Junk';
+  const toggleJunk = (uids = targetUids()) => doMove(inJunk ? 'INBOX' : 'junk', uids);
   const has = targetUids().length > 0;
 
   const renderFolder = (n: FolderNode): React.ReactNode => (
@@ -663,8 +668,13 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
                 </div>
               )}
             </div>
-            <button className="tb" disabled={!has} onClick={() => void doMove('junk')} title="Report junk">
-              <Icon name="junk" /> <span className="lbl">Junk</span>
+            <button
+              className="tb"
+              disabled={!has}
+              onClick={() => void toggleJunk()}
+              title={inJunk ? 'Not junk: move back to Inbox (!)' : 'Mark as junk (!)'}
+            >
+              <Icon name={inJunk ? 'inbox' : 'junk'} /> <span className="lbl">{inJunk ? 'Not junk' : 'Mark as junk'}</span>
             </button>
             <button className="tb" disabled={!has} onClick={toggleFlag}>
               <Icon name="flag" /> <span className="lbl">Flag</span>
@@ -773,6 +783,9 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
                                 <button title={m.seen ? 'Mark unread' : 'Mark read'} onClick={(e) => { e.stopPropagation(); void setFlag([m.uid], '\\Seen', !m.seen); }}>
                                   <Icon name="unread" size={16} />
                                 </button>
+                                <button title={inJunk ? 'Not junk' : 'Mark as junk'} onClick={(e) => { e.stopPropagation(); void toggleJunk([m.uid]); }}>
+                                  <Icon name={inJunk ? 'inbox' : 'junk'} size={16} />
+                                </button>
                                 <button title="Delete" onClick={(e) => { e.stopPropagation(); void doDelete([m.uid]); }}>
                                   <Icon name="trash" size={16} />
                                 </button>
@@ -832,6 +845,9 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
                       </button>
                       <button className="tb icon" title="Forward (f)" onClick={() => setCompose({ mode: 'forward', source: open })}>
                         <Icon name="forward" />
+                      </button>
+                      <button className="tb icon" title={inJunk ? 'Not junk (!)' : 'Mark as junk (!)'} onClick={() => void toggleJunk([open.uid])}>
+                        <Icon name={inJunk ? 'inbox' : 'junk'} />
                       </button>
                       <span className="phone-only phone-actions">
                         <button className="tb icon" title="Delete" onClick={() => void doDelete()}>

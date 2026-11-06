@@ -12,9 +12,9 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
 - Reading pane renders HTML mail sanitized (DOMPurify) in a script-less sandboxed iframe with its own CSP;
   **remote images and trackers are blocked** until you allow them once or per sender
 - Reply, reply all, forward with quoted original; rich-text composer, attachments (button or drag-drop),
-  sent mail saved to Sent; Delete → Trash, Archive, Junk, Move
+  sent mail saved to Sent; Delete → Trash, Archive, Mark as junk / Not junk (toolbar, hover button, message header or `!`), Move
 - Keyboard: `j`/`k` move · `r` reply · `a` reply all · `f` forward · `e` archive · `Del` delete ·
-  `u` read/unread · `n` new · `/` search · `⌘/Ctrl+Enter` send
+  `u` read/unread · `!` junk / not junk · `n` new · `/` search · `⌘/Ctrl+Enter` send
 - **Address book**: per-account contacts, vCard + CSV import/export (Apple, Google, Outlook, Thunderbird),
   duplicate merge by email, "add sender" button, To/Cc autocomplete
 - **Calendar**: Outlook-style day / work week / week / month views, mini month, recurring events,
