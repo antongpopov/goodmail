@@ -505,7 +505,9 @@ app.post(
 const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist');
 if (fs.existsSync(dist)) {
   app.use(express.static(dist, { index: false, maxAge: '1h' }));
-  app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(dist, 'index.html')));
+  app.get('/', (_req, res) => res.sendFile(path.join(dist, 'index.html')));
+  // The app has a single page; send any other unknown path home instead of echoing index.html.
+  app.use((req, res) => (req.path.startsWith('/api/') ? res.status(404).json({ error: 'not found' }) : res.redirect(302, '/')));
 }
 
 const HOST = process.env.HOST || '0.0.0.0';
