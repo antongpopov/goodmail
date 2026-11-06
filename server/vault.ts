@@ -5,7 +5,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const DATA = path.resolve(process.env.GOODMAIL_DATA || 'data');
+export const DATA = path.resolve(process.env.GOODMAIL_DATA || 'data');
 
 function loadKey(): Buffer {
   if (process.env.GOODMAIL_SECRET) return crypto.createHash('sha256').update(process.env.GOODMAIL_SECRET).digest();

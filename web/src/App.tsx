@@ -6,6 +6,8 @@ import { Login } from './Login.tsx';
 import { Compose } from './Compose.tsx';
 import type { ComposeInit } from './Compose.tsx';
 import { MailBody } from './MailBody.tsx';
+import { Contacts } from './Contacts.tsx';
+import type { Contact } from './api.ts';
 import { loadTheme, setTheme } from './theme.ts';
 import type { Theme } from './theme.ts';
 import { avatarColor, bucket, displayName, fullAddr, fullTime, humanSize, initials, listTime, save, store } from './util.ts';
@@ -199,6 +201,14 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
   const [toast, setToast] = useState('');
   const [moveOpen, setMoveOpen] = useState(false);
   const [drawer, setDrawer] = useState(false);
+  const [view, setView] = useState<'mail' | 'contacts'>('mail');
+  const [book, setBook] = useState<Contact[]>([]);
+  const [addContact, setAddContact] = useState<Partial<Contact> | null>(null);
+  const reloadBook = useCallback(() => api.contacts().then(setBook).catch(() => {}), []);
+  useEffect(() => {
+    void reloadBook();
+  }, [reloadBook]);
+  const known = useMemo(() => new Set(book.flatMap((c) => c.emails)), [book]);
   const [pane, setPaneState] = useState<PaneMode>(() => store('pane', 'right'));
   const [preview, setPreviewState] = useState(() => store('preview', false));
   const [listH, setListH] = useState(() => store('listH', 300));
@@ -279,12 +289,13 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
   );
   const contacts = useMemo(() => {
     const s = new Set<string>();
+    for (const c of book) for (const e of c.emails) s.add(c.name ? `${c.name} <${e}>` : e);
     for (const m of list) {
       if (m.from.address) s.add(fullAddr(m.from));
       m.to.forEach((a) => a.address && s.add(fullAddr(a)));
     }
-    return [...s].slice(0, 500);
-  }, [list]);
+    return [...s].slice(0, 5000);
+  }, [list, book]);
 
   const patch = (uids: number[], p: Partial<Summary>) =>
     setList((l) => l.map((m) => (uids.includes(m.uid) ? { ...m, ...p } : m)));
@@ -574,8 +585,11 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
 
       <div className="body">
         <nav className="rail">
-          <button className="rail-btn active" title="Mail">
+          <button className={`rail-btn ${view === 'mail' ? 'active' : ''}`} title="Mail" onClick={() => setView('mail')}>
             <Icon name="mail" />
+          </button>
+          <button className={`rail-btn ${view === 'contacts' ? 'active' : ''}`} title="Contacts" onClick={() => setView('contacts')}>
+            <Icon name="people" />
           </button>
           <button className="rail-btn" title="Toggle folder pane" onClick={() => { setFoldersHidden(!foldersHidden); save('foldersHidden', !foldersHidden); }}>
             <Icon name="pane" />
@@ -583,6 +597,20 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
         </nav>
 
         <div className="main">
+          {view === 'contacts' ? (
+            <Contacts
+              contacts={book}
+              reload={reloadBook}
+              flash={flash}
+              initial={addContact}
+              onCompose={(to) => {
+                setView('mail');
+                setOpen(null);
+                setCompose({ mode: 'new', to });
+              }}
+            />
+          ) : (
+          <>
           <div className="toolbar">
             <button className="tb" onClick={() => setFoldersHidden(!foldersHidden)} title="Folders">
               <Icon name="menu" />
@@ -655,6 +683,10 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
                   <Icon name="plus" size={16} /> <span className="fname">Create new folder</span>
                 </button>
                 <div className="drawer-foot phone-only">
+                  <button className="folder" onClick={() => { setView('contacts'); setDrawer(false); }}>
+                    <span className="twisty" />
+                    <Icon name="people" size={18} /> <span className="fname">Contacts</span>
+                  </button>
                   <ThemeSegment />
                   <label className="menu-check">
                     <input type="checkbox" checked={preview} onChange={(e) => setPreview(e.target.checked)} /> Show preview text
@@ -798,6 +830,18 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
                       <div className="sender-info">
                         <div className="from-line">
                           <b>{displayName(open.from)}</b>
+                          {open.from.address && !known.has(open.from.address.toLowerCase()) && (
+                            <button
+                              className="add-contact"
+                              title="Add to contacts"
+                              onClick={() => {
+                                setAddContact({ name: open.from.name, emails: [open.from.address] });
+                                setView('contacts');
+                              }}
+                            >
+                              <Icon name="plus" size={14} />
+                            </button>
+                          )}
                           {open.from.name && <span className="muted"> &lt;{open.from.address}&gt;</span>}
                         </div>
                         <div className="to-line">
@@ -857,9 +901,11 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
             )}
             </div>
           </div>
+          </>
+          )}
         </div>
       </div>
-      {!compose && !open && !openLoading && (
+      {view === 'mail' && !compose && !open && !openLoading && (
         <button className="fab phone-only" onClick={() => setCompose({ mode: 'new' })}>
           <Icon name="compose" /> New mail
         </button>

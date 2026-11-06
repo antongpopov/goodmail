@@ -10,6 +10,7 @@ export interface Message {
   messageId: string; references: string[]; html: string; text: string; flagged: boolean; listUnsubscribe: string;
   attachments: Attachment[];
 }
+export interface Contact { id: string; name: string; emails: string[]; phones: string[]; company: string; notes: string; updated: number }
 export interface Me { email: string; name: string; imapHost: string }
 export interface ListResult { total: number; messages: Summary[]; hasMore: boolean }
 
@@ -53,6 +54,12 @@ export const api = {
   remove: (folder: string, uids: number[]) => call<{ permanent: boolean }>('POST', '/api/delete', { folder, uids }),
   createFolder: (name: string) => call('POST', '/api/folder', { name }),
   send: (body: Record<string, unknown>) => call('POST', '/api/send', body),
+  contacts: () => call<Contact[]>('GET', '/api/contacts'),
+  saveContact: (c: Partial<Contact>) => call<Contact>('POST', '/api/contacts', c),
+  deleteContacts: (ids: string[]) => call('POST', '/api/contacts/delete', { ids }),
+  importContacts: (text: string, format: 'vcf' | 'csv') =>
+    call<{ added: number; merged: number; total: number }>('POST', '/api/contacts/import', { text, format }),
+  exportUrl: (format: 'vcf' | 'csv') => `/api/contacts/export?format=${format}`,
   attachmentUrl: (folder: string, uid: number, a: Attachment, inline = false) =>
     `/api/attachment?${q({ folder, uid, part: a.part, name: a.filename, ...(inline ? { inline: 1 } : {}) })}`,
 };
