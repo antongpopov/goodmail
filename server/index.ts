@@ -678,10 +678,18 @@ app.get(
   wrap(async (req, res) => {
     const folder = String(req.query.folder || 'INBOX');
     const page = Math.max(0, Number(req.query.page || 0));
+    const filter = String(req.query.filter || '');
     const out = await withFolder(
       conn(req),
       folder,
       async (c) => {
+        if (filter === 'unread' || filter === 'flagged') {
+          // Ask the server for every match in the folder, not just the loaded page (big folders like Gmail's All Mail).
+          const uids = ((await c.search(filter === 'unread' ? { seen: false } : { flagged: true }, { uid: true })) || []).sort((a, b) => b - a);
+          const slice = uids.slice(page * PAGE, (page + 1) * PAGE);
+          const messages = slice.length ? await listMessages(conn(req), c, folder, slice, true) : [];
+          return { total: uids.length, messages, hasMore: uids.length > (page + 1) * PAGE };
+        }
         const exists = c.mailbox ? c.mailbox.exists : 0;
         const to = exists - page * PAGE;
         if (to < 1) return { total: exists, messages: [], hasMore: false };

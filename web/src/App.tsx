@@ -315,6 +315,8 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState('');
   const [filter, setFilter] = useState<'all' | 'unread' | 'flagged'>('all');
+  const filterRef = useRef(filter);
+  filterRef.current = filter;
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => store('collapsed', {}));
   const [foldersHidden, setFoldersHidden] = useState(() => store('foldersHidden', false));
   const [toast, setToast] = useState('');
@@ -419,7 +421,8 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
     async (f: string, p: number, q: string, merge = false) => {
       const id = ++reqId.current;
       const acctId = currentAccount();
-      const lkey = `${acctId}\u0000${f}\u0000${q}`;
+      const flt = q ? 'all' : filterRef.current;
+      const lkey = `${acctId}\u0000${f}\u0000${q}\u0000${flt}`;
       const cachedList = p === 0 ? listCache.get(lkey) : undefined;
       if (cachedList && !merge) {
         setList(cachedList.messages);
@@ -427,7 +430,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
       }
       if (!merge) setLoading(true);
       try {
-        const r = q ? await api.search(f, q) : await api.messages(f, p);
+        const r = q ? await api.search(f, q) : await api.messages(f, p, flt);
         if (id !== reqId.current) return;
         if (p === 0) {
           listCache.set(lkey, { messages: r.messages, hasMore: r.hasMore });
@@ -459,9 +462,24 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
     setSelected(new Set());
     setOpen(null);
     setFilter('all');
+    filterRef.current = 'all';
     listRef.current?.scrollTo(0, 0);
     void loadList(folder, 0, searching);
   }, [folder, acct, searching, loadList]);
+
+  // Unread / Flagged ask the server for every match in the folder, not just the loaded page.
+  const firstFilter = useRef(true);
+  useEffect(() => {
+    if (firstFilter.current) {
+      firstFilter.current = false;
+      return;
+    }
+    if (searching) return;
+    setPage(0);
+    listRef.current?.scrollTo(0, 0);
+    void loadList(folder, 0, '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
 
   // Background refresh: re-fetch the first page and folder counts.
   useEffect(() => {

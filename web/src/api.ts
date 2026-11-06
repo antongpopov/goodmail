@@ -78,7 +78,8 @@ export const api = {
   recoveryNew: (password: string) => call<MfaStatus>('POST', '/api/mfa/recovery', { password }),
   logout: () => call('POST', '/api/logout', {}),
   folders: (account = cur, fresh = false) => call<Folder[]>('GET', `/api/folders?${q({ account, ...(fresh ? { fresh: 1 } : {}) })}`),
-  messages: (folder: string, page: number) => call<ListResult>('GET', `/api/messages?${q({ folder, page, account: cur })}`),
+  messages: (folder: string, page: number, filter = 'all') =>
+    call<ListResult>('GET', `/api/messages?${q({ folder, page, account: cur, ...(filter !== 'all' ? { filter } : {}) })}`),
   search: (folder: string, text: string) => call<ListResult>('GET', `/api/search?${q({ folder, q: text, account: cur })}`),
   message: (folder: string, uid: number, peek = false, account = cur) =>
     call<Message>('GET', `/api/message?${q({ folder, uid, account, ...(peek ? { peek: 1 } : {}) })}`).then((m) => ({ ...m, account })),
