@@ -200,7 +200,6 @@ body.resizing iframe { pointer-events: none; }
 .att-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .att .x { display: grid; place-items: center; color: var(--text-2); }
 .mail-frame { width: 100%; border: 0; display: block; background: #fff; border-radius: 4px; min-height: 120px; }
-.quick-reply { display: flex; gap: 8px; padding: 16px 4px 0; flex-wrap: wrap; }
 .pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 4px; height: 32px; padding: 0 12px; background: var(--surface); }
 .pill:hover { background: var(--hover); }
 
@@ -274,8 +273,6 @@ body.resizing iframe { pointer-events: none; }
   .sender-row { flex-wrap: wrap; padding: 12px 4px 10px; row-gap: 2px; }
   .sender-row .date { order: 3; flex-basis: 100%; padding-left: 56px; margin-top: -4px; }
   .to-line { white-space: normal; }
-  .quick-reply { padding-bottom: env(safe-area-inset-bottom); }
-  .quick-reply .pill { flex: 1; justify-content: center; height: 40px; padding: 0 8px; }
 
   .compose-bar { padding: 6px 8px; }
   .compose-fields { padding: 0 10px; }

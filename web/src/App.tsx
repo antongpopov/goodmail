@@ -802,17 +802,6 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
                       </div>
                     )}
                     <MailBody html={open.html} text={open.text} remote={remote} onBlocked={setBlocked} />
-                    <div className="quick-reply">
-                      <button className="pill" onClick={() => setCompose({ mode: 'reply', source: open })}>
-                        <Icon name="reply" size={16} /> Reply
-                      </button>
-                      <button className="pill" onClick={() => setCompose({ mode: 'replyAll', source: open })}>
-                        <Icon name="replyAll" size={16} /> Reply all
-                      </button>
-                      <button className="pill" onClick={() => setCompose({ mode: 'forward', source: open })}>
-                        <Icon name="forward" size={16} /> Forward
-                      </button>
-                    </div>
                   </div>
                 </article>
               ) : (
