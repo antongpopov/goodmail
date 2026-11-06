@@ -23,16 +23,16 @@ export const PRESETS: Preset[] = [
     link: 'https://account.apple.com/account/manage', domains: /@(icloud|me|mac)\.com$/i,
   },
   {
-    id: 'gmail', label: 'Gmail', imapHost: 'imap.gmail.com', imapPort: 993, smtpHost: 'smtp.gmail.com', smtpPort: 465,
+    id: 'gmail', label: 'Gmail', imapHost: 'imap.gmail.com', imapPort: 993, smtpHost: 'smtp.gmail.com', smtpPort: 587,
     help: 'Turn on 2-Step Verification, then create an app password (Google Account → Security → App passwords).',
     link: 'https://myaccount.google.com/apppasswords', domains: /@(gmail|googlemail)\.com$/i,
   },
   {
-    id: 'yahoo', label: 'Yahoo', imapHost: 'imap.mail.yahoo.com', imapPort: 993, smtpHost: 'smtp.mail.yahoo.com', smtpPort: 465,
+    id: 'yahoo', label: 'Yahoo', imapHost: 'imap.mail.yahoo.com', imapPort: 993, smtpHost: 'smtp.mail.yahoo.com', smtpPort: 587,
     help: 'Generate an app password under Account Security.', link: 'https://login.yahoo.com/account/security', domains: /@(yahoo|ymail)\./i,
   },
   {
-    id: 'gmx', label: 'GMX', imapHost: 'imap.gmx.net', imapPort: 993, smtpHost: 'mail.gmx.net', smtpPort: 465,
+    id: 'gmx', label: 'GMX', imapHost: 'imap.gmx.net', imapPort: 993, smtpHost: 'mail.gmx.net', smtpPort: 587,
     help: 'First enable IMAP: E-Mail → Settings → POP3 & IMAP. Use your normal password (or an app password if you use 2FA).', domains: /@gmx\./i,
   },
   {
@@ -40,19 +40,19 @@ export const PRESETS: Preset[] = [
     help: 'First enable IMAP: E-Mail → Settings → POP3/IMAP Abruf. Use your normal password (or an app password if you use 2FA).', domains: /@web\.de$/i,
   },
   {
-    id: 'fastmail', label: 'Fastmail', imapHost: 'imap.fastmail.com', imapPort: 993, smtpHost: 'smtp.fastmail.com', smtpPort: 465,
+    id: 'fastmail', label: 'Fastmail', imapHost: 'imap.fastmail.com', imapPort: 993, smtpHost: 'smtp.fastmail.com', smtpPort: 587,
     help: 'Create an app password: Settings → Privacy & Security → Manage app passwords.', link: 'https://app.fastmail.com/settings/security/apps', domains: /@fastmail\./i,
   },
   {
     id: 'outlook', label: 'Outlook.com', imapHost: '', imapPort: 993, smtpHost: '', smtpPort: 587, help: '',
     domains: /@(outlook|hotmail|live|msn)\./i, disabled: 'Microsoft no longer accepts passwords for IMAP; it needs "Sign in with Microsoft", which is not available yet.',
   },
-  { id: 'imap', label: 'Other (IMAP)', imapHost: '', imapPort: 993, smtpHost: '', smtpPort: 465, help: 'Enter your provider’s IMAP and SMTP servers. Many providers require an app password.' },
+  { id: 'imap', label: 'Other (IMAP)', imapHost: '', imapPort: 993, smtpHost: '', smtpPort: 587, help: 'Enter your provider’s IMAP and SMTP servers. Many providers require an app password.' },
 ];
 
 export function AccountsDialog({ accounts, onClose, onChanged, flash }: { accounts: MailAccount[]; onClose: () => void; onChanged: () => void; flash: (m: string) => void }) {
   const [adding, setAdding] = useState<Preset | null>(null);
-  const [form, setForm] = useState({ email: '', password: '', name: '', imapHost: '', imapPort: 993, smtpHost: '', smtpPort: 465, user: '' });
+  const [form, setForm] = useState({ email: '', password: '', name: '', imapHost: '', imapPort: 993, smtpHost: '', smtpPort: 587, user: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const set = (k: keyof typeof form, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
@@ -87,7 +87,7 @@ export function AccountsDialog({ accounts, onClose, onChanged, flash }: { accoun
       await api.addAccount({ ...form, provider: adding.id, user: form.user || form.email });
       flash(`Added ${form.email}`);
       setAdding(null);
-      setForm({ email: '', password: '', name: '', imapHost: '', imapPort: 993, smtpHost: '', smtpPort: 465, user: '' });
+      setForm({ email: '', password: '', name: '', imapHost: '', imapPort: 993, smtpHost: '', smtpPort: 587, user: '' });
       onChanged();
     } catch (err) {
       setError((err as Error).message);
@@ -183,7 +183,7 @@ export function AccountsDialog({ accounts, onClose, onChanged, flash }: { accoun
                 <label>IMAP server<input value={form.imapHost} onChange={(e) => set('imapHost', e.target.value)} placeholder="imap.example.com" required /></label>
                 <label>Port<select value={form.imapPort} onChange={(e) => set('imapPort', Number(e.target.value))}><option value={993}>993 (TLS)</option><option value={143}>143 (STARTTLS)</option></select></label>
                 <label>SMTP server<input value={form.smtpHost} onChange={(e) => set('smtpHost', e.target.value)} placeholder="smtp.example.com" required /></label>
-                <label>Port<select value={form.smtpPort} onChange={(e) => set('smtpPort', Number(e.target.value))}><option value={465}>465 (TLS)</option><option value={587}>587 (STARTTLS)</option><option value={25}>25</option></select></label>
+                <label>Port<select value={form.smtpPort} onChange={(e) => set('smtpPort', Number(e.target.value))}><option value={587}>587 (STARTTLS)</option><option value={465}>465 (TLS)</option><option value={25}>25</option></select></label>
                 <label className="wide">Username <span className="muted small">if not the email address</span><input value={form.user} onChange={(e) => set('user', e.target.value)} placeholder={form.email} /></label>
                 <button type="button" className="link-btn wide" onClick={() => void guess()} disabled={!form.email.includes('@')}>
                   Look up server settings for this address
