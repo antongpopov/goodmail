@@ -1,47 +1,28 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
 import { api, setUnauthorizedHandler, useAccount, currentAccount } from './api.ts';
-
 import type { MailAccount } from './api.ts';
 import { AccountsDialog } from './Accounts.tsx';
-
 import { SecurityDialog } from './Security.tsx';
-
 import { LangPicker } from './LangPicker.tsx';
-
 import type { Folder, Me, Message, Summary } from './api.ts';
 import { Icon, folderIcon } from './icons.tsx';
-
 import { Login } from './Login.tsx';
-
 import { Compose } from './Compose.tsx';
-
 import type { ComposeInit } from './Compose.tsx';
 import { MailBody } from './MailBody.tsx';
-
 import { Contacts } from './Contacts.tsx';
-
 import { Calendar } from './Calendar.tsx';
-
 import type { Contact } from './api.ts';
 import { bucket, displayName, fullAddr, fullTime, humanSize, listTime, save, store } from './util.ts';
-
 import { t } from './i18n.ts';
-
 import { listCache, msgCache, msgKey, rememberMsg } from './cache.ts';
-
 import { folderLabel, buildTree } from './folders.ts';
-
 import type { FolderNode } from './folders.ts';
 import { Avatar } from './Avatar.tsx';
-
 import { Splitter } from './Splitter.tsx';
-
 import { ViewMenu, Appearance } from './ViewMenu.tsx';
-
 import type { PaneMode } from './ViewMenu.tsx';
 import { SpamBar } from './SpamBar.tsx';
-
 
 const POLL_MS = 30_000;
 
