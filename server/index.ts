@@ -12,6 +12,7 @@ import crypto from 'node:crypto';
 import { serversFor, appTitle, normalizeLogin } from './config.ts';
 import { seal, unseal } from './vault.ts';
 import { previewPart, attachments, makeSnippet } from './mime.ts';
+import { loadEvents, saveEvent, deleteEvents, importEvents, parseIcs, toIcs } from './calendar.ts';
 import { loadContacts, saveContact, deleteContacts, importContacts, parseVCard, parseCsv, toVCard, toCsv } from './contacts.ts';
 
 const PORT = Number(process.env.PORT || 3000);
@@ -550,6 +551,54 @@ app.get(
     res.setHeader('Content-Type', csv ? 'text/csv; charset=utf-8' : 'text/vcard; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="contacts-${stamp}.${csv ? 'csv' : 'vcf'}"`);
     res.send(csv ? toCsv(list) : toVCard(list));
+  }),
+);
+
+// ---------- calendar ----------
+
+app.get(
+  '/api/events',
+  auth,
+  wrap(async (req, res) => {
+    res.json(await loadEvents(req.session.account.email));
+  }),
+);
+
+app.post(
+  '/api/events',
+  auth,
+  wrap(async (req, res) => {
+    res.json(await saveEvent(req.session.account.email, req.body || {}));
+  }),
+);
+
+app.post(
+  '/api/events/delete',
+  auth,
+  wrap(async (req, res) => {
+    const ids = (Array.isArray(req.body?.ids) ? req.body.ids : []).map(String);
+    res.json({ total: await deleteEvents(req.session.account.email, ids) });
+  }),
+);
+
+app.post(
+  '/api/events/import',
+  auth,
+  wrap(async (req, res) => {
+    const parsed = parseIcs(String(req.body?.text || ''), String(req.body?.tz || 'UTC'));
+    if (!parsed.length) return res.status(400).json({ error: 'No events found in that file' });
+    res.json(await importEvents(req.session.account.email, parsed));
+  }),
+);
+
+app.get(
+  '/api/events/export',
+  auth,
+  wrap(async (req, res) => {
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="calendar-${stamp}.ics"`);
+    res.send(toIcs(await loadEvents(req.session.account.email)));
   }),
 );
 

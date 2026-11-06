@@ -11,6 +11,11 @@ export interface Message {
   attachments: Attachment[];
 }
 export interface Contact { id: string; name: string; emails: string[]; phones: string[]; company: string; notes: string; updated: number }
+export interface RRule { freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'; interval: number; until?: number; count?: number; byday?: string[] }
+export interface CalEvent {
+  id: string; uid: string; title: string; allDay: boolean; start: number | string; end: number | string;
+  location: string; notes: string; color: string; rrule?: RRule; exdates?: (number | string)[]; updated: number;
+}
 export interface Me { email: string; name: string; imapHost: string }
 export interface ListResult { total: number; messages: Summary[]; hasMore: boolean }
 
@@ -60,6 +65,15 @@ export const api = {
   importContacts: (text: string, format: 'vcf' | 'csv') =>
     call<{ added: number; merged: number; total: number }>('POST', '/api/contacts/import', { text, format }),
   exportUrl: (format: 'vcf' | 'csv') => `/api/contacts/export?format=${format}`,
+  events: () => call<CalEvent[]>('GET', '/api/events'),
+  saveEvent: (e: Partial<CalEvent>) => call<CalEvent>('POST', '/api/events', e),
+  deleteEvents: (ids: string[]) => call('POST', '/api/events/delete', { ids }),
+  importEvents: (text: string) =>
+    call<{ added: number; updated: number; total: number; first?: number | string }>('POST', '/api/events/import', {
+      text,
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    }),
+  icsExportUrl: '/api/events/export',
   attachmentUrl: (folder: string, uid: number, a: Attachment, inline = false) =>
     `/api/attachment?${q({ folder, uid, part: a.part, name: a.filename, ...(inline ? { inline: 1 } : {}) })}`,
 };

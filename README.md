@@ -15,7 +15,11 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
   sent mail saved to Sent; Delete → Trash, Archive, Junk, Move
 - Keyboard: `j`/`k` move · `r` reply · `a` reply all · `f` forward · `e` archive · `Del` delete ·
   `u` read/unread · `n` new · `/` search · `⌘/Ctrl+Enter` send
-- Light and dark mode, works down to phone width
+- **Address book**: per-account contacts, vCard + CSV import/export (Apple, Google, Outlook, Thunderbird),
+  duplicate merge by email, "add sender" button, To/Cc autocomplete
+- **Calendar**: Outlook-style day / work week / week / month views, mini month, recurring events,
+  .ics import/export, and an "Add to calendar" button on invitations (Outlook/Teams time zones understood)
+- Light / dark / auto theme, reading pane right / below / hidden, works down to phone width
 
 ## Run
 
@@ -60,7 +64,7 @@ The file is re-read automatically when it changes.
 |---|---|---|
 | `PORT` / `HOST` | `3000` / `0.0.0.0` | listen address |
 | `GOODMAIL_CONFIG` | `./goodmail.conf` | config file |
-| `GOODMAIL_DATA` | `./data` | holds `secret.key` (cookie encryption key) |
+| `GOODMAIL_DATA` | `./data` | `secret.key` (cookie encryption key), `contacts/`, `calendar/` (one JSON file per account) |
 | `GOODMAIL_SECRET` | — | use this instead of `secret.key` |
 | `GOODMAIL_TRUST_PROXY` | `false` | trust `X-Forwarded-For` (set behind a proxy) |
 

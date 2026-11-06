@@ -7,6 +7,7 @@ import { Compose } from './Compose.tsx';
 import type { ComposeInit } from './Compose.tsx';
 import { MailBody } from './MailBody.tsx';
 import { Contacts } from './Contacts.tsx';
+import { Calendar } from './Calendar.tsx';
 import type { Contact } from './api.ts';
 import { loadTheme, setTheme } from './theme.ts';
 import type { Theme } from './theme.ts';
@@ -201,13 +202,28 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
   const [toast, setToast] = useState('');
   const [moveOpen, setMoveOpen] = useState(false);
   const [drawer, setDrawer] = useState(false);
-  const [view, setView] = useState<'mail' | 'contacts'>('mail');
+  const [view, setView] = useState<'mail' | 'contacts' | 'calendar'>(() => (location.hash === '#calendar' ? 'calendar' : 'mail'));
   const [book, setBook] = useState<Contact[]>([]);
   const [addContact, setAddContact] = useState<Partial<Contact> | null>(null);
   const reloadBook = useCallback(() => api.contacts().then(setBook).catch(() => {}), []);
   useEffect(() => {
     void reloadBook();
   }, [reloadBook]);
+  const [phoneWidth, setPhoneWidth] = useState(() => window.matchMedia('(max-width: 760px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 760px)');
+    const on = () => setPhoneWidth(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  const addToCalendar = async (url: string) => {
+    try {
+      const r = await api.importEvents(await (await fetch(url, { credentials: 'same-origin' })).text());
+      flash(r.updated ? 'Calendar event updated' : 'Added to your calendar');
+    } catch (err) {
+      flash((err as Error).message);
+    }
+  };
   const known = useMemo(() => new Set(book.flatMap((c) => c.emails)), [book]);
   const [pane, setPaneState] = useState<PaneMode>(() => store('pane', 'right'));
   const [preview, setPreviewState] = useState(() => store('preview', false));
@@ -588,6 +604,9 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
           <button className={`rail-btn ${view === 'mail' ? 'active' : ''}`} title="Mail" onClick={() => setView('mail')}>
             <Icon name="mail" />
           </button>
+          <button className={`rail-btn ${view === 'calendar' ? 'active' : ''}`} title="Calendar" onClick={() => setView('calendar')}>
+            <Icon name="calendar" />
+          </button>
           <button className={`rail-btn ${view === 'contacts' ? 'active' : ''}`} title="Contacts" onClick={() => setView('contacts')}>
             <Icon name="people" />
           </button>
@@ -597,7 +616,9 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
         </nav>
 
         <div className="main">
-          {view === 'contacts' ? (
+          {view === 'calendar' ? (
+            <Calendar flash={flash} isPhone={phoneWidth} />
+          ) : view === 'contacts' ? (
             <Contacts
               contacts={book}
               reload={reloadBook}
@@ -683,6 +704,10 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
                   <Icon name="plus" size={16} /> <span className="fname">Create new folder</span>
                 </button>
                 <div className="drawer-foot phone-only">
+                  <button className="folder" onClick={() => { setView('calendar'); setDrawer(false); }}>
+                    <span className="twisty" />
+                    <Icon name="calendar" size={18} /> <span className="fname">Calendar</span>
+                  </button>
                   <button className="folder" onClick={() => { setView('contacts'); setDrawer(false); }}>
                     <span className="twisty" />
                     <Icon name="people" size={18} /> <span className="fname">Contacts</span>
@@ -881,6 +906,13 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
                             <span className="muted">{humanSize(a.size)}</span>
                           </a>
                         ))}
+                        {open.attachments
+                          .filter((a) => a.type === 'text/calendar' || /\.ics$/i.test(a.filename))
+                          .map((a) => (
+                            <button key={`cal-${a.part}`} className="att ics" onClick={() => void addToCalendar(api.attachmentUrl(folder, open.uid, a))}>
+                              <Icon name="calendar" size={16} /> Add to calendar
+                            </button>
+                          ))}
                       </div>
                     )}
                     <MailBody html={open.html} text={open.text} remote={remote} onBlocked={setBlocked} />
