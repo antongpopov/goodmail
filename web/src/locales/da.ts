@@ -186,4 +186,13 @@ export const da: Dict = {
   "Passwordless passkeys keep an encrypted copy of your mail password on this server, because goodmail needs it to open your mailbox. Codes and other passkeys are a second step after your password.": "Adgangsnøgler uden adgangskode gemmer en krypteret kopi af din mailadgangskode på denne server, fordi goodmail skal bruge den til at åbne din postkasse. Koder og andre adgangsnøgler er et ekstra trin efter din adgangskode.",
   "This passkey is not set up for signing in without a password": "Denne adgangsnøgle er ikke sat op til login uden adgangskode",
   "Your mail password has changed. Sign in with your password once, then the passkey works again.": "Din mailadgangskode er ændret. Log ind med adgangskoden én gang, så virker adgangsnøglen igen.",
+  // accent colors
+  "Blue": "Blå",
+  "Teal": "Petrol",
+  "Green": "Grøn",
+  "Purple": "Lilla",
+  "Pink": "Pink",
+  "Red": "Rød",
+  "Orange": "Orange",
+  "Graphite": "Grafit",
 };

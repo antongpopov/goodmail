@@ -4,9 +4,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './styles.css';
-import { applyTheme, loadTheme } from './theme.ts';
+import { applyTheme, loadTheme, applyAccent, loadAccent } from './theme.ts';
 
 applyTheme(loadTheme());
+applyAccent(loadAccent());
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

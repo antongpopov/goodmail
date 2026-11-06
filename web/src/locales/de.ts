@@ -174,4 +174,13 @@ export const de: Dict = {
   "Passwordless passkeys keep an encrypted copy of your mail password on this server, because goodmail needs it to open your mailbox. Codes and other passkeys are a second step after your password.": "Passkeys ohne Passwort speichern eine verschlüsselte Kopie Ihres Mail-Passworts auf diesem Server, weil goodmail es zum Öffnen Ihres Postfachs braucht. Codes und andere Passkeys sind ein zweiter Schritt nach Ihrem Passwort.",
   "This passkey is not set up for signing in without a password": "Dieser Passkey ist nicht für die Anmeldung ohne Passwort eingerichtet",
   "Your mail password has changed. Sign in with your password once, then the passkey works again.": "Ihr Mail-Passwort hat sich geändert. Melden Sie sich einmal mit dem Passwort an, dann funktioniert der Passkey wieder.",
+  // accent colors
+  "Blue": "Blau",
+  "Teal": "Petrol",
+  "Green": "Grün",
+  "Purple": "Lila",
+  "Pink": "Pink",
+  "Red": "Rot",
+  "Orange": "Orange",
+  "Graphite": "Graphit",
 };

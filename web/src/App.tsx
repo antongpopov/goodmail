@@ -13,7 +13,7 @@ import { MailBody } from './MailBody.tsx';
 import { Contacts } from './Contacts.tsx';
 import { Calendar } from './Calendar.tsx';
 import type { Contact } from './api.ts';
-import { loadTheme, setTheme } from './theme.ts';
+import { loadTheme, setTheme, ACCENTS, loadAccent, setAccent } from './theme.ts';
 import type { Theme } from './theme.ts';
 import { avatarColor, bucket, displayName, fullAddr, fullTime, humanSize, initials, listTime, save, store } from './util.ts';
 import { t } from './i18n.ts';
@@ -133,6 +133,8 @@ function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, onSecurity, so
         <div className="menu view-menu">
           <div className="menu-label">{t('Theme')}</div>
           <ThemeSegment />
+          <div className="menu-label">{t('Color')}</div>
+          <AccentPicker />
           <div className="menu-label">{t('Reading pane')}</div>
           <div className="segment">
             {PANES.map((p) => (
@@ -160,6 +162,29 @@ function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, onSecurity, so
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function AccentPicker() {
+  const [accent, set] = useState(loadAccent);
+  return (
+    <div className="swatches-row" role="radiogroup" aria-label={t('Color')}>
+      {ACCENTS.map((a) => (
+        <button
+          key={a.id}
+          role="radio"
+          aria-checked={a.id === accent}
+          className={`accent-dot ${a.id === accent ? 'on' : ''}`}
+          style={{ background: a.light }}
+          title={t(a.name)}
+          aria-label={t(a.name)}
+          onClick={() => {
+            set(a.id);
+            setAccent(a.id);
+          }}
+        />
+      ))}
     </div>
   );
 }
@@ -893,6 +918,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                     <Icon name="people" size={18} /> <span className="fname">{t('Contacts')}</span>
                   </button>
                   <ThemeSegment />
+                  <AccentPicker />
                   <LangPicker className="wide drawer-lang" />
                   <label className="menu-check">
                     <input type="checkbox" checked={preview} onChange={(e) => setPreview(e.target.checked)} /> {t('Show preview text')}

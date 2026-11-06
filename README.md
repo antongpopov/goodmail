@@ -46,7 +46,7 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
 - **Languages**: English, Dansk, Deutsch, Svenska, Norsk, Français, Español — picked from the browser,
   switchable on the sign-in page and under ⚙. Dates and weekdays follow the language. Adding a language is one
   file in `web/src/locales/` (English text is the key, so anything untranslated falls back to English).
-- Light / dark / auto theme, reading pane right / below / hidden, works down to phone width
+- Light / dark / auto theme with 8 accent colors (blue, teal, green, purple, pink, red, orange, graphite), reading pane right / below / hidden, works down to phone width
 
 ## Run
 
