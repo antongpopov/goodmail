@@ -152,7 +152,7 @@ export const es: Dict = {
   "New codes": "Códigos nuevos",
   "confirm with your sign-in password": "confirma con tu contraseña de inicio de sesión",
   "Confirm": "Confirmar",
-  "Passkeys and codes are a second step after your password, which goodmail still needs to reach your mailbox.": "Las llaves de acceso y los códigos son un segundo paso tras tu contraseña, que goodmail sigue necesitando para acceder a tu buzón.",
+  // (superseded) "Passkeys and codes are a second step after your password, which goodmail still needs to reach your mailbox.": "Las llaves de acceso y los códigos son un segundo paso tras tu contraseña, que goodmail sigue necesitando para acceder a tu buzón.",
   "Sign-in expired, please start again": "El inicio de sesión caducó; vuelve a empezar",
   "No backup email set up": "No hay correo de respaldo configurado",
   "Please wait a moment before requesting another code": "Espera un momento antes de pedir otro código",
@@ -165,4 +165,13 @@ export const es: Dict = {
   "Enter a valid email address": "Introduce una dirección de correo válida",
   "Use a different address than this mailbox": "Usa una dirección distinta de este buzón",
   "Set up a sign-in method first": "Primero configura un método de inicio de sesión",
+  // passwordless passkeys
+  "Sign in with a passkey": "Iniciar sesión con una llave de acceso",
+  "New passkeys can sign in on their own, without the password": "Las nuevas llaves de acceso pueden iniciar sesión solas, sin la contraseña",
+  "signs in without password": "inicia sesión sin contraseña",
+  "Require password too": "Pedir también la contraseña",
+  "Allow without password": "Permitir sin contraseña",
+  "Passwordless passkeys keep an encrypted copy of your mail password on this server, because goodmail needs it to open your mailbox. Codes and other passkeys are a second step after your password.": "Las llaves de acceso sin contraseña guardan una copia cifrada de tu contraseña de correo en este servidor, porque goodmail la necesita para abrir tu buzón. Los códigos y las demás llaves de acceso son un segundo paso tras tu contraseña.",
+  "This passkey is not set up for signing in without a password": "Esta llave de acceso no está configurada para iniciar sesión sin contraseña",
+  "Your mail password has changed. Sign in with your password once, then the passkey works again.": "Tu contraseña de correo ha cambiado. Inicia sesión una vez con la contraseña y la llave de acceso volverá a funcionar.",
 };

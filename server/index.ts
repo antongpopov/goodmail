@@ -14,7 +14,7 @@ import { guessSettings } from './autoconfig.ts';
 import type { Account } from './session.ts';
 import crypto from 'node:crypto';
 import { serversFor, appTitle, titleFor, normalizeLogin } from './config.ts';
-import { seal, unseal, userKey } from './vault.ts';
+import { seal, unseal, userKey, serverEncrypt, serverDecrypt } from './vault.ts';
 import { previewPart, attachments, makeSnippet } from './mime.ts';
 import { spamInfo } from './spam.ts';
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
@@ -264,6 +264,7 @@ app.post(
         mfa: { ticket, totp: !!m.totp, passkey: m.passkeys.length > 0, email: m.email ? mfa.maskEmail(m.email) : null, recovery: m.recovery.length > 0 },
       });
     }
+    void mfa.refreshPasskeyLogins(email, pass).catch(() => {});
     await issueLogin(res, account, remember);
   }),
 );
@@ -381,6 +382,7 @@ app.post(
     });
     if (!ok) return res.status(401).json({ error: method === 'passkey' ? 'Passkey not recognised' : 'That code is not right' });
     mfa.dropTicket(id);
+    void mfa.refreshPasskeyLogins(t.email, t.pass).catch(() => {});
     const account = await accountFor(t.email, t.pass);
     if (!account) return res.status(401).json({ error: 'Sign-in expired, please start again' });
     await issueLogin(res, account, t.remember);
@@ -450,8 +452,12 @@ app.post(
       rpID: rp(req).rpID,
       userName: req.session.account.email,
       attestationType: 'none',
+      // stable per-user handle so a discoverable passkey maps back to this account
+      userID: new Uint8Array(crypto.createHash('sha256').update(req.session.account.email.toLowerCase()).digest()),
       excludeCredentials: m.passkeys.map((p) => ({ id: p.id, transports: p.transports })),
-      authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' },
+      authenticatorSelection: req.body?.passwordless
+        ? { residentKey: 'required', userVerification: 'required' }
+        : { residentKey: 'preferred', userVerification: 'preferred' },
     });
     mfa.pendingFor(req.session.id).challenge = opts.challenge;
     res.json(opts);
@@ -473,6 +479,7 @@ app.post(
     p.challenge = undefined;
     if (!v.verified) return res.status(400).json({ error: 'Passkey could not be verified' });
     const c = v.registrationInfo.credential;
+    if (req.body?.passwordless) await mfa.setIndex(c.id, req.session.account.email);
     let recovery: string[] | undefined;
     const m = await mfa.updateMfa(req.session.account.email, (m) => {
       m.passkeys = m.passkeys.filter((x) => x.id !== c.id);
@@ -483,6 +490,7 @@ app.post(
         transports: c.transports,
         name: String(req.body?.name || 'Passkey').slice(0, 60),
         added: Date.now(),
+        ...(req.body?.passwordless ? { login: serverEncrypt(req.session.account.pass) } : {}),
       });
       recovery = ensureRecovery(m);
     });
@@ -536,7 +544,78 @@ app.post(
       else if (what === 'passkey') m.passkeys = m.passkeys.filter((p) => p.id !== String(req.body?.id || ''));
       afterRemove(m);
     });
+    if (what === 'passkey') await mfa.setIndex(String(req.body?.id || ''), null);
     res.json(mfa.publicStatus(m));
+  }),
+);
+
+app.post(
+  '/api/mfa/passkey/passwordless',
+  auth,
+  wrap(async (req, res) => {
+    const id = String(req.body?.id || '');
+    const on = !!req.body?.on;
+    const m = await mfa.updateMfa(req.session.account.email, (m) => {
+      const p = m.passkeys.find((x) => x.id === id);
+      if (!p) throw Object.assign(new Error('Passkey not recognised'), { status: 404 });
+      if (on) p.login = serverEncrypt(req.session.account.pass);
+      else delete p.login;
+    });
+    await mfa.setIndex(id, on ? req.session.account.email : null);
+    res.json(mfa.publicStatus(m));
+  }),
+);
+
+// Passwordless: the passkey alone (with Face ID / fingerprint / PIN) signs in.
+app.post(
+  '/api/login/passkey/options',
+  wrap(async (req, res) => {
+    const opts = await generateAuthenticationOptions({ rpID: rp(req).rpID, userVerification: 'required' });
+    res.json({ options: opts, challengeId: mfa.newLoginChallenge(opts.challenge) });
+  }),
+);
+
+app.post(
+  '/api/login/passkey',
+  wrap(async (req, res) => {
+    if (throttled(req.ip || '?')) return res.status(429).json({ error: 'Too many attempts, try again in 15 minutes' });
+    const challenge = mfa.takeLoginChallenge(String(req.body?.challengeId || ''));
+    const resp = req.body?.response;
+    if (!challenge || !resp?.id) return res.status(401).json({ error: 'Sign-in expired, please start again' });
+    const email = await mfa.loginForCredential(resp.id);
+    if (!email) return res.status(401).json({ error: 'This passkey is not set up for signing in without a password' });
+    let pass: string | undefined;
+    const { origin, rpID } = rp(req);
+    await mfa.updateMfa(email, async (m) => {
+      const pk = m.passkeys.find((p) => p.id === resp.id && p.login);
+      if (!pk) return;
+      const v = await verifyAuthenticationResponse({
+        response: resp,
+        expectedChallenge: challenge,
+        expectedOrigin: origin,
+        expectedRPID: rpID,
+        requireUserVerification: true,
+        credential: { id: pk.id, publicKey: Buffer.from(pk.publicKey, 'base64url'), counter: pk.counter, transports: pk.transports },
+      }).catch(() => ({ verified: false }) as const);
+      if (v.verified) {
+        pk.counter = v.authenticationInfo.newCounter;
+        pass = serverDecrypt(pk.login!);
+      }
+    });
+    if (!pass) return res.status(401).json({ error: 'Passkey not recognised' });
+    const account = await accountFor(email, pass);
+    if (!account) return res.status(403).json({ error: `This server doesn't handle mail for ${email.split('@')[1]}` });
+    try {
+      const c = await connectImap(account);
+      await c.logout().catch(() => {});
+    } catch (err: any) {
+      const msg = err?.authenticationFailed
+        ? 'Your mail password has changed. Sign in with your password once, then the passkey works again.'
+        : `Can't reach the mail server (${err?.code || err?.message || 'error'})`;
+      return res.status(401).json({ error: msg });
+    }
+    attempts.delete(req.ip || '?');
+    await issueLogin(res, account, req.body?.remember !== false);
   }),
 );
 

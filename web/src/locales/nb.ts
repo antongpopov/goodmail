@@ -152,7 +152,7 @@ export const nb: Dict = {
   "New codes": "Nye koder",
   "confirm with your sign-in password": "bekreft med påloggingspassordet",
   "Confirm": "Bekreft",
-  "Passkeys and codes are a second step after your password, which goodmail still needs to reach your mailbox.": "Tilgangsnøkler og koder er et ekstra trinn etter passordet, som goodmail fortsatt trenger for å nå postkassen din.",
+  // (superseded) "Passkeys and codes are a second step after your password, which goodmail still needs to reach your mailbox.": "Tilgangsnøkler og koder er et ekstra trinn etter passordet, som goodmail fortsatt trenger for å nå postkassen din.",
   "Sign-in expired, please start again": "Påloggingen er utløpt, start på nytt",
   "No backup email set up": "Ingen reserveadresse er konfigurert",
   "Please wait a moment before requesting another code": "Vent litt før du ber om en ny kode",
@@ -165,4 +165,13 @@ export const nb: Dict = {
   "Enter a valid email address": "Skriv inn en gyldig e-postadresse",
   "Use a different address than this mailbox": "Bruk en annen adresse enn denne postkassen",
   "Set up a sign-in method first": "Konfigurer en påloggingsmetode først",
+  // passwordless passkeys
+  "Sign in with a passkey": "Logg på med en tilgangsnøkkel",
+  "New passkeys can sign in on their own, without the password": "Nye tilgangsnøkler kan logge på alene, uten passordet",
+  "signs in without password": "logger på uten passord",
+  "Require password too": "Krev også passord",
+  "Allow without password": "Tillat uten passord",
+  "Passwordless passkeys keep an encrypted copy of your mail password on this server, because goodmail needs it to open your mailbox. Codes and other passkeys are a second step after your password.": "Tilgangsnøkler uten passord lagrer en kryptert kopi av e-postpassordet ditt på denne serveren, fordi goodmail trenger det for å åpne postkassen. Koder og andre tilgangsnøkler er et ekstra trinn etter passordet.",
+  "This passkey is not set up for signing in without a password": "Denne tilgangsnøkkelen er ikke satt opp for pålogging uten passord",
+  "Your mail password has changed. Sign in with your password once, then the passkey works again.": "E-postpassordet ditt er endret. Logg på med passordet én gang, så virker tilgangsnøkkelen igjen.",
 };

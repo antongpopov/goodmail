@@ -19,7 +19,7 @@ export interface CalEvent {
 }
 export interface MailAccount { id: string; email: string; name: string; provider: string; imapHost: string; locked: boolean }
 export interface MfaChallenge { ticket: string; totp: boolean; passkey: boolean; email: string | null; recovery: boolean }
-export interface MfaStatus { enabled: boolean; totp: boolean; passkeys: { id: string; name: string; added: number }[]; email: string | null; recoveryLeft: number; recovery?: string[] }
+export interface MfaStatus { enabled: boolean; totp: boolean; passkeys: { id: string; name: string; added: number; passwordless: boolean }[]; email: string | null; recoveryLeft: number; recovery?: string[] }
 export interface Me { email: string; name: string; imapHost: string; appName?: string }
 export interface ListResult { total: number; messages: Summary[]; hasMore: boolean }
 
@@ -67,8 +67,11 @@ export const api = {
   mfaStatus: () => call<MfaStatus>('GET', '/api/mfa'),
   totpStart: () => call<{ secret: string; uri: string }>('POST', '/api/mfa/totp/start', {}),
   totpConfirm: (code: string) => call<MfaStatus>('POST', '/api/mfa/totp/confirm', { code }),
-  passkeyOptions: () => call<any>('POST', '/api/mfa/passkey/options', {}),
-  passkeyVerify: (response: unknown, name: string) => call<MfaStatus>('POST', '/api/mfa/passkey/verify', { response, name }),
+  passkeyOptions: (passwordless: boolean) => call<any>('POST', '/api/mfa/passkey/options', { passwordless }),
+  passkeyVerify: (response: unknown, name: string, passwordless: boolean) => call<MfaStatus>('POST', '/api/mfa/passkey/verify', { response, name, passwordless }),
+  passkeyPasswordless: (id: string, on: boolean) => call<MfaStatus>('POST', '/api/mfa/passkey/passwordless', { id, on }),
+  passkeyLoginOptions: () => call<{ options: any; challengeId: string }>('POST', '/api/login/passkey/options', {}),
+  passkeyLogin: (body: Record<string, unknown>) => call<Me>('POST', '/api/login/passkey', body),
   backupEmailStart: (address: string) => call('POST', '/api/mfa/email/start', { address }),
   backupEmailConfirm: (code: string) => call<MfaStatus>('POST', '/api/mfa/email/confirm', { code }),
   mfaRemove: (what: string, password: string, id?: string) => call<MfaStatus>('POST', '/api/mfa/remove', { what, password, id }),

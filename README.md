@@ -35,7 +35,9 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
   .ics import/export, and an "Add to calendar" button on invitations (Outlook/Teams time zones understood)
 - **Two-step sign-in** (per user, ⚙ → Sign-in security): authenticator app (TOTP), passkeys (Face ID / Touch ID /
   Windows Hello / security keys), a code mailed to a backup address (sent through the user's own mailbox), and
-  one-time recovery codes. The login cookie is issued only after the second step. Passkeys need the site's real
+  one-time recovery codes. The login cookie is issued only after the second step. Passkeys can also sign in
+  **without a password** (per passkey, on by default): the server then keeps an encrypted copy of the mail password
+  for that passkey, refreshed on the next password sign-in after a password change. Passkeys need the site's real
   host name — behind a proxy keep `Host` (`ProxyPreserveHost On`) or set `GOODMAIL_ORIGIN=https://mail.example.com`
 - **Spam meter** under the date: green → yellow → red from the filter's score (rspamd or SpamAssassin headers;
   only the topmost header is trusted). Fully red at the junk threshold — rspamd 6 by default, `spamthreshold=` to change

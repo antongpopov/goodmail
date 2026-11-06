@@ -164,7 +164,7 @@ export const da: Dict = {
   "New codes": "Nye koder",
   "confirm with your sign-in password": "bekræft med din login-adgangskode",
   "Confirm": "Bekræft",
-  "Passkeys and codes are a second step after your password, which goodmail still needs to reach your mailbox.": "Adgangsnøgler og koder er et ekstra trin efter din adgangskode, som goodmail stadig skal bruge for at nå din postkasse.",
+  // (superseded) "Passkeys and codes are a second step after your password, which goodmail still needs to reach your mailbox.": "Adgangsnøgler og koder er et ekstra trin efter din adgangskode, som goodmail stadig skal bruge for at nå din postkasse.",
   "Sign-in expired, please start again": "Login er udløbet – start forfra",
   "No backup email set up": "Ingen backupmail er konfigureret",
   "Please wait a moment before requesting another code": "Vent lidt, før du beder om en ny kode",
@@ -177,4 +177,13 @@ export const da: Dict = {
   "Enter a valid email address": "Indtast en gyldig mailadresse",
   "Use a different address than this mailbox": "Brug en anden adresse end denne postkasse",
   "Set up a sign-in method first": "Konfigurer først en loginmetode",
+  // passwordless passkeys
+  "Sign in with a passkey": "Log ind med en adgangsnøgle",
+  "New passkeys can sign in on their own, without the password": "Nye adgangsnøgler kan logge ind alene, uden adgangskoden",
+  "signs in without password": "logger ind uden adgangskode",
+  "Require password too": "Kræv også adgangskode",
+  "Allow without password": "Tillad uden adgangskode",
+  "Passwordless passkeys keep an encrypted copy of your mail password on this server, because goodmail needs it to open your mailbox. Codes and other passkeys are a second step after your password.": "Adgangsnøgler uden adgangskode gemmer en krypteret kopi af din mailadgangskode på denne server, fordi goodmail skal bruge den til at åbne din postkasse. Koder og andre adgangsnøgler er et ekstra trin efter din adgangskode.",
+  "This passkey is not set up for signing in without a password": "Denne adgangsnøgle er ikke sat op til login uden adgangskode",
+  "Your mail password has changed. Sign in with your password once, then the passkey works again.": "Din mailadgangskode er ændret. Log ind med adgangskoden én gang, så virker adgangsnøglen igen.",
 };

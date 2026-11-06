@@ -393,6 +393,7 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-bottom: 12px; }
 .preset { height: 44px; border: 1px solid var(--border); border-radius: 8px; font-weight: 600; background: var(--surface); }
 .preset:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
+.passkey-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; }
 .mfa-alts { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; margin-top: 4px; }
 .security { max-width: 600px; }
 .sec-status { margin: 4px 0 12px; padding: 8px 12px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--border); font-size: 13px; }

@@ -4,6 +4,7 @@ import type { Me, MfaChallenge } from './api.ts';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { store, save } from './util.ts';
 import { LangPicker } from './LangPicker.tsx';
+import { Icon } from './icons.tsx';
 import { t } from './i18n.ts';
 
 export function Login({ onLogin, appName, source }: { onLogin: (m: Me) => void; appName: string; source: string }) {
@@ -26,6 +27,25 @@ export function Login({ onLogin, appName, source }: { onLogin: (m: Me) => void; 
         setPassword('');
         setMfa(me.mfa);
       } else onLogin(me);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const passkeyLogin = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const { options, challengeId } = await api.passkeyLoginOptions();
+      let response;
+      try {
+        response = await startAuthentication({ optionsJSON: options });
+      } catch {
+        throw new Error(t('The passkey prompt was cancelled'));
+      }
+      onLogin(await api.passkeyLogin({ challengeId, response, remember }));
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -61,6 +81,11 @@ export function Login({ onLogin, appName, source }: { onLogin: (m: Me) => void; 
         <button className="primary" disabled={busy}>
           {busy ? t('Signing in…') : t('Sign in')}
         </button>
+        {'PublicKeyCredential' in window && (
+          <button type="button" className="pill-btn passkey-btn" disabled={busy} onClick={() => void passkeyLogin()}>
+            <Icon name="check" size={16} /> {t('Sign in with a passkey')}
+          </button>
+        )}
         <p className="muted small about">
           {t('Powered by goodmail')} · AGPL-3.0 ·{' '}
           <a href={source} target="_blank" rel="noopener noreferrer">{t('Source code')}</a>

@@ -152,7 +152,7 @@ export const sv: Dict = {
   "New codes": "Nya koder",
   "confirm with your sign-in password": "bekräfta med ditt inloggningslösenord",
   "Confirm": "Bekräfta",
-  "Passkeys and codes are a second step after your password, which goodmail still needs to reach your mailbox.": "Nycklar och koder är ett andra steg efter ditt lösenord, som goodmail fortfarande behöver för att nå din brevlåda.",
+  // (superseded) "Passkeys and codes are a second step after your password, which goodmail still needs to reach your mailbox.": "Nycklar och koder är ett andra steg efter ditt lösenord, som goodmail fortfarande behöver för att nå din brevlåda.",
   "Sign-in expired, please start again": "Inloggningen har gått ut, börja om",
   "No backup email set up": "Ingen reservadress är konfigurerad",
   "Please wait a moment before requesting another code": "Vänta en stund innan du begär en ny kod",
@@ -165,4 +165,13 @@ export const sv: Dict = {
   "Enter a valid email address": "Ange en giltig e-postadress",
   "Use a different address than this mailbox": "Använd en annan adress än den här brevlådan",
   "Set up a sign-in method first": "Konfigurera först en inloggningsmetod",
+  // passwordless passkeys
+  "Sign in with a passkey": "Logga in med en nyckel",
+  "New passkeys can sign in on their own, without the password": "Nya nycklar kan logga in på egen hand, utan lösenordet",
+  "signs in without password": "loggar in utan lösenord",
+  "Require password too": "Kräv även lösenord",
+  "Allow without password": "Tillåt utan lösenord",
+  "Passwordless passkeys keep an encrypted copy of your mail password on this server, because goodmail needs it to open your mailbox. Codes and other passkeys are a second step after your password.": "Nycklar utan lösenord sparar en krypterad kopia av ditt e-postlösenord på den här servern, eftersom goodmail behöver det för att öppna din brevlåda. Koder och andra nycklar är ett andra steg efter ditt lösenord.",
+  "This passkey is not set up for signing in without a password": "Den här nyckeln är inte konfigurerad för inloggning utan lösenord",
+  "Your mail password has changed. Sign in with your password once, then the passkey works again.": "Ditt e-postlösenord har ändrats. Logga in med lösenordet en gång, sedan fungerar nyckeln igen.",
 };

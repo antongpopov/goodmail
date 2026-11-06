@@ -12,6 +12,8 @@ export interface StoredPasskey {
   transports?: string[];
   name: string;
   added: number;
+  /** Passwordless sign-in: the user's mail password, encrypted with the server key. Absent = second factor only. */
+  login?: string;
 }
 
 export interface MfaData {
@@ -65,7 +67,7 @@ export function publicStatus(d: MfaData) {
   return {
     enabled: mfaEnabled(d),
     totp: !!d.totp,
-    passkeys: d.passkeys.map((p) => ({ id: p.id, name: p.name, added: p.added })),
+    passkeys: d.passkeys.map((p) => ({ id: p.id, name: p.name, added: p.added, passwordless: !!p.login })),
     email: d.email || null,
     recoveryLeft: d.recovery.length,
   };
@@ -185,3 +187,53 @@ setInterval(() => {
   const now = Date.now();
   for (const [k, t] of tickets) if (t.exp < now) tickets.delete(k);
 }, 60_000).unref();
+
+// ---------- passwordless passkeys ----------
+// A discoverable passkey identifies the user by its credential id, so keep a small id → login index.
+
+const INDEX = path.join(DIR, 'passkey-index.json');
+let indexCache: Record<string, string> | null = null;
+async function readIndex() {
+  if (indexCache) return indexCache;
+  try {
+    indexCache = JSON.parse(await fs.readFile(INDEX, 'utf8')) as Record<string, string>;
+  } catch {
+    indexCache = {};
+  }
+  return indexCache;
+}
+export function setIndex(credId: string, login: string | null) {
+  return serial('\u0000index', async () => {
+    const idx = await readIndex();
+    if (login) idx[credId] = login.toLowerCase();
+    else delete idx[credId];
+    await fs.mkdir(DIR, { recursive: true, mode: 0o700 });
+    const tmp = `${INDEX}.${process.pid}.tmp`;
+    await fs.writeFile(tmp, JSON.stringify(idx), { mode: 0o600 });
+    await fs.rename(tmp, INDEX);
+  });
+}
+export async function loginForCredential(credId: string) {
+  return (await readIndex())[credId];
+}
+/** After a normal password sign-in, keep passwordless passkeys working if the password changed. */
+export async function refreshPasskeyLogins(login: string, pass: string) {
+  const d = await loadMfa(login);
+  if (!d.passkeys.some((p) => p.login && serverDecrypt(p.login) !== pass)) return;
+  await updateMfa(login, (m) => {
+    for (const p of m.passkeys) if (p.login) p.login = serverEncrypt(pass);
+  });
+}
+
+/** Pending discoverable-login challenges (no user known yet). */
+const loginChallenges = new Map<string, { challenge: string; exp: number }>();
+export function newLoginChallenge(challenge: string) {
+  const id = crypto.randomBytes(18).toString('base64url');
+  loginChallenges.set(id, { challenge, exp: Date.now() + 5 * 60_000 });
+  return id;
+}
+export function takeLoginChallenge(id: string) {
+  const c = loginChallenges.get(id);
+  loginChallenges.delete(id);
+  return c && c.exp > Date.now() ? c.challenge : undefined;
+}

@@ -28,6 +28,7 @@ export function SecurityDialog({ onClose, flash }: { onClose: () => void; flash:
   // removals need the password
   const [confirm, setConfirm] = useState<{ label: string; run: (pw: string) => Promise<MfaStatus> } | null>(null);
   const [pw, setPw] = useState('');
+  const [passwordless, setPasswordless] = useState(true);
 
   useEffect(() => {
     api.mfaStatus().then(setSt).catch((e) => setError((e as Error).message));
@@ -64,14 +65,14 @@ export function SecurityDialog({ onClose, flash }: { onClose: () => void; flash:
     });
   const addPasskey = () =>
     run(async () => {
-      const optionsJSON = await api.passkeyOptions();
+      const optionsJSON = await api.passkeyOptions(passwordless);
       let response;
       try {
         response = await startRegistration({ optionsJSON });
       } catch {
         throw new Error(t('The passkey prompt was cancelled'));
       }
-      const r = await api.passkeyVerify(response, deviceName());
+      const r = await api.passkeyVerify(response, deviceName(), passwordless);
       flash(t('Passkey added'));
       return r;
     });
@@ -178,9 +179,18 @@ export function SecurityDialog({ onClose, flash }: { onClose: () => void; flash:
                 </div>
                 <button className="pill-btn" disabled={busy || !window.PublicKeyCredential} onClick={() => void addPasskey()}>{t('Add passkey')}</button>
               </div>
+              <label className="menu-check sec-sub">
+                <input type="checkbox" checked={passwordless} onChange={(e) => setPasswordless(e.target.checked)} />
+                <span>{t('New passkeys can sign in on their own, without the password')}</span>
+              </label>
               {st.passkeys.map((p) => (
                 <div key={p.id} className="sec-sub">
-                  <span className="grow">{p.name} <span className="muted small">· {new Date(p.added).toLocaleDateString(L())}</span></span>
+                  <span className="grow">
+                    {p.name} <span className="muted small">· {new Date(p.added).toLocaleDateString(L())}{p.passwordless ? ` · ${t('signs in without password')}` : ''}</span>
+                  </span>
+                  <button className="link-btn" disabled={busy} onClick={() => void run(() => api.passkeyPasswordless(p.id, !p.passwordless))}>
+                    {p.passwordless ? t('Require password too') : t('Allow without password')}
+                  </button>
                   <button className="link-btn" onClick={() => ask(t('Remove {name}', { name: p.name }), (pw2) => api.mfaRemove('passkey', pw2, p.id))}>{t('Remove')}</button>
                 </div>
               ))}
@@ -236,7 +246,7 @@ export function SecurityDialog({ onClose, flash }: { onClose: () => void; flash:
               </form>
             )}
             {error && <div className="error">{error}</div>}
-            <p className="muted small">{t('Passkeys and codes are a second step after your password, which goodmail still needs to reach your mailbox.')}</p>
+            <p className="muted small">{t('Passwordless passkeys keep an encrypted copy of your mail password on this server, because goodmail needs it to open your mailbox. Codes and other passkeys are a second step after your password.')}</p>
           </>
         )}
       </div>

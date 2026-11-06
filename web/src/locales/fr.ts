@@ -152,7 +152,7 @@ export const fr: Dict = {
   "New codes": "Nouveaux codes",
   "confirm with your sign-in password": "confirmez avec votre mot de passe de connexion",
   "Confirm": "Confirmer",
-  "Passkeys and codes are a second step after your password, which goodmail still needs to reach your mailbox.": "Les clés d’accès et les codes sont une deuxième étape après votre mot de passe, dont goodmail a toujours besoin pour accéder à votre boîte.",
+  // (superseded) "Passkeys and codes are a second step after your password, which goodmail still needs to reach your mailbox.": "Les clés d’accès et les codes sont une deuxième étape après votre mot de passe, dont goodmail a toujours besoin pour accéder à votre boîte.",
   "Sign-in expired, please start again": "La connexion a expiré, recommencez",
   "No backup email set up": "Aucun e-mail de secours configuré",
   "Please wait a moment before requesting another code": "Patientez un instant avant de demander un autre code",
@@ -165,4 +165,13 @@ export const fr: Dict = {
   "Enter a valid email address": "Saisissez une adresse e-mail valide",
   "Use a different address than this mailbox": "Utilisez une autre adresse que cette boîte",
   "Set up a sign-in method first": "Configurez d’abord une méthode de connexion",
+  // passwordless passkeys
+  "Sign in with a passkey": "Se connecter avec une clé d’accès",
+  "New passkeys can sign in on their own, without the password": "Les nouvelles clés d’accès peuvent se connecter seules, sans le mot de passe",
+  "signs in without password": "connexion sans mot de passe",
+  "Require password too": "Exiger aussi le mot de passe",
+  "Allow without password": "Autoriser sans mot de passe",
+  "Passwordless passkeys keep an encrypted copy of your mail password on this server, because goodmail needs it to open your mailbox. Codes and other passkeys are a second step after your password.": "Les clés d’accès sans mot de passe conservent une copie chiffrée de votre mot de passe de messagerie sur ce serveur, car goodmail en a besoin pour ouvrir votre boîte. Les codes et les autres clés d’accès sont une deuxième étape après votre mot de passe.",
+  "This passkey is not set up for signing in without a password": "Cette clé d’accès n’est pas configurée pour la connexion sans mot de passe",
+  "Your mail password has changed. Sign in with your password once, then the passkey works again.": "Votre mot de passe de messagerie a changé. Connectez-vous une fois avec le mot de passe, puis la clé d’accès fonctionnera à nouveau.",
 };
