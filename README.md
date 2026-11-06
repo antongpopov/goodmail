@@ -33,6 +33,9 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
   duplicate merge by email, "add sender" button, To/Cc autocomplete
 - **Calendar**: Outlook-style day / work week / week / month views, mini month, recurring events,
   .ics import/export, and an "Add to calendar" button on invitations (Outlook/Teams time zones understood)
+- **Languages**: English, Dansk, Deutsch, Svenska, Norsk, Français, Español — picked from the browser,
+  switchable on the sign-in page and under ⚙. Dates and weekdays follow the language. Adding a language is one
+  file in `web/src/locales/` (English text is the key, so anything untranslated falls back to English).
 - Light / dark / auto theme, reading pane right / below / hidden, works down to phone width
 
 ## Run

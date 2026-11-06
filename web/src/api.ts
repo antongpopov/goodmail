@@ -25,6 +25,8 @@ export class ApiError extends Error {
   constructor(status: number, msg: string) { super(msg); this.status = status; }
 }
 
+import { tErr } from './i18n.ts';
+
 let onUnauthorized = () => {};
 export const setUnauthorizedHandler = (fn: () => void) => { onUnauthorized = fn; };
 
@@ -38,7 +40,7 @@ async function call<T>(method: string, url: string, body?: unknown): Promise<T> 
   const data = await r.json().catch(() => ({}));
   if (!r.ok) {
     if (r.status === 401 && !url.endsWith('/login')) onUnauthorized();
-    throw new ApiError(r.status, data.error || r.statusText);
+    throw new ApiError(r.status, tErr(data.error || r.statusText));
   }
   return data as T;
 }

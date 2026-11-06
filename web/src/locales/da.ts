@@ -1,0 +1,108 @@
+import type { Dict } from '../i18n.ts';
+
+// Dansk — terminology follows Danish Outlook (Indbakke, Sendt post, Slettet post, Uønsket mail …)
+export const da: Dict = {
+  // folders
+  Inbox: 'Indbakke', Sent: 'Sendt post', Drafts: 'Kladder', Trash: 'Slettet post', Junk: 'Uønsket mail', Archive: 'Arkiv',
+  // sign in
+  'Sign in': 'Log ind', 'Email address': 'Mailadresse', Password: 'Adgangskode', 'Keep me signed in': 'Forbliv logget ind',
+  'Signing in…': 'Logger ind…', 'Powered by goodmail': 'Drevet af goodmail', 'Source code': 'Kildekode', Language: 'Sprog',
+  'Wrong email address or password': 'Forkert mailadresse eller adgangskode',
+  "This server doesn't handle mail for {x}": 'Denne server håndterer ikke mail for {x}',
+  "Can't reach the mail server ({x})": 'Kan ikke nå mailserveren ({x})',
+  "Can't connect to {x}": 'Kan ikke forbinde til {x}',
+  'Too many attempts, try again in 15 minutes': 'For mange forsøg – prøv igen om 15 minutter',
+  'Enter your email address and password': 'Indtast din mailadresse og adgangskode',
+  // top bar, menus
+  Mail: 'Mail', Calendar: 'Kalender', Contacts: 'Kontakter', 'View settings': 'Visningsindstillinger', 'Sign out': 'Log ud',
+  Theme: 'Tema', 'Auto (system)': 'Automatisk (system)', Auto: 'Auto', Light: 'Lyst', Dark: 'Mørkt',
+  'Reading pane': 'Læserude', Right: 'Højre', Below: 'Nederst', Hidden: 'Skjult', 'Message list': 'Mailliste',
+  'Show preview text': 'Vis eksempeltekst', 'Mail accounts': 'Mailkonti', 'Manage accounts…': 'Administrer konti…',
+  'Search {folder}': 'Søg i {folder}', 'Search mail': 'Søg i mail', Folders: 'Mapper', 'Show/hide folders': 'Vis/skjul mapper',
+  'Drag to resize · double-click to reset': 'Træk for at ændre størrelse · dobbeltklik for at nulstille',
+  // toolbar
+  'New mail': 'Ny mail', Delete: 'Slet', Move: 'Flyt', Flag: 'Følg op', 'Read / Unread': 'Læst/ulæst', Sync: 'Synkroniser',
+  'Mark as junk': 'Markér som uønsket', 'Mark as junk (!)': 'Markér som uønsket (!)', 'Not junk': 'Ikke uønsket',
+  'Not junk (!)': 'Ikke uønsket (!)', 'Not junk: move back to Inbox (!)': 'Ikke uønsket: flyt tilbage til Indbakke (!)',
+  'Mark unread': 'Markér som ulæst', 'Mark read': 'Markér som læst',
+  // folder pane
+  'Create new folder': 'Opret ny mappe', 'New folder name': 'Navn på ny mappe', 'Add account': 'Tilføj konto',
+  'Locked — re-enter password': 'Låst – indtast adgangskoden igen',
+  // list
+  All: 'Alle', Unread: 'Ulæste', Flagged: 'Opfølgning', Results: 'Resultater', 'No results.': 'Ingen resultater.',
+  'Nothing here. Enjoy your day.': 'Her er tomt. Hav en god dag.', 'To: {name}': 'Til: {name}', '(no subject)': '(intet emne)',
+  'Loading…': 'Indlæser…', Today: 'I dag', Yesterday: 'I går', 'This week': 'Denne uge', 'Last week': 'Sidste uge',
+  'Earlier this month': 'Tidligere på måneden', '{n} items selected': '{n} elementer valgt', 'Select an item to read': 'Vælg et element for at læse det',
+  'j/k to move · r reply · a reply all · f forward · e archive · Del delete · n new · / search':
+    'j/k flyt · r svar · a svar alle · f videresend · e arkivér · Del slet · n ny · / søg',
+  // reading pane
+  Back: 'Tilbage', 'Reply (r)': 'Svar (r)', 'Reply all (a)': 'Svar alle (a)', 'Forward (f)': 'Videresend (f)',
+  'Add to contacts': 'Føj til kontakter', 'To:': 'Til:', 'Cc:': 'Cc:',
+  'Some external content was blocked to protect your privacy.': 'Noget eksternt indhold blev blokeret for at beskytte dit privatliv.',
+  'Show once': 'Vis én gang', 'Always show from {sender}': 'Vis altid fra {sender}', 'Add to calendar': 'Føj til kalender',
+  'Message body': 'Mailens indhold',
+  // toasts
+  'Message sent': 'Mailen er sendt', 'Deleted {n} permanently': '{n} slettet permanent', 'Moved {n} to the trash': '{n} flyttet til Slettet post',
+  'Moved {n} to {folder}': '{n} flyttet til {folder}', 'Calendar event updated': 'Kalenderbegivenheden er opdateret',
+  'Added to your calendar': 'Føjet til din kalender', 'There is no {x} folder on this server': 'Der er ingen {x}-mappe på denne server',
+  'That account is no longer available — refresh the page': 'Kontoen er ikke længere tilgængelig – genindlæs siden',
+  // compose
+  Send: 'Send', 'Sending…': 'Sender…', 'Send (⌘/Ctrl+Enter)': 'Send (⌘/Ctrl+Enter)', Attach: 'Vedhæft', 'Attach file': 'Vedhæft fil',
+  Bold: 'Fed', Italic: 'Kursiv', Underline: 'Understreget', Bullets: 'Punkttegn', 'Insert link': 'Indsæt link', 'Link address': 'Linkadresse',
+  'Discard (Esc)': 'Kassér (Esc)', From: 'Fra', To: 'Til', Cc: 'Cc', Bcc: 'Bcc', 'Cc & Bcc': 'Cc og Bcc', 'Add a subject': 'Tilføj et emne',
+  Remove: 'Fjern', 'Add at least one recipient.': 'Tilføj mindst én modtager.',
+  // calendar
+  'New event': 'Ny begivenhed', 'My calendars': 'Mine kalendere', 'Import .ics': 'Importér .ics', 'Export .ics': 'Eksportér .ics',
+  Previous: 'Forrige', Next: 'Næste', 'Previous month': 'Forrige måned', 'Next month': 'Næste måned',
+  Day: 'Dag', 'Work week': 'Arbejdsuge', Week: 'Uge', Month: 'Måned', 'all-day': 'hele dagen', '{n} more': '{n} mere',
+  'Add a title': 'Tilføj en titel', '(No title)': '(Ingen titel)', to: 'til', 'All day': 'Hele dagen', until: 'indtil',
+  'Does not repeat': 'Gentages ikke', 'Every day': 'Hver dag', 'Every weekday (Mon–Fri)': 'Alle hverdage (man–fre)',
+  'Every week': 'Hver uge', 'Every month': 'Hver måned', 'Every year': 'Hvert år', 'Add a location': 'Tilføj et sted',
+  'Add a description': 'Tilføj en beskrivelse', Color: 'Farve', 'Delete this one': 'Slet kun denne', 'Delete series': 'Slet serien',
+  'Delete every occurrence?': 'Slet alle forekomster?', Cancel: 'Annuller', Save: 'Gem', 'Saving…': 'Gemmer…',
+  'Changes apply to the whole series.': 'Ændringer gælder hele serien.', 'The event ends before it starts': 'Begivenheden slutter, før den begynder',
+  'Imported {added} new, updated {updated} · {total} events': '{added} importeret, {updated} opdateret · {total} begivenheder',
+  'Event needs a valid start': 'Begivenheden skal have et gyldigt starttidspunkt', 'No events found in that file': 'Ingen begivenheder fundet i filen',
+  'Calendar is limited to 50,000 events': 'Kalenderen kan højst have 50.000 begivenheder',
+  // contacts
+  'New contact': 'Ny kontakt', 'Edit contact': 'Rediger kontakt', Edit: 'Rediger', Export: 'Eksportér', 'Import vCard or CSV': 'Importér vCard eller CSV',
+  'vCard (.vcf) — Apple, Google, Outlook': 'vCard (.vcf) – Apple, Google, Outlook', 'CSV (.csv) — Excel': 'CSV (.csv) – Excel',
+  'Search {n} contacts': 'Søg i {n} kontakter', 'No contacts yet.': 'Ingen kontakter endnu.', 'Import a vCard or CSV file': 'Importér en vCard- eller CSV-fil',
+  Name: 'Navn', 'Email addresses': 'Mailadresser', 'one per line': 'én pr. linje', 'Phone numbers': 'Telefonnumre', Company: 'Firma',
+  Notes: 'Noter', Email: 'Mail', Phone: 'Telefon', 'Send email': 'Send mail', 'Select a contact': 'Vælg en kontakt',
+  'Your address book is empty': 'Din adressebog er tom', 'Delete {name}?': 'Slet {name}?', 'Contact deleted': 'Kontakten er slettet',
+  'Import from Apple Contacts, Google, Outlook or Thunderbird (vCard or CSV)': 'Importér fra Apple Kontakter, Google, Outlook eller Thunderbird (vCard eller CSV)',
+  'Imported {added} new, merged {merged} · {total} contacts': '{added} importeret, {merged} flettet · {total} kontakter',
+  'No contacts found in that file': 'Ingen kontakter fundet i filen', 'A contact needs a name or an email address': 'En kontakt skal have et navn eller en mailadresse',
+  'Address book is limited to 20,000 contacts': 'Adressebogen kan højst have 20.000 kontakter',
+  // accounts
+  Accounts: 'Konti', 'Add an account': 'Tilføj en konto', 'Add {provider} account': 'Tilføj {provider}-konto', 'Signed-in account': 'Konto du er logget ind med',
+  'Locked — add it again with its password': 'Låst – tilføj den igen med adgangskoden', Close: 'Luk', Open: 'Åbn',
+  'App password': 'App-adgangskode', 'Your name': 'Dit navn', '(shown to recipients)': '(vises for modtagere)',
+  'IMAP server': 'IMAP-server', 'SMTP server': 'SMTP-server', Port: 'Port', Username: 'Brugernavn', 'if not the email address': 'hvis ikke mailadressen',
+  'Look up server settings for this address': 'Find serverindstillinger for denne adresse', 'Checking…': 'Kontrollerer…',
+  'Added {email}': '{email} er tilføjet', 'Other (IMAP)': 'Anden (IMAP)',
+  'Remove {email} from goodmail? Nothing is deleted on the mail server.': 'Fjern {email} fra goodmail? Intet slettes på mailserveren.',
+  'Passwords are stored encrypted on this server and can only be unlocked with your own sign-in password.':
+    'Adgangskoder gemmes krypteret på denne server og kan kun låses op med din egen login-adgangskode.',
+  'Use an app-specific password: Apple Account → Sign-In and Security → App-Specific Passwords.':
+    'Brug en app-specifik adgangskode: Apple-konto → Log ind og sikkerhed → App-specifikke adgangskoder.',
+  'Turn on 2-Step Verification, then create an app password (Google Account → Security → App passwords).':
+    'Slå totrinsbekræftelse til, og opret derefter en app-adgangskode (Google-konto → Sikkerhed → App-adgangskoder).',
+  'Generate an app password under Account Security.': 'Opret en app-adgangskode under Kontosikkerhed.',
+  'First enable IMAP: E-Mail → Settings → POP3 & IMAP. Use your normal password (or an app password if you use 2FA).':
+    'Slå først IMAP til: E-Mail → Indstillinger → POP3 & IMAP. Brug din normale adgangskode (eller en app-adgangskode, hvis du bruger 2FA).',
+  'First enable IMAP: E-Mail → Settings → POP3/IMAP Abruf. Use your normal password (or an app password if you use 2FA).':
+    'Slå først IMAP til: E-Mail → Indstillinger → POP3/IMAP Abruf. Brug din normale adgangskode (eller en app-adgangskode, hvis du bruger 2FA).',
+  'Create an app password: Settings → Privacy & Security → Manage app passwords.':
+    'Opret en app-adgangskode: Indstillinger → Privatliv og sikkerhed → Administrer app-adgangskoder.',
+  'Microsoft no longer accepts passwords for IMAP; it needs "Sign in with Microsoft", which is not available yet.':
+    'Microsoft accepterer ikke længere adgangskoder til IMAP; det kræver "Log ind med Microsoft", som endnu ikke er tilgængeligt.',
+  'Enter your provider’s IMAP and SMTP servers. Many providers require an app password.':
+    'Indtast din udbyders IMAP- og SMTP-servere. Mange udbydere kræver en app-adgangskode.',
+  'The server rejected the email/password. Most providers need an app password here, not your normal password.':
+    'Serveren afviste mail/adgangskode. De fleste udbydere kræver en app-adgangskode her, ikke din normale adgangskode.',
+  'At most {x} extra accounts': 'Højst {x} ekstra konti', 'Please sign in again to add accounts': 'Log ind igen for at tilføje konti',
+  'Email address and password are required': 'Mailadresse og adgangskode skal udfyldes',
+  'That is the account you are signed in with': 'Det er den konto, du er logget ind med',
+};

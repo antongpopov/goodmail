@@ -3,6 +3,7 @@ import { api } from './api.ts';
 import type { Contact } from './api.ts';
 import { Icon } from './icons.tsx';
 import { avatarColor, initials } from './util.ts';
+import { t } from './i18n.ts';
 
 type Draft = { id?: string; name: string; emails: string; phones: string; company: string; notes: string };
 
@@ -95,12 +96,12 @@ export function Contacts({
   };
 
   const remove = async (c: Contact) => {
-    if (!confirm(`Delete ${c.name || c.emails[0]}?`)) return;
+    if (!confirm(t('Delete {name}?', { name: c.name || c.emails[0] }))) return;
     try {
       await api.deleteContacts([c.id]);
       await reload();
       setSelId(null);
-      flash('Contact deleted');
+      flash(t('Contact deleted'));
     } catch (err) {
       flash((err as Error).message);
     }
@@ -115,7 +116,7 @@ export function Contacts({
       const fmt = /\.vcf$|\.vcard$/i.test(f.name) || /BEGIN:VCARD/i.test(text.slice(0, 2000)) ? 'vcf' : 'csv';
       const r = await api.importContacts(text, fmt);
       await reload();
-      flash(`Imported ${r.added} new, merged ${r.merged} · ${r.total} contacts`);
+      flash(t('Imported {added} new, merged {merged} · {total} contacts', { added: r.added, merged: r.merged, total: r.total }));
     } catch (err) {
       flash((err as Error).message);
     } finally {
@@ -131,20 +132,20 @@ export function Contacts({
       <section className="list contacts-list">
         <div className="contacts-bar">
           <button className="tb new" onClick={() => { setSelId(null); setDraft(toDraft()); }}>
-            <Icon name="plus" /> New contact
+            <Icon name="plus" /> {t('New contact')}
           </button>
           <span className="grow" />
-          <button className="tb icon" title="Import vCard or CSV" disabled={busy} onClick={() => file.current?.click()}>
+          <button className="tb icon" title={t('Import vCard or CSV')} disabled={busy} onClick={() => file.current?.click()}>
             <Icon name="import" />
           </button>
           <div className="menu-wrap">
-            <button className="tb icon" title="Export" disabled={!contacts.length} onClick={() => setExportOpen((v) => !v)}>
+            <button className="tb icon" title={t('Export')} disabled={!contacts.length} onClick={() => setExportOpen((v) => !v)}>
               <Icon name="export" />
             </button>
             {exportOpen && (
               <div className="menu export-menu" onMouseLeave={() => setExportOpen(false)}>
-                <a href={api.exportUrl('vcf')} onClick={() => setExportOpen(false)}>vCard (.vcf) — Apple, Google, Outlook</a>
-                <a href={api.exportUrl('csv')} onClick={() => setExportOpen(false)}>CSV (.csv) — Excel</a>
+                <a href={api.exportUrl('vcf')} onClick={() => setExportOpen(false)}>{t('vCard (.vcf) — Apple, Google, Outlook')}</a>
+                <a href={api.exportUrl('csv')} onClick={() => setExportOpen(false)}>{t('CSV (.csv) — Excel')}</a>
               </div>
             )}
           </div>
@@ -152,14 +153,14 @@ export function Contacts({
         </div>
         <div className="contacts-search">
           <Icon name="search" size={16} />
-          <input placeholder={`Search ${contacts.length} contacts`} value={q} onChange={(e) => setQ(e.target.value)} />
+          <input placeholder={t('Search {n} contacts', { n: contacts.length })} value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <div className="list-scroll">
           {contacts.length === 0 && (
             <div className="empty">
-              No contacts yet.
+              {t('No contacts yet.')}
               <br />
-              <button className="link-btn" onClick={() => file.current?.click()}>Import a vCard or CSV file</button>
+              <button className="link-btn" onClick={() => file.current?.click()}>{t('Import a vCard or CSV file')}</button>
             </div>
           )}
           {groups.map((g) => (
@@ -189,35 +190,35 @@ export function Contacts({
             }}
           >
             <div className="msg-head">
-              <button type="button" className="tb icon back" title="Back" onClick={() => setDraft(null)}>
+              <button type="button" className="tb icon back" title={t('Back')} onClick={() => setDraft(null)}>
                 <Icon name="chevronRight" />
               </button>
-              <h2>{draft.id ? 'Edit contact' : 'New contact'}</h2>
+              <h2>{draft.id ? t('Edit contact') : t('New contact')}</h2>
             </div>
-            <label>Name<input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} autoFocus /></label>
-            <label>Email addresses <span className="muted small">one per line</span>
+            <label>{t('Name')}<input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} autoFocus /></label>
+            <label>{t('Email addresses')} <span className="muted small">{t('one per line')}</span>
               <textarea rows={2} value={draft.emails} onChange={(e) => setDraft({ ...draft, emails: e.target.value })} />
             </label>
-            <label>Phone numbers <span className="muted small">one per line</span>
+            <label>{t('Phone numbers')} <span className="muted small">{t('one per line')}</span>
               <textarea rows={2} value={draft.phones} onChange={(e) => setDraft({ ...draft, phones: e.target.value })} />
             </label>
-            <label>Company<input value={draft.company} onChange={(e) => setDraft({ ...draft, company: e.target.value })} /></label>
-            <label>Notes<textarea rows={4} value={draft.notes} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} /></label>
+            <label>{t('Company')}<input value={draft.company} onChange={(e) => setDraft({ ...draft, company: e.target.value })} /></label>
+            <label>{t('Notes')}<textarea rows={4} value={draft.notes} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} /></label>
             <div className="form-actions">
-              <button className="primary" disabled={busy}>{busy ? 'Saving…' : 'Save'}</button>
-              <button type="button" className="pill-btn" onClick={() => setDraft(null)}>Cancel</button>
+              <button className="primary" disabled={busy}>{busy ? t('Saving…') : t('Save')}</button>
+              <button type="button" className="pill-btn" onClick={() => setDraft(null)}>{t('Cancel')}</button>
             </div>
           </form>
         ) : sel ? (
           <article className="contact-card">
             <div className="msg-head">
-              <button className="tb icon back" title="Back" onClick={() => setSelId(null)}>
+              <button className="tb icon back" title={t('Back')} onClick={() => setSelId(null)}>
                 <Icon name="chevronRight" />
               </button>
               <span className="grow" />
               <div className="msg-actions">
-                <button className="tb icon" title="Edit" onClick={() => setDraft(toDraft(sel))}><Icon name="compose" /></button>
-                <button className="tb icon" title="Delete" onClick={() => void remove(sel)}><Icon name="trash" /></button>
+                <button className="tb icon" title={t('Edit')} onClick={() => setDraft(toDraft(sel))}><Icon name="compose" /></button>
+                <button className="tb icon" title={t('Delete')} onClick={() => void remove(sel)}><Icon name="trash" /></button>
               </div>
             </div>
             <div className="contact-hero">
@@ -229,18 +230,18 @@ export function Contacts({
             </div>
             {sel.emails.length > 0 && (
               <div className="contact-section">
-                <div className="menu-label">Email</div>
+                <div className="menu-label">{t('Email')}</div>
                 {sel.emails.map((e) => (
                   <div key={e} className="contact-row">
                     <span className="grow">{e}</span>
-                    <button className="tb" onClick={() => onCompose(sel.name ? `${sel.name} <${e}>` : e)}><Icon name="send" size={16} /> Send email</button>
+                    <button className="tb" onClick={() => onCompose(sel.name ? `${sel.name} <${e}>` : e)}><Icon name="send" size={16} /> {t('Send email')}</button>
                   </div>
                 ))}
               </div>
             )}
             {sel.phones.length > 0 && (
               <div className="contact-section">
-                <div className="menu-label">Phone</div>
+                <div className="menu-label">{t('Phone')}</div>
                 {sel.phones.map((p) => (
                   <div key={p} className="contact-row"><a href={`tel:${p.replace(/[^\d+]/g, '')}`}>{p}</a></div>
                 ))}
@@ -248,7 +249,7 @@ export function Contacts({
             )}
             {sel.notes && (
               <div className="contact-section">
-                <div className="menu-label">Notes</div>
+                <div className="menu-label">{t('Notes')}</div>
                 <div className="contact-notes">{sel.notes}</div>
               </div>
             )}
@@ -256,8 +257,8 @@ export function Contacts({
         ) : (
           <div className="placeholder">
             <Icon name="people" size={56} />
-            <p>{contacts.length ? 'Select a contact' : 'Your address book is empty'}</p>
-            <p className="muted small">Import from Apple Contacts, Google, Outlook or Thunderbird (vCard or CSV)</p>
+            <p>{contacts.length ? t('Select a contact') : t('Your address book is empty')}</p>
+            <p className="muted small">{t('Import from Apple Contacts, Google, Outlook or Thunderbird (vCard or CSV)')}</p>
           </div>
         )}
       </main>

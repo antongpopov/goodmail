@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { textToHtml } from './util.ts';
+import { t } from './i18n.ts';
 
 const REMOTE = /^(https?:)?\/\//i;
 let allowRemote = false;
@@ -115,7 +116,7 @@ export function MailBody({ html, text, remote, onBlocked }: { html: string; text
     <iframe
       ref={ref}
       className="mail-frame"
-      title="Message body"
+      title={t('Message body')}
       sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
       srcDoc={doc}
       style={{ height }}

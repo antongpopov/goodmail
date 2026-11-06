@@ -3,6 +3,7 @@ import { api } from './api.ts';
 import type { CalEvent, RRule } from './api.ts';
 import { Icon } from './icons.tsx';
 import { store, save } from './util.ts';
+import { t, L, weekdays } from './i18n.ts';
 
 type View = 'day' | 'workweek' | 'week' | 'month';
 const HOUR = 48; // px per hour in the time grid
@@ -28,7 +29,7 @@ const fromInputs = (date: string, time: string) => {
   d.setHours(h, mi, 0, 0);
   return d;
 };
-const fmtTime = (d: Date) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const fmtTime = (d: Date) => d.toLocaleTimeString(L(), { hour: '2-digit', minute: '2-digit' });
 
 interface Occ {
   ev: CalEvent;
@@ -199,7 +200,7 @@ function toEvent(d: Draft): Partial<CalEvent> {
   return {
     id: d.id,
     uid: d.uid,
-    title: d.title.trim() || '(No title)',
+    title: d.title.trim() || t('(No title)'),
     allDay: d.allDay,
     start: d.allDay ? d.sDate : fromInputs(d.sDate, d.sTime).valueOf(),
     end: d.allDay ? ymd(addDays(parseYmd(d.eDate < d.sDate ? d.sDate : d.eDate), 1)) : fromInputs(d.eDate, d.eTime).valueOf(),
@@ -227,7 +228,7 @@ function EventDialog({ draft, onClose, onSaved, flash }: { draft: Draft; onClose
     }
   };
   const submit = () => {
-    if (!d.allDay && fromInputs(d.eDate, d.eTime) <= fromInputs(d.sDate, d.sTime)) return flash('The event ends before it starts');
+    if (!d.allDay && fromInputs(d.eDate, d.eTime) <= fromInputs(d.sDate, d.sTime)) return flash(t('The event ends before it starts'));
     void run(() => api.saveEvent(toEvent(d)));
   };
   const deleteOne = () =>
@@ -251,50 +252,50 @@ function EventDialog({ draft, onClose, onSaved, flash }: { draft: Draft; onClose
         }}
       >
         <div className="ev-color-bar" style={{ background: d.color }} />
-        <input className="ev-title" placeholder="Add a title" value={d.title} onChange={(e) => set('title', e.target.value)} autoFocus />
+        <input className="ev-title" placeholder={t('Add a title')} value={d.title} onChange={(e) => set('title', e.target.value)} autoFocus />
         <div className="ev-row">
           <Icon name="clock" size={18} />
           <div className="ev-times">
             <input type="date" value={d.sDate} onChange={(e) => { const v = e.target.value; setD((x) => ({ ...x, sDate: v, eDate: x.eDate < v ? v : x.eDate })); }} required />
             {!d.allDay && <input type="time" value={d.sTime} onChange={(e) => set('sTime', e.target.value)} required />}
-            <span className="muted">to</span>
+            <span className="muted">{t('to')}</span>
             <input type="date" value={d.eDate} onChange={(e) => set('eDate', e.target.value)} required />
             {!d.allDay && <input type="time" value={d.eTime} onChange={(e) => set('eTime', e.target.value)} required />}
             <label className="menu-check">
-              <input type="checkbox" checked={d.allDay} onChange={(e) => set('allDay', e.target.checked)} /> All day
+              <input type="checkbox" checked={d.allDay} onChange={(e) => set('allDay', e.target.checked)} /> {t('All day')}
             </label>
           </div>
         </div>
         <div className="ev-row">
           <Icon name="sync" size={18} />
           <select value={d.repeat} onChange={(e) => set('repeat', e.target.value as Repeat)}>
-            <option value="none">Does not repeat</option>
-            <option value="DAILY">Every day</option>
-            <option value="WEEKDAYS">Every weekday (Mon–Fri)</option>
-            <option value="WEEKLY">Every week</option>
-            <option value="MONTHLY">Every month</option>
-            <option value="YEARLY">Every year</option>
+            <option value="none">{t('Does not repeat')}</option>
+            <option value="DAILY">{t('Every day')}</option>
+            <option value="WEEKDAYS">{t('Every weekday (Mon–Fri)')}</option>
+            <option value="WEEKLY">{t('Every week')}</option>
+            <option value="MONTHLY">{t('Every month')}</option>
+            <option value="YEARLY">{t('Every year')}</option>
           </select>
           {d.repeat !== 'none' && (
             <>
-              <span className="muted">until</span>
+              <span className="muted">{t('until')}</span>
               <input type="date" value={d.until} onChange={(e) => set('until', e.target.value)} />
             </>
           )}
         </div>
         <div className="ev-row">
           <Icon name="pin" size={18} />
-          <input className="grow" placeholder="Add a location" value={d.location} onChange={(e) => set('location', e.target.value)} />
+          <input className="grow" placeholder={t('Add a location')} value={d.location} onChange={(e) => set('location', e.target.value)} />
         </div>
         <div className="ev-row top">
           <Icon name="drafts" size={18} />
-          <textarea className="grow" rows={4} placeholder="Add a description" value={d.notes} onChange={(e) => set('notes', e.target.value)} />
+          <textarea className="grow" rows={4} placeholder={t('Add a description')} value={d.notes} onChange={(e) => set('notes', e.target.value)} />
         </div>
         <div className="ev-row">
           <span className="ico-space" />
           <div className="swatches">
             {COLORS.map((c) => (
-              <button type="button" key={c} className={`swatch ${d.color === c ? 'on' : ''}`} style={{ background: c }} onClick={() => set('color', c)} title="Color" />
+              <button type="button" key={c} className={`swatch ${d.color === c ? 'on' : ''}`} style={{ background: c }} onClick={() => set('color', c)} title={t('Color')} />
             ))}
           </div>
         </div>
@@ -303,19 +304,19 @@ function EventDialog({ draft, onClose, onSaved, flash }: { draft: Draft; onClose
             <>
               {draft.repeat !== 'none' && d.occStart ? (
                 <>
-                  <button type="button" className="pill-btn danger" disabled={busy} onClick={() => void deleteOne()}>Delete this one</button>
-                  <button type="button" className="pill-btn danger" disabled={busy} onClick={() => confirm('Delete every occurrence?') && void run(() => api.deleteEvents([d.id!]))}>Delete series</button>
+                  <button type="button" className="pill-btn danger" disabled={busy} onClick={() => void deleteOne()}>{t('Delete this one')}</button>
+                  <button type="button" className="pill-btn danger" disabled={busy} onClick={() => confirm(t('Delete every occurrence?')) && void run(() => api.deleteEvents([d.id!]))}>{t('Delete series')}</button>
                 </>
               ) : (
-                <button type="button" className="pill-btn danger" disabled={busy} onClick={() => void run(() => api.deleteEvents([d.id!]))}>Delete</button>
+                <button type="button" className="pill-btn danger" disabled={busy} onClick={() => void run(() => api.deleteEvents([d.id!]))}>{t('Delete')}</button>
               )}
             </>
           )}
           <span className="grow" />
-          <button type="button" className="pill-btn" onClick={onClose}>Cancel</button>
-          <button className="primary" disabled={busy}>{busy ? 'Saving…' : 'Save'}</button>
+          <button type="button" className="pill-btn" onClick={onClose}>{t('Cancel')}</button>
+          <button className="primary" disabled={busy}>{busy ? t('Saving…') : t('Save')}</button>
         </div>
-        {draft.repeat !== 'none' && d.id && <p className="muted small ev-hint">Changes apply to the whole series.</p>}
+        {draft.repeat !== 'none' && d.id && <p className="muted small ev-hint">{t('Changes apply to the whole series.')}</p>}
       </form>
     </div>
   );
@@ -331,13 +332,13 @@ function MiniMonth({ cursor, onPick, range }: { cursor: Date; onPick: (d: Date) 
   return (
     <div className="mini">
       <div className="mini-head">
-        <b>{month.toLocaleDateString([], { month: 'long', year: 'numeric' })}</b>
+        <b>{month.toLocaleDateString(L(), { month: 'long', year: 'numeric' })}</b>
         <span className="grow" />
-        <button className="tb icon" onClick={() => setMonth(addMonths(month, -1))} title="Previous month"><Icon name="chevronRight" size={16} /></button>
-        <button className="tb icon" onClick={() => setMonth(addMonths(month, 1))} title="Next month"><Icon name="chevronRight" size={16} /></button>
+        <button className="tb icon" onClick={() => setMonth(addMonths(month, -1))} title={t('Previous month')}><Icon name="chevronRight" size={16} /></button>
+        <button className="tb icon" onClick={() => setMonth(addMonths(month, 1))} title={t('Next month')}><Icon name="chevronRight" size={16} /></button>
       </div>
       <div className="mini-grid">
-        {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((l, i) => <span key={i} className="mini-dow">{l}</span>)}
+        {weekdays('narrow').map((l, i) => <span key={i} className="mini-dow">{l}</span>)}
         {Array.from({ length: 42 }, (_, i) => {
           const d = addDays(first, i);
           const cls = [
@@ -408,12 +409,12 @@ export function Calendar({ flash, isPhone }: { flash: (m: string) => void; isPho
   };
 
   const title = (() => {
-    if (view === 'day') return cursor.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    if (view === 'month') return cursor.toLocaleDateString([], { month: 'long', year: 'numeric' });
+    if (view === 'day') return cursor.toLocaleDateString(L(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    if (view === 'month') return cursor.toLocaleDateString(L(), { month: 'long', year: 'numeric' });
     const a = days[0];
     const b = days[days.length - 1];
-    if (a.getMonth() === b.getMonth()) return a.toLocaleDateString([], { month: 'long', year: 'numeric' });
-    return `${a.toLocaleDateString([], { month: 'short' })} – ${b.toLocaleDateString([], { month: 'short', year: 'numeric' })}`;
+    if (a.getMonth() === b.getMonth()) return a.toLocaleDateString(L(), { month: 'long', year: 'numeric' });
+    return `${a.toLocaleDateString(L(), { month: 'short' })} – ${b.toLocaleDateString(L(), { month: 'short', year: 'numeric' })}`;
   })();
 
   const openOcc = (o: Occ) => setDraft(draftFrom(o.ev, o));
@@ -428,7 +429,7 @@ export function Calendar({ flash, isPhone }: { flash: (m: string) => void; isPho
     try {
       const r = await api.importEvents(await f.text());
       await reload();
-      flash(`Imported ${r.added} new, updated ${r.updated} · ${r.total} events`);
+      flash(t('Imported {added} new, updated {updated} · {total} events', { added: r.added, updated: r.updated, total: r.total }));
     } catch (err) {
       flash((err as Error).message);
     } finally {
@@ -460,14 +461,14 @@ export function Calendar({ flash, isPhone }: { flash: (m: string) => void; isPho
     <div className="calendar">
       <aside className="cal-side">
         <button className="tb new cal-new" onClick={() => setDraft(newDraft(nextSlot(cursor)))}>
-          <Icon name="plus" /> New event
+          <Icon name="plus" /> {t('New event')}
         </button>
         <MiniMonth cursor={cursor} range={range} onPick={(d) => setCursor(d)} />
-        <div className="menu-label cal-label">My calendars</div>
-        <div className="cal-item"><span className="dot" style={{ background: COLORS[0] }} /> Calendar <span className="muted small">{events.length}</span></div>
+        <div className="menu-label cal-label">{t('My calendars')}</div>
+        <div className="cal-item"><span className="dot" style={{ background: COLORS[0] }} /> {t('Calendar')} <span className="muted small">{events.length}</span></div>
         <div className="cal-tools">
-          <button className="tb" onClick={() => file.current?.click()}><Icon name="import" size={16} /> Import .ics</button>
-          <a className="tb" href={api.icsExportUrl}><Icon name="export" size={16} /> Export .ics</a>
+          <button className="tb" onClick={() => file.current?.click()}><Icon name="import" size={16} /> {t('Import .ics')}</button>
+          <a className="tb" href={api.icsExportUrl}><Icon name="export" size={16} /> {t('Export .ics')}</a>
         </div>
         <input ref={file} type="file" accept=".ics,text/calendar" hidden onChange={(e) => void doImport(e.target.files)} />
       </aside>
@@ -475,15 +476,15 @@ export function Calendar({ flash, isPhone }: { flash: (m: string) => void; isPho
       <section className="cal-main">
         <div className="cal-bar">
           <button className="tb new phone-only" onClick={() => setDraft(newDraft(nextSlot(cursor)))}><Icon name="plus" /></button>
-          <button className="pill-btn" onClick={() => setCursor(startOfDay(new Date()))}>Today</button>
-          <button className="tb icon flip" onClick={() => step(-1)} title="Previous"><Icon name="chevronRight" /></button>
-          <button className="tb icon" onClick={() => step(1)} title="Next"><Icon name="chevronRight" /></button>
+          <button className="pill-btn" onClick={() => setCursor(startOfDay(new Date()))}>{t('Today')}</button>
+          <button className="tb icon flip" onClick={() => step(-1)} title={t('Previous')}><Icon name="chevronRight" /></button>
+          <button className="tb icon" onClick={() => step(1)} title={t('Next')}><Icon name="chevronRight" /></button>
           <h2 className="cal-title">{title}</h2>
           <span className="grow" />
           <div className="segment cal-views">
             {(['day', 'workweek', 'week', 'month'] as View[]).map((v) => (
               <button key={v} className={`${view === v ? 'on' : ''} ${v === 'workweek' || v === 'week' ? 'desk-view' : ''}`} onClick={() => setView(v)}>
-                {{ day: 'Day', workweek: 'Work week', week: 'Week', month: 'Month' }[v]}
+                {{ day: t('Day'), workweek: t('Work week'), week: t('Week'), month: t('Month') }[v]}
               </button>
             ))}
           </div>
@@ -491,7 +492,7 @@ export function Calendar({ flash, isPhone }: { flash: (m: string) => void; isPho
 
         {view === 'month' ? (
           <div className="month">
-            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((l) => <div key={l} className="month-dow">{l}</div>)}
+            {weekdays('short').map((l) => <div key={l} className="month-dow">{l}</div>)}
             {days.map((d) => {
               const list = occs
                 .filter((o) => o.start < addDays(d, 1) && o.end > d)
@@ -504,12 +505,12 @@ export function Calendar({ flash, isPhone }: { flash: (m: string) => void; isPho
                   onClick={() => setDraft(newDraft(new Date(d.getFullYear(), d.getMonth(), d.getDate(), 9)))}
                 >
                   <button className="month-num" onClick={(e) => { e.stopPropagation(); setCursor(d); setView('day'); }}>
-                    {d.getDate() === 1 ? d.toLocaleDateString([], { day: 'numeric', month: 'short' }) : d.getDate()}
+                    {d.getDate() === 1 ? d.toLocaleDateString(L(), { day: 'numeric', month: 'short' }) : d.getDate()}
                   </button>
                   {list.slice(0, max).map((o) => chip(o, true))}
                   {list.length > max && (
                     <button className="more-link" onClick={(e) => { e.stopPropagation(); setCursor(d); setView('day'); }}>
-                      {list.length - max} more
+                      {t('{n} more', { n: list.length - max })}
                     </button>
                   )}
                 </div>
@@ -522,13 +523,13 @@ export function Calendar({ flash, isPhone }: { flash: (m: string) => void; isPho
               <div className="tg-gutter" />
               {days.map((d) => (
                 <div key={d.valueOf()} className={`tg-day ${sameDay(d, today) ? 'today' : ''}`}>
-                  <span className="tg-dow">{d.toLocaleDateString([], { weekday: 'short' })}</span>
+                  <span className="tg-dow">{d.toLocaleDateString(L(), { weekday: 'short' })}</span>
                   <span className="tg-num">{d.getDate()}</span>
                 </div>
               ))}
             </div>
             <div className="tg-allday">
-              <div className="tg-gutter small muted">all-day</div>
+              <div className="tg-gutter small muted">{t('all-day')}</div>
               {days.map((d) => (
                 <div key={d.valueOf()} className="tg-allday-cell" onClick={() => setDraft(newDraft(d, true))}>
                   {allDayOccs(d).map((o) => chip(o, false))}
@@ -540,7 +541,7 @@ export function Calendar({ flash, isPhone }: { flash: (m: string) => void; isPho
                 <div className="tg-hours">
                   {Array.from({ length: 24 }, (_, h) => (
                     <div key={h} className="tg-hour" style={{ top: h * HOUR }}>
-                      {h === 0 ? '' : new Date(2000, 0, 1, h).toLocaleTimeString([], { hour: 'numeric' })}
+                      {h === 0 ? '' : new Date(2000, 0, 1, h).toLocaleTimeString(L(), { hour: 'numeric' })}
                     </div>
                   ))}
                 </div>

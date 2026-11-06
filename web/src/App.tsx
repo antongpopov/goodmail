@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, setUnauthorizedHandler, useAccount } from './api.ts';
 import type { MailAccount } from './api.ts';
 import { AccountsDialog } from './Accounts.tsx';
+import { LangPicker } from './LangPicker.tsx';
 import type { Folder, Me, Message, Summary } from './api.ts';
 import { Icon, folderIcon } from './icons.tsx';
 import { Login } from './Login.tsx';
@@ -14,6 +15,7 @@ import type { Contact } from './api.ts';
 import { loadTheme, setTheme } from './theme.ts';
 import type { Theme } from './theme.ts';
 import { avatarColor, bucket, displayName, fullAddr, fullTime, humanSize, initials, listTime, save, store } from './util.ts';
+import { t } from './i18n.ts';
 
 const SPECIAL_ORDER = ['\\Inbox', '\\Drafts', '\\Sent', '\\Archive', '\\Junk', '\\Trash'];
 const POLL_MS = 30_000;
@@ -55,7 +57,7 @@ function Splitter({ width, min, max, onChange, storeKey, axis = 'x' }: { width: 
       className={`splitter ${axis === 'y' ? 'h' : ''}`}
       role="separator"
       aria-orientation={axis === 'x' ? 'vertical' : 'horizontal'}
-      title="Drag to resize · double-click to reset"
+      title={t('Drag to resize · double-click to reset')}
       onDoubleClick={() => {
         onChange(defaults[storeKey]);
         save(storeKey, defaults[storeKey]);
@@ -89,16 +91,16 @@ function Splitter({ width, min, max, onChange, storeKey, axis = 'x' }: { width: 
 }
 
 const THEMES: { id: Theme; label: string; icon: string }[] = [
-  { id: 'auto', label: 'Auto (system)', icon: 'auto' },
-  { id: 'light', label: 'Light', icon: 'sun' },
-  { id: 'dark', label: 'Dark', icon: 'moon' },
+  { id: 'auto', label: t('Auto (system)'), icon: 'auto' },
+  { id: 'light', label: t('Light'), icon: 'sun' },
+  { id: 'dark', label: t('Dark'), icon: 'moon' },
 ];
 
 export type PaneMode = 'right' | 'below' | 'hidden';
 const PANES: { id: PaneMode; label: string }[] = [
-  { id: 'right', label: 'Right' },
-  { id: 'below', label: 'Below' },
-  { id: 'hidden', label: 'Hidden' },
+  { id: 'right', label: t('Right') },
+  { id: 'below', label: t('Below') },
+  { id: 'hidden', label: t('Hidden') },
 ];
 
 function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, source }: { pane: PaneMode; onPane: (p: PaneMode) => void; preview: boolean; onPreview: (v: boolean) => void; onAccounts: () => void; source: string }) {
@@ -112,14 +114,14 @@ function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, source }: { pa
   }, [open]);
   return (
     <div className="menu-wrap" ref={ref}>
-      <button className="top-btn" title="View settings" onClick={() => setOpen((v) => !v)}>
+      <button className="top-btn" title={t('View settings')} onClick={() => setOpen((v) => !v)}>
         <Icon name="settings" />
       </button>
       {open && (
         <div className="menu view-menu">
-          <div className="menu-label">Theme</div>
+          <div className="menu-label">{t('Theme')}</div>
           <ThemeSegment />
-          <div className="menu-label">Reading pane</div>
+          <div className="menu-label">{t('Reading pane')}</div>
           <div className="segment">
             {PANES.map((p) => (
               <button key={p.id} className={p.id === pane ? 'on' : ''} onClick={() => onPane(p.id)}>
@@ -127,17 +129,19 @@ function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, source }: { pa
               </button>
             ))}
           </div>
-          <div className="menu-label">Message list</div>
+          <div className="menu-label">{t('Message list')}</div>
           <label className="menu-check">
-            <input type="checkbox" checked={preview} onChange={(e) => onPreview(e.target.checked)} /> Show preview text
+            <input type="checkbox" checked={preview} onChange={(e) => onPreview(e.target.checked)} /> {t('Show preview text')}
           </label>
-          <div className="menu-label">Mail accounts</div>
+          <div className="menu-label">{t('Language')}</div>
+          <LangPicker className="wide" />
+          <div className="menu-label">{t('Mail accounts')}</div>
           <button className="menu-btn" onClick={() => { setOpen(false); onAccounts(); }}>
-            <Icon name="people" size={16} /> Manage accounts…
+            <Icon name="people" size={16} /> {t('Manage accounts…')}
           </button>
           <div className="about">
             goodmail · AGPL-3.0 ·{' '}
-            <a href={source} target="_blank" rel="noopener noreferrer">Source code</a>
+            <a href={source} target="_blank" rel="noopener noreferrer">{t('Source code')}</a>
           </div>
         </div>
       )}
@@ -149,21 +153,25 @@ function ThemeSegment() {
   const [theme, set] = useState<Theme>(loadTheme);
   return (
     <div className="segment">
-      {THEMES.map((t) => (
+      {THEMES.map((th) => (
         <button
-          key={t.id}
-          className={t.id === theme ? 'on' : ''}
+          key={th.id}
+          className={th.id === theme ? 'on' : ''}
           onClick={() => {
-            set(t.id);
-            setTheme(t.id);
+            set(th.id);
+            setTheme(th.id);
           }}
         >
-          <Icon name={t.icon} size={16} /> {t.id === 'auto' ? 'Auto' : t.label}
+          <Icon name={th.icon} size={16} /> {th.id === 'auto' ? t('Auto') : th.label}
         </button>
       ))}
     </div>
   );
 }
+
+const SPECIAL_NAMES: Record<string, string> = { '\\Inbox': 'Inbox', '\\Sent': 'Sent', '\\Drafts': 'Drafts', '\\Trash': 'Trash', '\\Junk': 'Junk', '\\Archive': 'Archive' };
+/** Special-use folders get the UI language's name (like Outlook); everything else keeps its server name. */
+const folderLabel = (f: { specialUse: string; name: string }) => (SPECIAL_NAMES[f.specialUse] ? t(SPECIAL_NAMES[f.specialUse]) : f.name);
 
 interface FolderNode extends Folder { children: FolderNode[]; depth: number }
 
@@ -243,7 +251,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   const addToCalendar = async (url: string) => {
     try {
       const r = await api.importEvents(await (await fetch(url, { credentials: 'same-origin' })).text());
-      flash(r.updated ? 'Calendar event updated' : 'Added to your calendar');
+      flash(r.updated ? t('Calendar event updated') : t('Added to your calendar'));
     } catch (err) {
       flash((err as Error).message);
     }
@@ -270,7 +278,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
 
   const flash = useCallback((msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast((t) => (t === msg ? '' : t)), 3500);
+    setTimeout(() => setToast((cur) => (cur === msg ? '' : cur)), 3500);
   }, []);
 
   const acctRef = useRef(acct);
@@ -461,7 +469,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
     removeFromList(uids);
     try {
       const r = await api.remove(folder, uids);
-      flash(r.permanent ? `Deleted ${uids.length} permanently` : `Moved ${uids.length} to Deleted Items`);
+      flash(r.permanent ? t('Deleted {n} permanently', { n: uids.length }) : t('Moved {n} to the trash', { n: uids.length }));
       void loadFolders();
     } catch (err) {
       flash((err as Error).message);
@@ -475,7 +483,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
     removeFromList(uids);
     try {
       const r = await api.move(folder, uids, to);
-      flash(`Moved ${uids.length} to ${folders.find((f) => f.path === r.to)?.name || r.to}`);
+      flash(t('Moved {n} to {folder}', { n: uids.length, folder: (() => { const f = folders.find((x) => x.path === r.to); return f ? folderLabel(f) : r.to; })() }));
       void loadFolders();
     } catch (err) {
       flash((err as Error).message);
@@ -515,8 +523,8 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   // Keyboard shortcuts (outside inputs/editor).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement;
-      if (compose || t.closest('input,textarea,[contenteditable="true"],select')) return;
+      const tgt = e.target as HTMLElement;
+      if (compose || tgt.closest('input,textarea,[contenteditable="true"],select')) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const idx = visible.findIndex((m) => m.uid === (open?.uid ?? anchor));
       const go = (d: number) => {
@@ -610,7 +618,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
           <span className="twisty" />
         )}
         <Icon name={folderIcon(n.specialUse)} size={18} />
-        <span className="fname">{n.name}</span>
+        <span className="fname">{folderLabel(n)}</span>
         {n.unseen > 0 && n.specialUse !== '\\Sent' && <span className="count">{n.unseen}</span>}
       </div>
       {!collapsed[`${aid}:${n.path}`] && n.children.map((c) => renderFolder(c, aid))}
@@ -620,7 +628,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   return (
     <div className="app">
       <header className="topbar">
-        <button className="top-btn phone-only" onClick={() => setDrawer(true)} title="Folders">
+        <button className="top-btn phone-only" onClick={() => setDrawer(true)} title={t('Folders')}>
           <Icon name="menu" />
         </button>
         <div className="brand">
@@ -630,9 +638,9 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
         <nav className="apps desk-only">
           {(
             [
-              ['mail', 'mail', 'Mail'],
-              ['calendar', 'calendar', 'Calendar'],
-              ['contacts', 'people', 'Contacts'],
+              ['mail', 'mail', t('Mail')],
+              ['calendar', 'calendar', t('Calendar')],
+              ['contacts', 'people', t('Contacts')],
             ] as const
           ).map(([id, icon, label]) => (
             <button key={id} className={`app-btn ${view === id ? 'active' : ''}`} title={label} aria-label={label} aria-pressed={view === id} onClick={() => setView(id)}>
@@ -648,7 +656,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
           }}
         >
           <Icon name="search" size={16} />
-          <input id="gm-search" placeholder={`Search ${current?.name || 'mail'}`} value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input id="gm-search" placeholder={current ? t('Search {folder}', { folder: folderLabel(current) }) : t('Search mail')} value={query} onChange={(e) => setQuery(e.target.value)} />
           {searching && (
             <button
               type="button"
@@ -669,7 +677,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
           <span className="who" title={`${me.email} · ${me.imapHost}`}>
             <Avatar addr={{ name: me.name, address: me.email }} size={28} />
           </span>
-          <button className="top-btn desk-only" onClick={onLogout} title="Sign out">
+          <button className="top-btn desk-only" onClick={onLogout} title={t('Sign out')}>
             <Icon name="signout" />
           </button>
         </div>
@@ -695,22 +703,22 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
           ) : (
           <>
           <div className="toolbar">
-            <button className="tb" onClick={() => { setFoldersHidden(!foldersHidden); save('foldersHidden', !foldersHidden); }} title="Show/hide folders">
+            <button className="tb" onClick={() => { setFoldersHidden(!foldersHidden); save('foldersHidden', !foldersHidden); }} title={t('Show/hide folders')}>
               <Icon name="menu" />
             </button>
             <button className="tb new" onClick={() => setCompose({ mode: 'new' })}>
-              <Icon name="compose" /> New mail
+              <Icon name="compose" /> {t('New mail')}
             </button>
             <span className="sep" />
             <button className="tb" disabled={!has} onClick={() => void doDelete()}>
-              <Icon name="trash" /> <span className="lbl">Delete</span>
+              <Icon name="trash" /> <span className="lbl">{t('Delete')}</span>
             </button>
             <button className="tb" disabled={!has} onClick={() => void doMove('archive')}>
-              <Icon name="archive" /> <span className="lbl">Archive</span>
+              <Icon name="archive" /> <span className="lbl">{t('Archive')}</span>
             </button>
             <div className="menu-wrap">
               <button className="tb" disabled={!has} onClick={() => setMoveOpen((v) => !v)}>
-                <Icon name="move" /> <span className="lbl">Move</span>
+                <Icon name="move" /> <span className="lbl">{t('Move')}</span>
               </button>
               {moveOpen && (
                 <div className="menu" onMouseLeave={() => setMoveOpen(false)}>
@@ -729,18 +737,18 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
               className="tb"
               disabled={!has}
               onClick={() => void toggleJunk()}
-              title={inJunk ? 'Not junk: move back to Inbox (!)' : 'Mark as junk (!)'}
+              title={inJunk ? t('Not junk: move back to Inbox (!)') : t('Mark as junk (!)')}
             >
-              <Icon name={inJunk ? 'inbox' : 'junk'} /> <span className="lbl">{inJunk ? 'Not junk' : 'Mark as junk'}</span>
+              <Icon name={inJunk ? 'inbox' : 'junk'} /> <span className="lbl">{inJunk ? t('Not junk') : t('Mark as junk')}</span>
             </button>
             <button className="tb" disabled={!has} onClick={toggleFlag}>
-              <Icon name="flag" /> <span className="lbl">Flag</span>
+              <Icon name="flag" /> <span className="lbl">{t('Flag')}</span>
             </button>
             <button className="tb" disabled={!has} onClick={toggleRead}>
-              <Icon name="unread" /> <span className="lbl">Read / Unread</span>
+              <Icon name="unread" /> <span className="lbl">{t('Read / Unread')}</span>
             </button>
             <button className="tb" onClick={sync}>
-              <Icon name="sync" /> <span className="lbl">Sync</span>
+              <Icon name="sync" /> <span className="lbl">{t('Sync')}</span>
             </button>
           </div>
 
@@ -769,7 +777,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                       {a.locked && (
                         <button className="folder muted" onClick={() => setAcctDialog(true)}>
                           <span className="twisty" />
-                          <Icon name="close" size={16} /> <span className="fname">Locked — re-enter password</span>
+                          <Icon name="close" size={16} /> <span className="fname">{t('Locked — re-enter password')}</span>
                         </button>
                       )}
                       {!collapsed[k] && (trees[a.id] || []).map((n) => renderFolder(n, a.id))}
@@ -779,7 +787,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                 <button
                   className="folder add"
                   onClick={async () => {
-                    const name = prompt('New folder name');
+                    const name = prompt(t('New folder name'));
                     if (name) {
                       try {
                         await api.createFolder(name);
@@ -791,28 +799,29 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                   }}
                 >
                   <span className="twisty" />
-                  <Icon name="plus" size={16} /> <span className="fname">Create new folder</span>
+                  <Icon name="plus" size={16} /> <span className="fname">{t('Create new folder')}</span>
                 </button>
                 <button className="folder add" onClick={() => setAcctDialog(true)}>
                   <span className="twisty" />
-                  <Icon name="people" size={16} /> <span className="fname">Add account</span>
+                  <Icon name="people" size={16} /> <span className="fname">{t('Add account')}</span>
                 </button>
                 <div className="drawer-foot phone-only">
                   <button className="folder" onClick={() => { setView('calendar'); setDrawer(false); }}>
                     <span className="twisty" />
-                    <Icon name="calendar" size={18} /> <span className="fname">Calendar</span>
+                    <Icon name="calendar" size={18} /> <span className="fname">{t('Calendar')}</span>
                   </button>
                   <button className="folder" onClick={() => { setView('contacts'); setDrawer(false); }}>
                     <span className="twisty" />
-                    <Icon name="people" size={18} /> <span className="fname">Contacts</span>
+                    <Icon name="people" size={18} /> <span className="fname">{t('Contacts')}</span>
                   </button>
                   <ThemeSegment />
+                  <LangPicker className="wide drawer-lang" />
                   <label className="menu-check">
-                    <input type="checkbox" checked={preview} onChange={(e) => setPreview(e.target.checked)} /> Show preview text
+                    <input type="checkbox" checked={preview} onChange={(e) => setPreview(e.target.checked)} /> {t('Show preview text')}
                   </label>
                   <button className="folder" onClick={onLogout}>
                     <span className="twisty" />
-                    <Icon name="signout" size={18} /> <span className="fname">Sign out</span>
+                    <Icon name="signout" size={18} /> <span className="fname">{t('Sign out')}</span>
                   </button>
                 </div>
               </aside>
@@ -831,14 +840,14 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                 <div className="tabs">
                   {(['all', 'unread', 'flagged'] as const).map((f) => (
                     <button key={f} className={filter === f ? 'on' : ''} onClick={() => setFilter(f)}>
-                      {f === 'all' ? (searching ? 'Results' : current?.name || 'All') : f[0].toUpperCase() + f.slice(1)}
+                      {f === 'all' ? (searching ? t('Results') : current ? folderLabel(current) : t('All')) : f === 'unread' ? t('Unread') : t('Flagged')}
                     </button>
                   ))}
                 </div>
                 {loading && <span className="spinner" />}
               </div>
               <div className="list-scroll" ref={listRef} onScroll={onScroll}>
-                {!loading && visible.length === 0 && <div className="empty">{searching ? 'No results.' : 'Nothing here. Enjoy your day.'}</div>}
+                {!loading && visible.length === 0 && <div className="empty">{searching ? t('No results.') : t('Nothing here. Enjoy your day.')}</div>}
                 {groups.map((g) => (
                   <div key={g.label}>
                     <div className="group">{g.label}</div>
@@ -859,24 +868,24 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                           <Avatar addr={who} />
                           <div className="item-main">
                             <div className="row1">
-                              <span className="sender">{isSentFolder ? `To: ${displayName(who)}` : displayName(who)}</span>
+                              <span className="sender">{isSentFolder ? t('To: {name}', { name: displayName(who) }) : displayName(who)}</span>
                               <span className="item-actions">
-                                <button title="Flag" className={m.flagged ? 'on' : ''} onClick={(e) => { e.stopPropagation(); void setFlag([m.uid], '\\Flagged', !m.flagged); }}>
+                                <button title={t('Flag')} className={m.flagged ? 'on' : ''} onClick={(e) => { e.stopPropagation(); void setFlag([m.uid], '\\Flagged', !m.flagged); }}>
                                   <Icon name="flag" size={16} filled={m.flagged} />
                                 </button>
-                                <button title={m.seen ? 'Mark unread' : 'Mark read'} onClick={(e) => { e.stopPropagation(); void setFlag([m.uid], '\\Seen', !m.seen); }}>
+                                <button title={m.seen ? t('Mark unread') : t('Mark read')} onClick={(e) => { e.stopPropagation(); void setFlag([m.uid], '\\Seen', !m.seen); }}>
                                   <Icon name="unread" size={16} />
                                 </button>
-                                <button title={inJunk ? 'Not junk' : 'Mark as junk'} onClick={(e) => { e.stopPropagation(); void toggleJunk([m.uid]); }}>
+                                <button title={inJunk ? t('Not junk') : t('Mark as junk')} onClick={(e) => { e.stopPropagation(); void toggleJunk([m.uid]); }}>
                                   <Icon name={inJunk ? 'inbox' : 'junk'} size={16} />
                                 </button>
-                                <button title="Delete" onClick={(e) => { e.stopPropagation(); void doDelete([m.uid]); }}>
+                                <button title={t('Delete')} onClick={(e) => { e.stopPropagation(); void doDelete([m.uid]); }}>
                                   <Icon name="trash" size={16} />
                                 </button>
                               </span>
                             </div>
                             <div className="row2">
-                              <span className="subject">{m.subject || '(no subject)'}</span>
+                              <span className="subject">{m.subject || t('(no subject)')}</span>
                               <span className="meta">
                                 {m.hasAttachments && <Icon name="clip" size={14} />}
                                 {m.answered && <Icon name="reply" size={14} />}
@@ -891,7 +900,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                     })}
                   </div>
                 ))}
-                {hasMore && !searching && <div className="more">{loading ? 'Loading…' : ''}</div>}
+                {hasMore && !searching && <div className="more">{loading ? t('Loading…') : ''}</div>}
               </div>
             </section>
             {pane === 'right' && <Splitter width={listW} min={260} max={900} onChange={setListW} storeKey="listW" />}
@@ -910,7 +919,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                   onClose={() => setCompose(null)}
                   onSent={() => {
                     setCompose(null);
-                    flash('Message sent');
+                    flash(t('Message sent'));
                     if (compose.source && compose.mode !== 'forward') patch([compose.source.uid], { answered: true });
                     void loadFolders();
                   }}
@@ -918,34 +927,34 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
               ) : open ? (
                 <article className="message">
                   <div className="msg-head">
-                    <button className="tb icon back" title="Back" onClick={closeMessage}>
+                    <button className="tb icon back" title={t('Back')} onClick={closeMessage}>
                       <Icon name="chevronRight" />
                     </button>
-                    <h2>{open.subject || '(no subject)'}</h2>
+                    <h2>{open.subject || t('(no subject)')}</h2>
                     <div className="msg-actions">
-                      <button className="tb icon" title="Reply (r)" onClick={() => setCompose({ mode: 'reply', source: open })}>
+                      <button className="tb icon" title={t('Reply (r)')} onClick={() => setCompose({ mode: 'reply', source: open })}>
                         <Icon name="reply" />
                       </button>
-                      <button className="tb icon" title="Reply all (a)" onClick={() => setCompose({ mode: 'replyAll', source: open })}>
+                      <button className="tb icon" title={t('Reply all (a)')} onClick={() => setCompose({ mode: 'replyAll', source: open })}>
                         <Icon name="replyAll" />
                       </button>
-                      <button className="tb icon" title="Forward (f)" onClick={() => setCompose({ mode: 'forward', source: open })}>
+                      <button className="tb icon" title={t('Forward (f)')} onClick={() => setCompose({ mode: 'forward', source: open })}>
                         <Icon name="forward" />
                       </button>
-                      <button className="tb icon" title={inJunk ? 'Not junk (!)' : 'Mark as junk (!)'} onClick={() => void toggleJunk([open.uid])}>
+                      <button className="tb icon" title={inJunk ? t('Not junk (!)') : t('Mark as junk (!)')} onClick={() => void toggleJunk([open.uid])}>
                         <Icon name={inJunk ? 'inbox' : 'junk'} />
                       </button>
                       <span className="phone-only phone-actions">
-                        <button className="tb icon" title="Delete" onClick={() => void doDelete()}>
+                        <button className="tb icon" title={t('Delete')} onClick={() => void doDelete()}>
                           <Icon name="trash" />
                         </button>
-                        <button className="tb icon" title="Archive" onClick={() => void doMove('archive')}>
+                        <button className="tb icon" title={t('Archive')} onClick={() => void doMove('archive')}>
                           <Icon name="archive" />
                         </button>
-                        <button className="tb icon" title="Flag" onClick={toggleFlag}>
+                        <button className="tb icon" title={t('Flag')} onClick={toggleFlag}>
                           <Icon name="flag" filled={open.flagged} />
                         </button>
-                        <button className="tb icon" title="Mark unread" onClick={() => { void setFlag([open.uid], '\\Seen', false); closeMessage(); }}>
+                        <button className="tb icon" title={t('Mark unread')} onClick={() => { void setFlag([open.uid], '\\Seen', false); closeMessage(); }}>
                           <Icon name="unread" />
                         </button>
                       </span>
@@ -960,7 +969,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                           {open.from.address && !known.has(open.from.address.toLowerCase()) && (
                             <button
                               className="add-contact"
-                              title="Add to contacts"
+                              title={t('Add to contacts')}
                               onClick={() => {
                                 setAddContact({ name: open.from.name, emails: [open.from.address] });
                                 setView('contacts');
@@ -972,11 +981,11 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                           {open.from.name && <span className="muted"> &lt;{open.from.address}&gt;</span>}
                         </div>
                         <div className="to-line">
-                          <span className="muted">To:</span> {open.to.map(displayName).join('; ') || '—'}
+                          <span className="muted">{t('To:')}</span> {open.to.map(displayName).join('; ') || '—'}
                           {open.cc.length > 0 && (
                             <>
                               {'  '}
-                              <span className="muted">Cc:</span> {open.cc.map(displayName).join('; ')}
+                              <span className="muted">{t('Cc:')}</span> {open.cc.map(displayName).join('; ')}
                             </>
                           )}
                         </div>
@@ -985,8 +994,8 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                     </div>
                     {blocked && !remote && (
                       <div className="banner">
-                        <Icon name="image" size={16} /> Some external content was blocked to protect your privacy.
-                        <button className="link-btn" onClick={() => setShowRemoteOnce(true)}>Show once</button>
+                        <Icon name="image" size={16} /> {t('Some external content was blocked to protect your privacy.')}
+                        <button className="link-btn" onClick={() => setShowRemoteOnce(true)}>{t('Show once')}</button>
                         <button
                           className="link-btn"
                           onClick={() => {
@@ -995,7 +1004,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                             save('remoteOk', r);
                           }}
                         >
-                          Always show from {open.from.address}
+                          {t('Always show from {sender}', { sender: open.from.address })}
                         </button>
                       </div>
                     )}
@@ -1012,7 +1021,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                           .filter((a) => a.type === 'text/calendar' || /\.ics$/i.test(a.filename))
                           .map((a) => (
                             <button key={`cal-${a.part}`} className="att ics" onClick={() => void addToCalendar(api.attachmentUrl(folder, open.uid, a))}>
-                              <Icon name="calendar" size={16} /> Add to calendar
+                              <Icon name="calendar" size={16} /> {t('Add to calendar')}
                             </button>
                           ))}
                       </div>
@@ -1025,8 +1034,8 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                   {openLoading ? <span className="spinner" /> : (
                     <>
                       <Icon name="mail" size={56} />
-                      <p>{selected.size > 1 ? `${selected.size} items selected` : 'Select an item to read'}</p>
-                      <p className="muted small">j/k to move · r reply · a reply all · f forward · e archive · Del delete · n new · / search</p>
+                      <p>{selected.size > 1 ? t('{n} items selected', { n: selected.size }) : t('Select an item to read')}</p>
+                      <p className="muted small">{t('j/k to move · r reply · a reply all · f forward · e archive · Del delete · n new · / search')}</p>
                     </>
                   )}
                 </div>
@@ -1041,7 +1050,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
       </div>
       {view === 'mail' && !compose && !open && !openLoading && (
         <button className="fab phone-only" onClick={() => setCompose({ mode: 'new' })}>
-          <Icon name="compose" /> New mail
+          <Icon name="compose" /> {t('New mail')}
         </button>
       )}
       {acctDialog && (

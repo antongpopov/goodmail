@@ -1,4 +1,5 @@
 import type { Addr } from './api.ts';
+import { t, L } from './i18n.ts';
 
 const PALETTE = ['#c239b3', '#e3008c', '#d13438', '#ca5010', '#986f0b', '#498205', '#038387', '#0078d4', '#5c2e91', '#8764b8', '#4f6bed', '#007f7f'];
 
@@ -24,15 +25,15 @@ export function listTime(ts: number) {
   const d = new Date(ts);
   const now = new Date();
   const days = Math.round((startOfDay(now) - startOfDay(d)) / 86400000);
-  if (days === 0) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  if (days === 1) return 'Yesterday';
-  if (days < 7) return d.toLocaleDateString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
-  if (d.getFullYear() === now.getFullYear()) return d.toLocaleDateString([], { day: 'numeric', month: 'short' });
-  return d.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: 'numeric' });
+  if (days === 0) return d.toLocaleTimeString(L(), { hour: '2-digit', minute: '2-digit' });
+  if (days === 1) return t('Yesterday');
+  if (days < 7) return d.toLocaleDateString(L(), { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+  if (d.getFullYear() === now.getFullYear()) return d.toLocaleDateString(L(), { day: 'numeric', month: 'short' });
+  return d.toLocaleDateString(L(), { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 export function fullTime(ts: number) {
-  return new Date(ts).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return new Date(ts).toLocaleString(L(), { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 /** Outlook-style date buckets for the message list. */
@@ -40,13 +41,13 @@ export function bucket(ts: number) {
   const d = new Date(ts);
   const now = new Date();
   const days = Math.round((startOfDay(now) - startOfDay(d)) / 86400000);
-  if (days <= 0) return 'Today';
-  if (days === 1) return 'Yesterday';
+  if (days <= 0) return t('Today');
+  if (days === 1) return t('Yesterday');
   const dow = (now.getDay() + 6) % 7; // Monday = 0
-  if (days <= dow) return 'This week';
-  if (days <= dow + 7) return 'Last week';
-  if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()) return 'Earlier this month';
-  return d.toLocaleDateString([], { month: 'long', year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric' });
+  if (days <= dow) return t('This week');
+  if (days <= dow + 7) return t('Last week');
+  if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()) return t('Earlier this month');
+  return d.toLocaleDateString(L(), { month: 'long', year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric' });
 }
 
 export function humanSize(n: number) {

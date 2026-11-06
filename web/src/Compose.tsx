@@ -4,6 +4,7 @@ import type { Me, Message, MailAccount } from './api.ts';
 import { Icon } from './icons.tsx';
 import { escapeHtml, fullAddr, fullTime, humanSize, parseRecipients, textToHtml } from './util.ts';
 import DOMPurify from 'dompurify';
+import { t } from './i18n.ts';
 
 export type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward';
 export interface ComposeInit { mode: ComposeMode; source?: Message; to?: string }
@@ -83,7 +84,7 @@ export function Compose({ me, init, contacts, onClose, onSent, accounts, default
   };
 
   const send = async () => {
-    if (!parseRecipients(to + ',' + cc + ',' + bcc)) return setError('Add at least one recipient.');
+    if (!parseRecipients(to + ',' + cc + ',' + bcc)) return setError(t('Add at least one recipient.'));
     setBusy(true);
     setError('');
     const html = editor.current?.innerHTML || '';
@@ -126,38 +127,38 @@ export function Compose({ me, init, contacts, onClose, onSent, accounts, default
       }}
     >
       <div className="compose-bar">
-        <button className="primary send" onClick={send} disabled={busy} title="Send (⌘/Ctrl+Enter)">
-          <Icon name="send" /> {busy ? 'Sending…' : 'Send'}
+        <button className="primary send" onClick={send} disabled={busy} title={t('Send (⌘/Ctrl+Enter)')}>
+          <Icon name="send" /> {busy ? t('Sending…') : t('Send')}
         </button>
-        <button className="tb" onClick={() => fileInput.current?.click()} title="Attach file">
-          <Icon name="clip" /> Attach
+        <button className="tb" onClick={() => fileInput.current?.click()} title={t('Attach file')}>
+          <Icon name="clip" /> {t('Attach')}
         </button>
         <span className="sep" />
-        <button className="tb icon" onMouseDown={(e) => e.preventDefault()} onClick={() => cmd('bold')} title="Bold">
+        <button className="tb icon" onMouseDown={(e) => e.preventDefault()} onClick={() => cmd('bold')} title={t('Bold')}>
           <Icon name="bold" />
         </button>
-        <button className="tb icon" onMouseDown={(e) => e.preventDefault()} onClick={() => cmd('italic')} title="Italic">
+        <button className="tb icon" onMouseDown={(e) => e.preventDefault()} onClick={() => cmd('italic')} title={t('Italic')}>
           <Icon name="italic" />
         </button>
-        <button className="tb icon" onMouseDown={(e) => e.preventDefault()} onClick={() => cmd('underline')} title="Underline">
+        <button className="tb icon" onMouseDown={(e) => e.preventDefault()} onClick={() => cmd('underline')} title={t('Underline')}>
           <Icon name="underline" />
         </button>
-        <button className="tb icon" onMouseDown={(e) => e.preventDefault()} onClick={() => cmd('insertUnorderedList')} title="Bullets">
+        <button className="tb icon" onMouseDown={(e) => e.preventDefault()} onClick={() => cmd('insertUnorderedList')} title={t('Bullets')}>
           <Icon name="list" />
         </button>
         <button
           className="tb icon"
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => {
-            const url = prompt('Link address');
+            const url = prompt(t('Link address'));
             if (url && /^(https?:|mailto:)/i.test(url)) cmd('createLink', url);
           }}
-          title="Insert link"
+          title={t('Insert link')}
         >
           <Icon name="link" />
         </button>
         <span className="grow" />
-        <button className="tb icon" onClick={onClose} title="Discard (Esc)">
+        <button className="tb icon" onClick={onClose} title={t('Discard (Esc)')}>
           <Icon name="trash" />
         </button>
         <input ref={fileInput} type="file" multiple hidden onChange={(e) => void addFiles(e.target.files)} />
@@ -170,7 +171,7 @@ export function Compose({ me, init, contacts, onClose, onSent, accounts, default
       <div className="compose-fields">
         {accounts.length > 1 && (
           <div className="field">
-            <span className="field-label">From</span>
+            <span className="field-label">{t('From')}</span>
             <select className="from-select" value={from} onChange={(e) => setFrom(e.target.value)}>
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
@@ -181,28 +182,28 @@ export function Compose({ me, init, contacts, onClose, onSent, accounts, default
           </div>
         )}
         <div className="field">
-          <span className="field-label">To</span>
+          <span className="field-label">{t('To')}</span>
           <input id="gm-to" list="gm-contacts" value={to} onChange={(e) => setTo(e.target.value)} />
           {!showCc && (
             <button className="link-btn" onClick={() => setShowCc(true)}>
-              Cc &amp; Bcc
+              {t('Cc & Bcc')}
             </button>
           )}
         </div>
         {showCc && (
           <>
             <div className="field">
-              <span className="field-label">Cc</span>
+              <span className="field-label">{t('Cc')}</span>
               <input list="gm-contacts" value={cc} onChange={(e) => setCc(e.target.value)} />
             </div>
             <div className="field">
-              <span className="field-label">Bcc</span>
+              <span className="field-label">{t('Bcc')}</span>
               <input list="gm-contacts" value={bcc} onChange={(e) => setBcc(e.target.value)} />
             </div>
           </>
         )}
         <div className="field">
-          <input className="subject-input" placeholder="Add a subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
+          <input className="subject-input" placeholder={t('Add a subject')} value={subject} onChange={(e) => setSubject(e.target.value)} />
         </div>
       </div>
       {atts.length > 0 && (
@@ -210,7 +211,7 @@ export function Compose({ me, init, contacts, onClose, onSent, accounts, default
           {atts.map((a, i) => (
             <span key={i} className="att">
               <Icon name="clip" size={16} /> {a.filename} <span className="muted">{humanSize(a.size)}</span>
-              <button className="x" onClick={() => setAtts((l) => l.filter((_, j) => j !== i))} title="Remove">
+              <button className="x" onClick={() => setAtts((l) => l.filter((_, j) => j !== i))} title={t('Remove')}>
                 <Icon name="close" size={14} />
               </button>
             </span>

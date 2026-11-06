@@ -1,6 +1,6 @@
 {
   "name": "goodmail",
-  "version": "0.4.5",
+  "version": "0.5.0",
   "description": "A good webmail client for any IMAP server — Outlook-style three-pane UI",
   "license": "AGPL-3.0-or-later",
   "type": "module",

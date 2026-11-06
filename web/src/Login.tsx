@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { api } from './api.ts';
 import type { Me } from './api.ts';
 import { store, save } from './util.ts';
+import { LangPicker } from './LangPicker.tsx';
+import { t } from './i18n.ts';
 
 export function Login({ onLogin, appName, source }: { onLogin: (m: Me) => void; appName: string; source: string }) {
   const [email, setEmail] = useState(() => store('lastEmail', ''));
@@ -33,25 +35,28 @@ export function Login({ onLogin, appName, source }: { onLogin: (m: Me) => void; 
           <img src="/favicon.svg" alt="" width={36} height={36} />
           <span>{appName}</span>
         </div>
-        <h1>Sign in</h1>
+        <div className="login-head">
+          <h1>{t('Sign in')}</h1>
+          <LangPicker />
+        </div>
         <label>
-          Email address
+          {t('Email address')}
           <input type="text" inputMode="email" autoCapitalize="none" spellCheck={false} autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus={!email} />
         </label>
         <label>
-          Password
+          {t('Password')}
           <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required autoFocus={!!email} />
         </label>
         <label className="chk">
-          <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Keep me signed in
+          <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> {t('Keep me signed in')}
         </label>
         {error && <div className="error">{error}</div>}
         <button className="primary" disabled={busy}>
-          {busy ? 'Signing in…' : 'Sign in'}
+          {busy ? t('Signing in…') : t('Sign in')}
         </button>
         <p className="muted small about">
-          Powered by goodmail · AGPL-3.0 ·{' '}
-          <a href={source} target="_blank" rel="noopener noreferrer">Source code</a>
+          {t('Powered by goodmail')} · AGPL-3.0 ·{' '}
+          <a href={source} target="_blank" rel="noopener noreferrer">{t('Source code')}</a>
         </p>
       </form>
     </div>
