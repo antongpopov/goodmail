@@ -99,7 +99,7 @@ export function makeSnippet(
   } catch {
     text = new TextDecoder('utf-8').decode(bytes);
   }
-  if (isHtml) text = htmlToText(text);
+  if (isHtml || /<(table|div|p|html|body|span|td|br|!doctype)\b/i.test(text)) text = htmlToText(text);
   return text
     .replace(/�+$/, '')
     .replace(/^>.*$/gm, '')

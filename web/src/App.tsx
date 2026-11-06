@@ -38,6 +38,47 @@ function Avatar({ addr, size = 32 }: { addr: { name: string; address: string }; 
   );
 }
 
+/** Drag handle between two panes; resizes the pane on its left. Double-click resets. */
+function Splitter({ width, min, max, onChange, storeKey }: { width: number; min: number; max: number; onChange: (w: number) => void; storeKey: string }) {
+  const defaults: Record<string, number> = { folderW: 220, listW: 380 };
+  return (
+    <div
+      className="splitter"
+      role="separator"
+      aria-orientation="vertical"
+      title="Drag to resize · double-click to reset"
+      onDoubleClick={() => {
+        onChange(defaults[storeKey]);
+        save(storeKey, defaults[storeKey]);
+      }}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        const el = e.currentTarget;
+        el.setPointerCapture(e.pointerId);
+        el.classList.add('dragging');
+        document.body.classList.add('resizing');
+        const startX = e.clientX;
+        let w = width;
+        const move = (ev: PointerEvent) => {
+          w = Math.round(Math.min(max, Math.max(min, width + ev.clientX - startX)));
+          onChange(w);
+        };
+        const up = () => {
+          el.removeEventListener('pointermove', move);
+          el.removeEventListener('pointerup', up);
+          el.removeEventListener('pointercancel', up);
+          el.classList.remove('dragging');
+          document.body.classList.remove('resizing');
+          save(storeKey, w);
+        };
+        el.addEventListener('pointermove', move);
+        el.addEventListener('pointerup', up);
+        el.addEventListener('pointercancel', up);
+      }}
+    />
+  );
+}
+
 interface FolderNode extends Folder { children: FolderNode[]; depth: number }
 
 function buildTree(list: Folder[]): FolderNode[] {
@@ -89,6 +130,8 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
   const [showRemoteOnce, setShowRemoteOnce] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  const [folderW, setFolderW] = useState(() => store('folderW', 220));
+  const [listW, setListW] = useState(() => store('listW', 380));
   const reqId = useRef(0);
 
   const flash = useCallback((msg: string) => {
@@ -473,7 +516,7 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
 
           <div className="panes">
             {!foldersHidden && (
-              <aside className="folders">
+              <aside className="folders" style={{ width: folderW }}>
                 <div className="account">
                   <Icon name="chevronDown" size={14} />
                   <span title={me.email}>{me.email}</span>
@@ -498,8 +541,9 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
                 </button>
               </aside>
             )}
+            {!foldersHidden && <Splitter width={folderW} min={150} max={480} onChange={setFolderW} storeKey="folderW" />}
 
-            <section className="list">
+            <section className="list" style={{ width: listW }}>
               <div className="list-head">
                 <div className="tabs">
                   {(['all', 'unread', 'flagged'] as const).map((f) => (
@@ -564,6 +608,7 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
                 {hasMore && !searching && <div className="more">{loading ? 'Loading…' : ''}</div>}
               </div>
             </section>
+            <Splitter width={listW} min={260} max={900} onChange={setListW} storeKey="listW" />
 
             <main className="reading">
               {compose ? (
