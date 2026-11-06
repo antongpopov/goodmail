@@ -28,13 +28,14 @@ export default function App() {
     api.me().then(setMe).catch(() => setMe(null));
   }, []);
 
+  const appName = me?.appName || cfg.appName; // per-domain title once signed in
   useEffect(() => {
-    document.title = cfg.appName;
-  }, [cfg.appName]);
+    document.title = appName;
+  }, [appName]);
 
   if (me === undefined) return <div className="splash" />;
   if (!me) return <Login onLogin={setMe} appName={cfg.appName} source={cfg.source} />;
-  return <Mail me={me} appName={cfg.appName} source={cfg.source} onLogout={() => api.logout().finally(() => setMe(null))} />;
+  return <Mail me={me} appName={appName} source={cfg.source} onLogout={() => api.logout().finally(() => setMe(null))} />;
 }
 
 function Avatar({ addr, size = 32 }: { addr: { name: string; address: string }; size?: number }) {

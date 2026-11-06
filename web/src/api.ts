@@ -17,7 +17,7 @@ export interface CalEvent {
   location: string; notes: string; color: string; rrule?: RRule; exdates?: (number | string)[]; updated: number;
 }
 export interface MailAccount { id: string; email: string; name: string; provider: string; imapHost: string; locked: boolean }
-export interface Me { email: string; name: string; imapHost: string }
+export interface Me { email: string; name: string; imapHost: string; appName?: string }
 export interface ListResult { total: number; messages: Summary[]; hasMore: boolean }
 
 export class ApiError extends Error {

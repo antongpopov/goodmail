@@ -66,10 +66,11 @@ ca2=/etc/goodmail/ca.pem         # optional extra CA bundle
 ciphers2=HIGH:!DHE               # optional OpenSSL cipher list
 login2=local                     # send "user" instead of "user@domain" as the IMAP/SMTP username
 insecure2=true                   # accept self-signed certificates
+title2=Example Mail              # app name these users see after signing in
 
 defaultdomain=example.com       # "bo" logs in as bo@example.com
 autodiscover=false               # true: guess servers for unlisted domains (autoconfig / ISPDB / MX)
-title=goodmail
+title=goodmail                   # sign-in page, and domains without their own titleN
 ```
 
 The file is re-read automatically when it changes.

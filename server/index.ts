@@ -14,7 +14,7 @@ import { attachAccounts, listAccounts, addAccount, removeAccount } from './accou
 import { guessSettings } from './autoconfig.ts';
 import type { Account } from './session.ts';
 import crypto from 'node:crypto';
-import { serversFor, appTitle, normalizeLogin } from './config.ts';
+import { serversFor, appTitle, titleFor, normalizeLogin } from './config.ts';
 import { seal, unseal, userKey } from './vault.ts';
 import { previewPart, attachments, makeSnippet } from './mime.ts';
 import { loadEvents, saveEvent, deleteEvents, importEvents, parseIcs, toIcs } from './calendar.ts';
@@ -260,7 +260,7 @@ app.post(
       'Set-Cookie',
       `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict${remember ? `; Max-Age=${YEAR}` : ''}${SECURE_COOKIE ? '; Secure' : ''}`,
     );
-    res.json({ email: account.email, name: account.name, imapHost: account.imapHost });
+    res.json({ email: account.email, name: account.name, imapHost: account.imapHost, appName: titleFor(account.email) });
   }),
 );
 
@@ -273,7 +273,7 @@ app.post('/api/logout', async (req, res) => {
 
 app.get('/api/me', auth, (req, res) => {
   const a = (req as Authed).session.account;
-  res.json({ email: a.email, name: a.name, imapHost: a.imapHost });
+  res.json({ email: a.email, name: a.name, imapHost: a.imapHost, appName: titleFor(a.email) });
 });
 
 // ---------- mail ----------

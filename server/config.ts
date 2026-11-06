@@ -7,12 +7,13 @@
 //   insecure1=true                 # optional: accept self-signed certificates
 //   ca1=/etc/goodmail/ca.pem       # optional: extra CA bundle to verify the server against
 //   ciphers1=HIGH:!DHE             # optional: OpenSSL cipher list (e.g. to skip a weak DH key)
+//   title1=Example Mail            # optional: app name shown to these users after sign-in
 //
 //   domain9=*                      # catch-all for every domain not listed explicitly
 //   defaultdomain=example.com     # a login without @ becomes user@defaultdomain
 //
 //   autodiscover=false             # true = guess servers for domains not listed (ISPDB / imap.<domain>)
-//   title=goodmail                 # optional browser/app title
+//   title=goodmail                 # optional app name (sign-in page, and domains without their own titleN)
 import fs from 'node:fs';
 import path from 'node:path';
 import { guessSettings } from './autoconfig.ts';
@@ -28,6 +29,7 @@ export interface ServerSettings {
   login: 'email' | 'local';
   ca?: string;
   ciphers?: string;
+  title?: string;
 }
 
 interface Config {
@@ -76,6 +78,7 @@ export function parseConfig(text: string): Config {
       login: kv.get(`login${n}`) === 'local' ? 'local' : 'email',
       ca: kv.get(`ca${n}`) ? fs.readFileSync(kv.get(`ca${n}`)!, 'utf8') : undefined,
       ciphers: kv.get(`ciphers${n}`) || undefined,
+      title: kv.get(`title${n}`) || undefined,
     };
     // One entry may list several domains: domain1=example.com, example.de
     for (const d of v.split(/[,\s]+/).filter(Boolean)) domains.set(d.toLowerCase(), settings);
@@ -110,6 +113,12 @@ fs.watchFile(CONFIG_PATH, { interval: 5000 }, () => {
 }).unref?.();
 
 export const appTitle = () => config.title;
+
+/** App name for a signed-in user: their domain's titleN, else the global title. Config lookup only, no network. */
+export function titleFor(email: string) {
+  const domain = email.split('@')[1]?.toLowerCase() || '';
+  return (config.domains.get(domain) ?? config.domains.get('*'))?.title || config.title;
+}
 
 /** "bo" → "bo@<defaultdomain>" when a default domain is configured. */
 export function normalizeLogin(input: string) {

@@ -6,6 +6,7 @@
 # smtpN     host[:port]        optional, defaults to the imap host; 465 = TLS (default), 587 = STARTTLS
 # loginN    email | local      username sent to the server: full address (default) or the part before @
 # insecureN true               accept self-signed certificates
+# titleN    Example Mail       app name these users see after signing in (default: title below)
 
 domain1=example.com
 imap1=mail.example.com
