@@ -29,7 +29,8 @@ export interface StoredAccount {
 export const MAX_ACCOUNTS = 10;
 const IMAP_PORTS = new Set([993, 143]);
 const SMTP_PORTS = new Set([465, 587, 25, 2525]);
-const ALLOW_PRIVATE = process.env.GOODMAIL_ALLOW_PRIVATE_HOSTS === 'true';
+// Development only: lets user-added accounts point at local test servers (any host, any port, self-signed certs).
+const ALLOW_PRIVATE = process.env.GOODMAIL_DEV_ANY_HOST === 'true';
 
 const DIR = path.join(DATA, 'accounts');
 const fileFor = (login: string) => path.join(DIR, crypto.createHash('sha256').update(login.toLowerCase()).digest('hex') + '.json');
@@ -71,7 +72,7 @@ function isPrivate(ip: string) {
 /** Refuse anything that isn't a public mail server, so the feature can't be used to probe the host's own network. */
 async function checkHost(host: string, port: number, ports: Set<number>, what: string) {
   if (!/^[a-z0-9.-]+$/i.test(host) || host.length > 253) throw Object.assign(new Error(`${what} server name looks wrong`), { status: 400 });
-  if (!ports.has(port)) throw Object.assign(new Error(`${what} port must be one of ${[...ports].join(', ')}`), { status: 400 });
+  if (!ALLOW_PRIVATE && !ports.has(port)) throw Object.assign(new Error(`${what} port must be one of ${[...ports].join(', ')}`), { status: 400 });
   if (ALLOW_PRIVATE) return;
   let addrs: { address: string }[];
   try {
@@ -94,7 +95,7 @@ const toAccount = (a: StoredAccount, pass: string): Account => ({
   smtpHost: a.smtpHost,
   smtpPort: a.smtpPort,
   smtpSecure: a.smtpSecure,
-  insecureTls: false,
+  insecureTls: ALLOW_PRIVATE,
 });
 
 export const publicView = (a: StoredAccount, locked: boolean) => ({

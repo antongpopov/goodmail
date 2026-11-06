@@ -15,6 +15,10 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
   sent mail saved to Sent; Delete → Trash, Archive, Mark as junk / Not junk (toolbar, hover button, message header or `!`), Move
 - Keyboard: `j`/`k` move · `r` reply · `a` reply all · `f` forward · `e` archive · `Del` delete ·
   `u` read/unread · `!` junk / not junk · `n` new · `/` search · `⌘/Ctrl+Enter` send
+- **Your own extra accounts**: each user can add iCloud, Gmail, Yahoo, GMX, WEB.DE, Fastmail or any IMAP
+  mailbox (app passwords); one folder tree per account and a From picker. Passwords are stored encrypted with a
+  key derived from the server key *and* the user's login password. User-entered servers must be public hosts on
+  standard mail ports (no access to the server's private network).
 - **Address book**: per-account contacts, vCard + CSV import/export (Apple, Google, Outlook, Thunderbird),
   duplicate merge by email, "add sender" button, To/Cc autocomplete
 - **Calendar**: Outlook-style day / work week / week / month views, mini month, recurring events,
@@ -64,7 +68,7 @@ The file is re-read automatically when it changes.
 |---|---|---|
 | `PORT` / `HOST` | `3000` / `0.0.0.0` | listen address |
 | `GOODMAIL_CONFIG` | `./goodmail.conf` | config file |
-| `GOODMAIL_DATA` | `./data` | `secret.key` (cookie encryption key), `contacts/`, `calendar/` (one JSON file per account) |
+| `GOODMAIL_DATA` | `./data` | `secret.key` (cookie encryption key), `accounts/`, `contacts/`, `calendar/` (one JSON file per account) |
 | `GOODMAIL_SECRET` | — | use this instead of `secret.key` |
 | `GOODMAIL_TRUST_PROXY` | `false` | trust `X-Forwarded-For` (set behind a proxy) |
 
