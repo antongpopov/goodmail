@@ -627,6 +627,19 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
           <img src="/favicon.svg" alt="" width={22} height={22} />
           {appName}
         </div>
+        <nav className="apps desk-only">
+          {(
+            [
+              ['mail', 'mail', 'Mail'],
+              ['calendar', 'calendar', 'Calendar'],
+              ['contacts', 'people', 'Contacts'],
+            ] as const
+          ).map(([id, icon, label]) => (
+            <button key={id} className={`app-btn ${view === id ? 'active' : ''}`} title={label} aria-label={label} aria-pressed={view === id} onClick={() => setView(id)}>
+              <Icon name={icon} />
+            </button>
+          ))}
+        </nav>
         <form
           className="search"
           onSubmit={(e) => {
@@ -663,20 +676,6 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
       </header>
 
       <div className="body">
-        <nav className="rail">
-          <button className={`rail-btn ${view === 'mail' ? 'active' : ''}`} title="Mail" onClick={() => setView('mail')}>
-            <Icon name="mail" />
-          </button>
-          <button className={`rail-btn ${view === 'calendar' ? 'active' : ''}`} title="Calendar" onClick={() => setView('calendar')}>
-            <Icon name="calendar" />
-          </button>
-          <button className={`rail-btn ${view === 'contacts' ? 'active' : ''}`} title="Contacts" onClick={() => setView('contacts')}>
-            <Icon name="people" />
-          </button>
-          <button className="rail-btn" title="Toggle folder pane" onClick={() => { setFoldersHidden(!foldersHidden); save('foldersHidden', !foldersHidden); }}>
-            <Icon name="pane" />
-          </button>
-        </nav>
 
         <div className="main">
           {view === 'calendar' ? (
@@ -696,7 +695,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
           ) : (
           <>
           <div className="toolbar">
-            <button className="tb" onClick={() => setFoldersHidden(!foldersHidden)} title="Folders">
+            <button className="tb" onClick={() => { setFoldersHidden(!foldersHidden); save('foldersHidden', !foldersHidden); }} title="Show/hide folders">
               <Icon name="menu" />
             </button>
             <button className="tb new" onClick={() => setCompose({ mode: 'new' })}>
