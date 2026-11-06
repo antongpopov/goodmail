@@ -1,0 +1,290 @@
+import path from 'node:path';
+import nodemailer from 'nodemailer';
+import { simpleParser } from 'mailparser';
+import { attachments } from '../mime.ts';
+import { spamInfo } from '../spam.ts';
+import { messageCache, msgKey, dropMessages, patchFlag } from '../cache.ts';
+import { Router } from 'express';
+import { PAGE, conn, auth, wrap } from '../http.ts';
+import { withFolder, folders, NAME_FALLBACK, special, listMessages } from '../imap.ts';
+
+const r = Router();
+
+// ---------- mail ----------
+
+r.get(
+  '/api/folders',
+  auth,
+  wrap(async (req, res) => {
+    const list = await folders(conn(req), true, req.query.fresh ? 0 : 20_000);
+    res.json(
+      list
+        .filter((f) => !f.flags?.has('\\Noselect') && !f.flags?.has('\\NonExistent'))
+        .map((f) => ({
+          path: f.path,
+          name: f.path.toUpperCase() === 'INBOX' ? 'Inbox' : f.name,
+          delimiter: f.delimiter,
+          specialUse: f.specialUse || NAMED_SPECIAL(f.name) || (f.path.toUpperCase() === 'INBOX' ? '\\Inbox' : ''),
+          unseen: f.status?.unseen ?? 0,
+          total: f.status?.messages ?? 0,
+        })),
+    );
+  }),
+);
+
+function NAMED_SPECIAL(name: string) {
+  for (const [use, re] of Object.entries(NAME_FALLBACK)) if (re.test(name)) return use;
+  return '';
+}
+
+r.get(
+  '/api/messages',
+  auth,
+  wrap(async (req, res) => {
+    const folder = String(req.query.folder || 'INBOX');
+    const page = Math.max(0, Number(req.query.page || 0));
+    const filter = String(req.query.filter || '');
+    const out = await withFolder(
+      conn(req),
+      folder,
+      async (c) => {
+        if (filter === 'unread' || filter === 'flagged') {
+          // Ask the server for every match in the folder, not just the loaded page (big folders like Gmail's All Mail).
+          const uids = ((await c.search(filter === 'unread' ? { seen: false } : { flagged: true }, { uid: true })) || []).sort((a, b) => b - a);
+          const slice = uids.slice(page * PAGE, (page + 1) * PAGE);
+          const messages = slice.length ? await listMessages(conn(req), c, folder, slice, true) : [];
+          return { total: uids.length, messages, hasMore: uids.length > (page + 1) * PAGE };
+        }
+        const exists = c.mailbox ? c.mailbox.exists : 0;
+        const to = exists - page * PAGE;
+        if (to < 1) return { total: exists, messages: [], hasMore: false };
+        const from = Math.max(1, to - PAGE + 1);
+        const messages = await listMessages(conn(req), c, folder, `${from}:${to}`, false);
+        return { total: exists, messages, hasMore: from > 1 };
+      },
+      true,
+    );
+    res.json(out);
+  }),
+);
+
+r.get(
+  '/api/search',
+  auth,
+  wrap(async (req, res) => {
+    const folder = String(req.query.folder || 'INBOX');
+    const q = String(req.query.q || '').trim();
+    if (!q) return res.json({ total: 0, messages: [], hasMore: false });
+    const out = await withFolder(
+      conn(req),
+      folder,
+      async (c) => {
+        const uids = (await c.search({ or: [{ subject: q }, { from: q }, { to: q }, { body: q }] }, { uid: true })) || [];
+        const top = uids.sort((a, b) => b - a).slice(0, 200);
+        const messages = top.length ? await listMessages(conn(req), c, folder, top, true) : [];
+        return { total: uids.length, messages, hasMore: false };
+      },
+      true,
+    );
+    res.json(out);
+  }),
+);
+
+r.get(
+  '/api/message',
+  auth,
+  wrap(async (req, res) => {
+    const folder = String(req.query.folder || 'INBOX');
+    const uid = Number(req.query.uid);
+    const peek = req.query.peek === '1'; // prefetch: don't mark as read
+    const cn = conn(req);
+    const key = msgKey(cn.account.email, folder, uid);
+    const cached = messageCache.get(key);
+    if (cached) {
+      res.json(cached);
+      if (!peek && !cached.seen) {
+        cached.seen = true;
+        void withFolder(cn, folder, (c) => c.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true })).catch(() => {});
+      }
+      return;
+    }
+    const out = await withFolder(cn, folder, async (c) => {
+      const m = await c.fetchOne(String(uid), { uid: true, source: true, bodyStructure: true, flags: true, envelope: true }, { uid: true });
+      if (!m || !m.source) throw Object.assign(new Error('message not found'), { status: 404 });
+      const parsed = await simpleParser(m.source);
+      const wasSeen = m.flags?.has('\\Seen') ?? false;
+      if (!peek && !wasSeen) await c.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true });
+      const sourceBytes = m.source.length;
+      const addr = (v: any) =>
+        (Array.isArray(v) ? v : v ? [v] : []).flatMap((x: any) => x.value || []).map((a: any) => ({ name: a.name || '', address: a.address || '' }));
+      // mailparser inlines cid: images as data URIs and marks those attachments `related`.
+      const usedCids = new Set(parsed.attachments.filter((a) => a.related && a.cid).map((a) => a.cid!.replace(/^<|>$/g, '')));
+      return {
+        uid,
+        folder,
+        subject: parsed.subject || '',
+        date: (parsed.date || m.envelope?.date || new Date()).valueOf(),
+        from: addr(parsed.from)[0] || { name: '', address: '' },
+        to: addr(parsed.to),
+        cc: addr(parsed.cc),
+        replyTo: addr(parsed.replyTo),
+        messageId: parsed.messageId || '',
+        references: Array.isArray(parsed.references) ? parsed.references : parsed.references ? [parsed.references] : [],
+        html: parsed.html || '',
+        text: parsed.text || '',
+        flagged: m.flags?.has('\\Flagged') ?? false,
+        spam: spamInfo(parsed.headerLines),
+        listUnsubscribe: parsed.headers.get('list-unsubscribe') ? String((parsed.headers.get('list-unsubscribe') as any)?.url || '') : '',
+        // cid-referenced parts are already embedded in the HTML by mailparser; list everything else.
+        attachments: attachments(m.bodyStructure).filter((a) => !(a.cid && usedCids.has(a.cid))),
+        seen: wasSeen || !peek,
+        _bytes: sourceBytes,
+      };
+    });
+    const { _bytes, ...msg } = out;
+    messageCache.set(key, msg, Math.max(_bytes, (msg.html?.length || 0) + (msg.text?.length || 0)) * 2);
+    res.json(msg);
+  }),
+);
+
+r.get(
+  '/api/attachment',
+  auth,
+  wrap(async (req, res) => {
+    const folder = String(req.query.folder || 'INBOX');
+    const uid = String(Number(req.query.uid));
+    const part = String(req.query.part || '1');
+    if (!/^[0-9.]+$/.test(part)) return res.status(400).json({ error: 'bad part' });
+    await withFolder(conn(req), folder, async (c) => {
+      const dl = await c.download(uid, part, { uid: true });
+      if (!dl?.content) throw Object.assign(new Error('attachment not found'), { status: 404 });
+      const content = dl.content;
+      const name = String(req.query.name || dl.meta?.filename || 'attachment').replace(/[\r\n"]/g, '');
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', `${req.query.inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(name)}`);
+      await new Promise<void>((resolve, reject) => {
+        content.on('error', reject).on('end', resolve).pipe(res);
+      });
+    }, true);
+  }),
+);
+
+function uidList(b: any): string {
+  const uids = (Array.isArray(b?.uids) ? b.uids : [b?.uid]).map(Number).filter((n: number) => n > 0);
+  if (!uids.length) throw Object.assign(new Error('no uids'), { status: 400 });
+  return uids.join(',');
+}
+
+r.post(
+  '/api/flags',
+  auth,
+  wrap(async (req, res) => {
+    const { folder = 'INBOX', add = [], remove = [] } = req.body || {};
+    const allowed = new Set(['\\Seen', '\\Flagged', '\\Answered']);
+    const uids = uidList(req.body);
+    await withFolder(conn(req), folder, async (c) => {
+      const a = add.filter((f: string) => allowed.has(f));
+      const r = remove.filter((f: string) => allowed.has(f));
+      if (a.length) await c.messageFlagsAdd(uids, a, { uid: true });
+      if (r.length) await c.messageFlagsRemove(uids, r, { uid: true });
+    });
+    const nums = uids.split(',').map(Number);
+    if (add.includes('\\Flagged')) patchFlag(conn(req).account.email, folder, nums, true);
+    if (remove.includes('\\Flagged')) patchFlag(conn(req).account.email, folder, nums, false);
+    res.json({ ok: true });
+  }),
+);
+
+r.post(
+  '/api/move',
+  auth,
+  wrap(async (req, res) => {
+    const { folder = 'INBOX', to } = req.body || {};
+    const uids = uidList(req.body);
+    let dest: string | undefined = to;
+    if (to === 'archive' || to === 'junk') {
+      dest = await special(conn(req), to === 'archive' ? '\\Archive' : '\\Junk');
+      if (!dest && to === 'archive') {
+        const c = await conn(req).imap();
+        await c.mailboxCreate('Archive').catch(() => {});
+        await folders(conn(req), true);
+        dest = 'Archive';
+      }
+    }
+    if (!dest) return res.status(400).json({ error: `no ${to} folder on this server` });
+    await withFolder(conn(req), folder, (c) => c.messageMove(uids, dest!, { uid: true }));
+    dropMessages(conn(req).account.email, folder, uids.split(',').map(Number));
+    res.json({ ok: true, to: dest });
+  }),
+);
+
+r.post(
+  '/api/delete',
+  auth,
+  wrap(async (req, res) => {
+    const { folder = 'INBOX' } = req.body || {};
+    const uids = uidList(req.body);
+    const trash = await special(conn(req), '\\Trash');
+    await withFolder(conn(req), folder, async (c) => {
+      if (trash && trash !== folder) await c.messageMove(uids, trash, { uid: true });
+      else await c.messageDelete(uids, { uid: true });
+    });
+    dropMessages(conn(req).account.email, folder, uids.split(',').map(Number));
+    res.json({ ok: true, permanent: !trash || trash === folder });
+  }),
+);
+
+r.post(
+  '/api/folder',
+  auth,
+  wrap(async (req, res) => {
+    const name = String(req.body?.name || '').trim();
+    if (!name) return res.status(400).json({ error: 'name required' });
+    const c = await conn(req).imap();
+    await c.mailboxCreate(name);
+    res.json({ ok: true });
+  }),
+);
+
+const SERVER_SAVES_SENT = /(^|\.)(gmail\.com|googlemail\.com|office365\.com|outlook\.com)$/i;
+
+r.post(
+  '/api/send',
+  auth,
+  wrap(async (req, res) => {
+    const s = conn(req);
+    const b = req.body || {};
+    const from = s.account.name ? { name: s.account.name, address: s.account.email } : s.account.email;
+    const mail = {
+      from,
+      to: b.to,
+      cc: b.cc || undefined,
+      bcc: b.bcc || undefined,
+      subject: b.subject || '',
+      html: b.html || undefined,
+      text: b.text || undefined,
+      inReplyTo: b.inReplyTo || undefined,
+      references: b.references || undefined,
+      attachments: (b.attachments || []).map((a: any) => ({
+        filename: a.filename,
+        content: Buffer.from(a.content, 'base64'),
+        contentType: a.type || undefined,
+      })),
+    };
+    // Build the message once so the copy we save to Sent is byte-identical to what went out.
+    const built = await nodemailer.createTransport({ streamTransport: true, buffer: true }).sendMail(mail);
+    const raw = built.message as Buffer;
+    await s.smtp().sendMail({ envelope: built.envelope, raw });
+    if (!SERVER_SAVES_SENT.test(s.account.smtpHost)) {
+      const sent = await special(s, '\\Sent');
+      if (sent) await (await s.imap()).append(sent, raw, ['\\Seen']).catch((e) => console.warn('save to Sent failed', e.message));
+    }
+    if (b.replyTo?.uid && b.replyTo?.folder) {
+      const rc = req.session.acct(b.replyTo.account) ?? s;
+      await withFolder(rc, b.replyTo.folder, (c) => c.messageFlagsAdd(String(b.replyTo.uid), ['\\Answered'], { uid: true })).catch(() => {});
+    }
+    res.json({ ok: true, messageId: built.messageId });
+  }),
+);
+
+export default r;
