@@ -23,6 +23,8 @@ interface Props {
 
 /** One row of the message list. */
 export function MessageItem({ m, who, isSentFolder, selected, selectedUids, preview, inJunk, compact, onSelect, onFlag, onToggleJunk, onDelete }: Props) {
+  // the bar only appears for mail the filter itself treats as spam (score at or above its junk threshold)
+  const isSpam = !!m.spam && m.spam.score >= m.spam.threshold;
   const label = isSentFolder ? t('To: {name}', { name: displayName(who) }) : displayName(who);
   const actions = (
     <span className="item-actions">
@@ -67,7 +69,7 @@ export function MessageItem({ m, who, isSentFolder, selected, selectedUids, prev
           <span className="c-subject">{m.subject || t('(no subject)')}</span>
           {m.snippet && <span className="c-snip"> – {m.snippet}</span>}
         </span>
-        {m.spam && <SpamBar spam={m.spam} compact />}
+        {isSpam && m.spam && <SpamBar spam={m.spam} compact />}
         {meta}
         {actions}
       </div>
@@ -87,7 +89,7 @@ export function MessageItem({ m, who, isSentFolder, selected, selectedUids, prev
           {meta}
         </div>
         {preview && <div className="row3">{m.snippet || ' '}</div>}
-        {m.spam && <SpamBar spam={m.spam} />}
+        {isSpam && m.spam && <SpamBar spam={m.spam} />}
       </div>
     </div>
   );
