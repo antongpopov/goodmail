@@ -711,6 +711,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                         selected={selected.has(m.uid)}
                         selectedUids={selected}
                         preview={preview}
+                        compact={pane === 'below' && !phoneWidth}
                         inJunk={inJunk}
                         onSelect={select}
                         onFlag={setFlag}
@@ -809,10 +810,10 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                             </>
                           )}
                         </div>
+                        {open.spam && <SpamBar spam={open.spam} />}
                       </div>
                       <div className="date-col">
                         <div className="date">{fullTime(open.date)}</div>
-                        {open.spam && <SpamBar spam={open.spam} />}
                       </div>
                     </div>
                     {blocked && !remote && (

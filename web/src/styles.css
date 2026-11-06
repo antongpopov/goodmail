@@ -189,6 +189,16 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .item-actions button { width: 26px; height: 22px; border-radius: 4px; display: grid; place-items: center; color: var(--text-2); }
 .item-actions button:hover { background: var(--surface); color: var(--brand); box-shadow: var(--shadow); }
 .item-actions button.on { color: var(--flag); }
+/* Gmail-style single-line rows (reading pane "below", desktop): sender | subject – preview | time; hover swaps the time for actions. */
+.item.compact { align-items: center; gap: 14px; padding: 6px 14px; }
+.item.compact .c-sender { flex: 0 0 clamp(140px, 18%, 240px); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.item.compact.unread .c-sender { font-weight: 600; }
+.item.compact .c-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.item.compact.unread .c-subject { color: var(--unread); font-weight: 600; }
+.item.compact .c-snip { color: var(--text-2); font-weight: 400; }
+.item.compact .meta { min-width: 72px; justify-content: flex-end; }
+.item.compact .item-actions { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: inherit; padding-left: 6px; }
+.item.compact:hover .meta { visibility: hidden; }
 .empty, .more { padding: 40px 16px; text-align: center; color: var(--text-2); }
 .more { padding: 16px; }
 
@@ -208,6 +218,7 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .date { color: var(--text-2); font-size: 12px; white-space: nowrap; padding-top: 2px; }
 .date-col { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .spam { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-2); cursor: help; }
+.sender-info .spam { margin-top: 4px; }
 .spam-track { width: 72px; height: 6px; border-radius: 3px; background: var(--hover); overflow: hidden; box-shadow: inset 0 0 0 1px var(--border); }
 .spam-fill { display: block; height: 100%; border-radius: 3px; transition: width .3s; }
 .banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 13px; margin: 0 4px 12px; }
