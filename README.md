@@ -54,6 +54,8 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
 npm install
 cp goodmail.conf.example goodmail.conf   # edit domains
 npm run dev        # API on :3000 + Vite on :5173 (needs Node ≥ 23.6, runs the TS server directly)
+npm test           # unit tests (vault, 2FA, config, contacts, calendar, i18n, utils) + a live-server smoke test
+npm run typecheck  # tsc over server, web and tests
 ```
 
 Production:

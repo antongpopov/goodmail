@@ -13,6 +13,7 @@
     "build": "tsc --noEmit && vite build && npm run build:server",
     "start": "NODE_ENV=production node server/index.ts",
     "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.ts",
     "build:server": "esbuild server/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist-server/index.mjs --banner:js=\"import{createRequire}from'module';const require=createRequire(import.meta.url);\""
   },
   "dependencies": {
