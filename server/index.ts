@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { PORT, requireCsrfHeader } from './http.ts';
 import routesAuth from './routes/auth.ts';
+import routesTwofactor from './routes/twofactor.ts';
 import routesMail from './routes/mail.ts';
 import routesAccounts from './routes/accounts.ts';
 import routesContacts from './routes/contacts.ts';
@@ -28,6 +29,7 @@ app.use((_req, res, next) => {
 app.use('/api', requireCsrfHeader);
 
 app.use(routesAuth);
+app.use(routesTwofactor);
 app.use(routesMail);
 app.use(routesAccounts);
 app.use(routesContacts);
