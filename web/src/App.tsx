@@ -1,36 +1,49 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
 import { api, setUnauthorizedHandler, useAccount, currentAccount } from './api.ts';
+
 import type { MailAccount } from './api.ts';
 import { AccountsDialog } from './Accounts.tsx';
+
 import { SecurityDialog } from './Security.tsx';
+
 import { LangPicker } from './LangPicker.tsx';
+
 import type { Folder, Me, Message, Summary } from './api.ts';
 import { Icon, folderIcon } from './icons.tsx';
+
 import { Login } from './Login.tsx';
+
 import { Compose } from './Compose.tsx';
+
 import type { ComposeInit } from './Compose.tsx';
 import { MailBody } from './MailBody.tsx';
+
 import { Contacts } from './Contacts.tsx';
+
 import { Calendar } from './Calendar.tsx';
+
 import type { Contact } from './api.ts';
-import { loadTheme, setTheme, ACCENTS, loadAccent, setAccent } from './theme.ts';
-import type { Theme } from './theme.ts';
-import { avatarColor, bucket, displayName, fullAddr, fullTime, humanSize, initials, listTime, save, store } from './util.ts';
+import { bucket, displayName, fullAddr, fullTime, humanSize, listTime, save, store } from './util.ts';
+
 import { t } from './i18n.ts';
 
-const SPECIAL_ORDER = ['\\Inbox', '\\Drafts', '\\Sent', '\\Archive', '\\Junk', '\\Trash'];
-const POLL_MS = 30_000;
+import { listCache, msgCache, msgKey, rememberMsg } from './cache.ts';
 
-// Browser-side caches so switching folders and opening mail is instant on slow servers.
-// Lists show the last copy immediately and refresh behind it; messages never change for a UID.
-const listCache = new Map<string, { messages: Summary[]; hasMore: boolean }>();
-const msgCache = new Map<string, Message>();
-const msgKey = (acct: string, folder: string, uid: number) => `${acct}\u0000${folder}\u0000${uid}`;
-function rememberMsg(k: string, m: Message) {
-  msgCache.delete(k);
-  msgCache.set(k, m);
-  if (msgCache.size > 300) msgCache.delete(msgCache.keys().next().value!);
-}
+import { folderLabel, buildTree } from './folders.ts';
+
+import type { FolderNode } from './folders.ts';
+import { Avatar } from './Avatar.tsx';
+
+import { Splitter } from './Splitter.tsx';
+
+import { ViewMenu, Appearance } from './ViewMenu.tsx';
+
+import type { PaneMode } from './ViewMenu.tsx';
+import { SpamBar } from './SpamBar.tsx';
+
+
+const POLL_MS = 30_000;
 
 export default function App() {
   const [me, setMe] = useState<Me | null | undefined>(undefined);
@@ -50,240 +63,6 @@ export default function App() {
   if (me === undefined) return <div className="splash" />;
   if (!me) return <Login onLogin={setMe} appName={cfg.appName} source={cfg.source} />;
   return <Mail me={me} appName={appName} source={cfg.source} onLogout={() => api.logout().finally(() => setMe(null))} />;
-}
-
-function Avatar({ addr, size = 32 }: { addr: { name: string; address: string }; size?: number }) {
-  return (
-    <span className="avatar" style={{ background: avatarColor(addr.address || addr.name), width: size, height: size, fontSize: size * 0.4 }}>
-      {initials(addr)}
-    </span>
-  );
-}
-
-/** Drag handle between two panes; resizes the pane before it (left, or above for axis="y"). Double-click resets. */
-function Splitter({ width, min, max, onChange, storeKey, axis = 'x' }: { width: number; min: number; max: number; onChange: (w: number) => void; storeKey: string; axis?: 'x' | 'y' }) {
-  const defaults: Record<string, number> = { folderW: 220, listW: 380, listH: 300 };
-  const pos = (e: { clientX: number; clientY: number }) => (axis === 'x' ? e.clientX : e.clientY);
-  return (
-    <div
-      className={`splitter ${axis === 'y' ? 'h' : ''}`}
-      role="separator"
-      aria-orientation={axis === 'x' ? 'vertical' : 'horizontal'}
-      title={t('Drag to resize · double-click to reset')}
-      onDoubleClick={() => {
-        onChange(defaults[storeKey]);
-        save(storeKey, defaults[storeKey]);
-      }}
-      onPointerDown={(e) => {
-        e.preventDefault();
-        const el = e.currentTarget;
-        el.setPointerCapture(e.pointerId);
-        el.classList.add('dragging');
-        document.body.classList.add(axis === 'x' ? 'resizing' : 'resizing-h');
-        const startX = pos(e);
-        let w = width;
-        const move = (ev: PointerEvent) => {
-          w = Math.round(Math.min(max, Math.max(min, width + pos(ev) - startX)));
-          onChange(w);
-        };
-        const up = () => {
-          el.removeEventListener('pointermove', move);
-          el.removeEventListener('pointerup', up);
-          el.removeEventListener('pointercancel', up);
-          el.classList.remove('dragging');
-          document.body.classList.remove('resizing', 'resizing-h');
-          save(storeKey, w);
-        };
-        el.addEventListener('pointermove', move);
-        el.addEventListener('pointerup', up);
-        el.addEventListener('pointercancel', up);
-      }}
-    />
-  );
-}
-
-const THEMES: { id: Theme; label: string; icon: string }[] = [
-  { id: 'auto', label: t('Auto (system)'), icon: 'auto' },
-  { id: 'light', label: t('Light'), icon: 'sun' },
-  { id: 'dark', label: t('Dark'), icon: 'moon' },
-];
-
-export type PaneMode = 'right' | 'below' | 'hidden';
-const PANES: { id: PaneMode; label: string }[] = [
-  { id: 'right', label: t('Right') },
-  { id: 'below', label: t('Below') },
-  { id: 'hidden', label: t('Hidden') },
-];
-
-function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, onSecurity, source }: { pane: PaneMode; onPane: (p: PaneMode) => void; preview: boolean; onPreview: (v: boolean) => void; onAccounts: () => void; onSecurity: () => void; source: string }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [open]);
-  return (
-    <div className="menu-wrap" ref={ref}>
-      <button className="top-btn" title={t('View settings')} onClick={() => setOpen((v) => !v)}>
-        <Icon name="settings" />
-      </button>
-      {open && (
-        <div className="menu view-menu">
-          <div className="menu-label">{t('Theme')}</div>
-          <Appearance />
-          <div className="menu-label">{t('Reading pane')}</div>
-          <div className="segment">
-            {PANES.map((p) => (
-              <button key={p.id} className={p.id === pane ? 'on' : ''} onClick={() => onPane(p.id)}>
-                {p.label}
-              </button>
-            ))}
-          </div>
-          <div className="menu-label">{t('Message list')}</div>
-          <label className="menu-check">
-            <input type="checkbox" checked={preview} onChange={(e) => onPreview(e.target.checked)} /> {t('Show preview text')}
-          </label>
-          <div className="menu-label">{t('Language')}</div>
-          <LangPicker className="wide" />
-          <div className="menu-label">{t('Mail accounts')}</div>
-          <button className="menu-btn" onClick={() => { setOpen(false); onAccounts(); }}>
-            <Icon name="people" size={16} /> {t('Manage accounts…')}
-          </button>
-          <button className="menu-btn" onClick={() => { setOpen(false); onSecurity(); }}>
-            <Icon name="check" size={16} /> {t('Sign-in security…')}
-          </button>
-          <div className="about">
-            goodmail · AGPL-3.0 ·{' '}
-            <a href={source} target="_blank" rel="noopener noreferrer">{t('Source code')}</a>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** One compact row: auto / light / dark as icon dots, then the accent color dots. */
-function Appearance() {
-  const [theme, setThemeState] = useState<Theme>(loadTheme);
-  return (
-    <div className="swatches-row appearance">
-      {THEMES.map((th) => (
-        <button
-          key={th.id}
-          className={`mode-dot ${th.id === theme ? 'on' : ''}`}
-          title={t(th.label)}
-          aria-label={t(th.label)}
-          aria-pressed={th.id === theme}
-          onClick={() => {
-            setThemeState(th.id);
-            setTheme(th.id);
-          }}
-        >
-          <Icon name={th.icon} size={15} />
-        </button>
-      ))}
-      <span className="dot-sep" />
-      <AccentPicker />
-    </div>
-  );
-}
-
-function AccentPicker() {
-  const [accent, set] = useState(loadAccent);
-  return (
-    <div className="accent-dots" role="radiogroup" aria-label={t('Color')}>
-      {ACCENTS.map((a) => (
-        <button
-          key={a.id}
-          role="radio"
-          aria-checked={a.id === accent}
-          className={`accent-dot ${a.id === accent ? 'on' : ''}`}
-          style={{ background: a.light }}
-          title={t(a.name)}
-          aria-label={t(a.name)}
-          onClick={() => {
-            set(a.id);
-            setAccent(a.id);
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-function ThemeSegment() {
-  const [theme, set] = useState<Theme>(loadTheme);
-  return (
-    <div className="segment">
-      {THEMES.map((th) => (
-        <button
-          key={th.id}
-          className={th.id === theme ? 'on' : ''}
-          onClick={() => {
-            set(th.id);
-            setTheme(th.id);
-          }}
-        >
-          <Icon name={th.icon} size={16} /> {th.id === 'auto' ? t('Auto') : th.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-const SPECIAL_NAMES: Record<string, string> = { '\\Inbox': 'Inbox', '\\Sent': 'Sent', '\\Drafts': 'Drafts', '\\Trash': 'Trash', '\\Junk': 'Junk', '\\Archive': 'Archive' };
-/** Special-use folders get the UI language's name (like Outlook); everything else keeps its server name. */
-const folderLabel = (f: { specialUse: string; name: string }) => (SPECIAL_NAMES[f.specialUse] ? t(SPECIAL_NAMES[f.specialUse]) : f.name);
-
-/** Green → yellow → red as the spam score approaches the filter's junk threshold. */
-function SpamBar({ spam }: { spam: { score: number; threshold: number; reject?: number; engine: string } }) {
-  const level = Math.max(0, Math.min(1, spam.score / Math.max(0.1, spam.threshold)));
-  const color = `hsl(${Math.round(120 * (1 - level))} 70% 45%)`;
-  const label = level < 0.34 ? t('Not spam') : level < 1 ? t('Possibly spam') : t('Likely spam');
-  const tip = t('Spam score {score} (junk at {threshold}{reject}) · {engine}', {
-    score: spam.score.toFixed(1),
-    threshold: spam.threshold,
-    reject: spam.reject ? t(', rejected at {n}', { n: spam.reject }) : '',
-    engine: spam.engine,
-  });
-  return (
-    <div className="spam" title={tip} aria-label={tip}>
-      <span className="spam-label">{label}</span>
-      <span className="spam-track">
-        <span className="spam-fill" style={{ width: `${Math.max(6, level * 100)}%`, background: color }} />
-      </span>
-    </div>
-  );
-}
-
-interface FolderNode extends Folder { children: FolderNode[]; depth: number }
-
-function buildTree(list: Folder[]): FolderNode[] {
-  const byPath = new Map<string, FolderNode>();
-  const roots: FolderNode[] = [];
-  const sorted = [...list].sort((a, b) => a.path.localeCompare(b.path));
-  for (const f of sorted) byPath.set(f.path, { ...f, children: [], depth: 0 });
-  for (const n of byPath.values()) {
-    const parentPath = n.delimiter ? n.path.split(n.delimiter).slice(0, -1).join(n.delimiter) : '';
-    const parent = parentPath && byPath.get(parentPath);
-    if (parent) parent.children.push(n);
-    else roots.push(n);
-  }
-  const rank = (f: Folder) => {
-    const i = SPECIAL_ORDER.indexOf(f.specialUse);
-    return i < 0 ? 100 : i;
-  };
-  const sortRec = (ns: FolderNode[], depth: number) => {
-    ns.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
-    ns.forEach((n) => {
-      n.depth = depth;
-      sortRec(n.children, depth + 1);
-    });
-  };
-  sortRec(roots, 0);
-  return roots;
 }
 
 function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; source: string; onLogout: () => void }) {
