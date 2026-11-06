@@ -3,6 +3,16 @@
 A webmail client that talks plain IMAP + SMTP to **any** mail server, with an Outlook-style
 three-pane UI: folder tree, date-grouped message list with previews, reading pane, inline composer.
 
+![goodmail inbox with reading pane](docs/screenshots/mail-light.png)
+
+| Dark mode, remote images blocked | Calendar — week view |
+|---|---|
+| ![Dark mode with a newsletter; tracking image blocked](docs/screenshots/mail-dark.png) | ![Calendar week view](docs/screenshots/calendar.png) |
+| **Address book** | **On a phone** |
+| ![Address book](docs/screenshots/contacts.png) | <img src="docs/screenshots/phone-list.png" alt="Message list on a phone" width="49%"> <img src="docs/screenshots/phone-message.png" alt="Reading a message on a phone" width="49%"> |
+
+<sub>Screenshots use invented demo data — see [scripts/screenshots](scripts/screenshots).</sub>
+
 - Sign in with just an e-mail address and password — a config file maps the domain to its servers
 - "Keep me signed in" for a year (sealed cookie; nothing stored server-side but a key)
 - Folder tree with unread counts, drag-and-drop to folders, create folders

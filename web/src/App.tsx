@@ -231,7 +231,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   const reloadBook = useCallback(() => api.contacts().then(setBook).catch(() => {}), []);
   useEffect(() => {
     void reloadBook();
-  }, [reloadBook]);
+  }, [reloadBook, view === 'contacts']); // refresh when the Contacts view opens (edits from other devices)
   const [phoneWidth, setPhoneWidth] = useState(() => window.matchMedia('(max-width: 760px)').matches);
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 760px)');
