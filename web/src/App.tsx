@@ -117,6 +117,26 @@ function ThemePicker() {
   );
 }
 
+function ThemeSegment() {
+  const [theme, set] = useState<Theme>(loadTheme);
+  return (
+    <div className="segment">
+      {THEMES.map((t) => (
+        <button
+          key={t.id}
+          className={t.id === theme ? 'on' : ''}
+          onClick={() => {
+            set(t.id);
+            setTheme(t.id);
+          }}
+        >
+          <Icon name={t.icon} size={16} /> {t.id === 'auto' ? 'Auto' : t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 interface FolderNode extends Folder { children: FolderNode[]; depth: number }
 
 function buildTree(list: Folder[]): FolderNode[] {
@@ -164,6 +184,7 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
   const [foldersHidden, setFoldersHidden] = useState(() => store('foldersHidden', false));
   const [toast, setToast] = useState('');
   const [moveOpen, setMoveOpen] = useState(false);
+  const [drawer, setDrawer] = useState(false);
   const [remoteOk, setRemoteOk] = useState<Record<string, boolean>>(() => store('remoteOk', {}));
   const [showRemoteOnce, setShowRemoteOnce] = useState(false);
   const [blocked, setBlocked] = useState(false);
@@ -284,6 +305,28 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
     setSelected(new Set([m.uid]));
     setAnchor(m.uid);
     void openMessage(m);
+  };
+
+  const isPhone = () => window.matchMedia('(max-width: 760px)').matches;
+  const overlay = !!(open || compose);
+  useEffect(() => {
+    if (overlay && isPhone() && !history.state?.gm) history.pushState({ gm: 1 }, '');
+  }, [overlay]);
+  useEffect(() => {
+    const onPop = () => {
+      setOpen(null);
+      setCompose(null);
+      setSelected(new Set());
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+  const closeMessage = () => {
+    if (history.state?.gm) history.back();
+    else {
+      setOpen(null);
+      setSelected(new Set());
+    }
   };
 
   const targetUids = () => (selected.size ? [...selected] : open ? [open.uid] : []);
@@ -426,6 +469,7 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
           setSearching('');
           setQuery('');
           setFolder(n.path);
+          setDrawer(false);
         }}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
@@ -460,6 +504,9 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
   return (
     <div className="app">
       <header className="topbar">
+        <button className="top-btn phone-only" onClick={() => setDrawer(true)} title="Folders">
+          <Icon name="menu" />
+        </button>
         <div className="brand">
           <img src="/favicon.svg" alt="" width={22} height={22} />
           {appName}
@@ -487,11 +534,13 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
           )}
         </form>
         <div className="top-right">
-          <ThemePicker />
+          <span className="desk-only">
+            <ThemePicker />
+          </span>
           <span className="who" title={`${me.email} · ${me.imapHost}`}>
             <Avatar addr={{ name: me.name, address: me.email }} size={28} />
           </span>
-          <button className="top-btn" onClick={onLogout} title="Sign out">
+          <button className="top-btn desk-only" onClick={onLogout} title="Sign out">
             <Icon name="signout" />
           </button>
         </div>
@@ -554,8 +603,9 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
           </div>
 
           <div className="panes">
-            {!foldersHidden && (
-              <aside className="folders" style={{ width: folderW }}>
+            {drawer && <div className="backdrop" onClick={() => setDrawer(false)} />}
+            {(!foldersHidden || drawer) && (
+              <aside className={`folders ${drawer ? 'drawer-open' : ''}`} style={{ width: folderW }}>
                 <div className="account">
                   <Icon name="chevronDown" size={14} />
                   <span title={me.email}>{me.email}</span>
@@ -578,6 +628,13 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
                   <span className="twisty" />
                   <Icon name="plus" size={16} /> <span className="fname">Create new folder</span>
                 </button>
+                <div className="drawer-foot phone-only">
+                  <ThemeSegment />
+                  <button className="folder" onClick={onLogout}>
+                    <span className="twisty" />
+                    <Icon name="signout" size={18} /> <span className="fname">Sign out</span>
+                  </button>
+                </div>
               </aside>
             )}
             {!foldersHidden && <Splitter width={folderW} min={150} max={480} onChange={setFolderW} storeKey="folderW" />}
@@ -667,7 +724,7 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
               ) : open ? (
                 <article className="message">
                   <div className="msg-head">
-                    <button className="tb icon back" title="Back" onClick={() => { setOpen(null); setSelected(new Set()); }}>
+                    <button className="tb icon back" title="Back" onClick={closeMessage}>
                       <Icon name="chevronRight" />
                     </button>
                     <h2>{open.subject || '(no subject)'}</h2>
@@ -681,6 +738,20 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
                       <button className="tb icon" title="Forward (f)" onClick={() => setCompose({ mode: 'forward', source: open })}>
                         <Icon name="forward" />
                       </button>
+                      <span className="phone-only phone-actions">
+                        <button className="tb icon" title="Delete" onClick={() => void doDelete()}>
+                          <Icon name="trash" />
+                        </button>
+                        <button className="tb icon" title="Archive" onClick={() => void doMove('archive')}>
+                          <Icon name="archive" />
+                        </button>
+                        <button className="tb icon" title="Flag" onClick={toggleFlag}>
+                          <Icon name="flag" filled={open.flagged} />
+                        </button>
+                        <button className="tb icon" title="Mark unread" onClick={() => { void setFlag([open.uid], '\\Seen', false); closeMessage(); }}>
+                          <Icon name="unread" />
+                        </button>
+                      </span>
                     </div>
                   </div>
                   <div className="card">
@@ -745,7 +816,7 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
                   </div>
                 </article>
               ) : (
-                <div className="placeholder">
+                <div className={`placeholder ${openLoading ? 'loading' : ''}`}>
                   {openLoading ? <span className="spinner" /> : (
                     <>
                       <Icon name="mail" size={56} />
@@ -759,6 +830,11 @@ function Mail({ me, appName, onLogout }: { me: Me; appName: string; onLogout: ()
           </div>
         </div>
       </div>
+      {!compose && !open && !openLoading && (
+        <button className="fab phone-only" onClick={() => setCompose({ mode: 'new' })}>
+          <Icon name="compose" /> New mail
+        </button>
+      )}
       {toast && <div className="toast">{toast}</div>}
     </div>
   );

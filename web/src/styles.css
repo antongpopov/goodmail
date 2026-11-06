@@ -230,16 +230,62 @@ body.resizing iframe { pointer-events: none; }
 /* ---------- responsive ---------- */
 @media (max-width: 1200px) { .toolbar .lbl { display: none; } .brand, .top-right { width: auto; } }
 @media (max-width: 1000px) { .folders, .folders + .splitter { display: none; } }
+.phone-only, .backdrop { display: none !important; }
+.segment { display: flex; gap: 2px; margin: 8px 8px 4px 12px; padding: 2px; border-radius: 6px; background: var(--hover); }
+.segment button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 30px; border-radius: 4px; font-size: 13px; color: var(--text-2); }
+.segment button.on { background: var(--surface); color: var(--brand); box-shadow: var(--shadow); font-weight: 600; }
+
 @media (max-width: 760px) {
-  .rail { display: none; }
-  .main { padding: 0; }
-  .brand span, .brand { font-size: 0; gap: 0; }
-  .panes { gap: 0; position: relative; }
-  .list { width: 100% !important; border-radius: 0; }
-  .splitter { display: none; }
-  .reading { position: absolute; inset: 0; border-radius: 0; }
-  .reading:has(.placeholder) { display: none; }
-  .back { display: inline-flex !important; }
+  .phone-only { display: inline-flex !important; }
+  .drawer-foot.phone-only { display: block !important; border-top: 1px solid var(--border); margin-top: 12px; padding-top: 4px; }
+  .desk-only, .toolbar, .rail, .brand, .splitter { display: none !important; }
+  .app { height: 100dvh; }
+  body { overscroll-behavior: none; }
+  .topbar { gap: 4px; padding: 0 4px 0 2px; }
+  .top-right { width: auto; gap: 0; padding-right: 4px; }
   .search { margin: 0; }
-  .top-right { gap: 0; }
+  .search input, .field input, .editor, .login input:not([type=checkbox]) { font-size: 16px; } /* no iOS focus zoom */
+  .main { padding: 0; }
+  .panes { position: relative; }
+
+  .folders { display: none; }
+  .folders.drawer-open { display: block; position: fixed; z-index: 40; top: 0; bottom: 0; left: 0; width: min(300px, 85vw) !important;
+    background: var(--surface); box-shadow: 0 0 24px rgba(0,0,0,.3); padding: max(12px, env(safe-area-inset-top)) 6px env(safe-area-inset-bottom) 0;
+    animation: drawer-in .18s ease-out; }
+  .backdrop { display: block !important; position: fixed; inset: 0; z-index: 39; background: rgba(0,0,0,.35); animation: fade-in .18s; }
+  .folders .folder { height: 44px; }
+
+  .list { width: 100% !important; border-radius: 0; box-shadow: none; }
+  .list-scroll { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+  .item { padding: 12px 14px; }
+  .item-actions { display: none !important; }
+  .item:hover { background: inherit; }
+  .item.sel { background: var(--sel-strong); }
+
+  .reading { position: absolute; inset: 0; z-index: 5; border-radius: 0; box-shadow: none; }
+  .reading:has(.placeholder:not(.loading)) { display: none; }
+  .back { display: inline-flex !important; }
+  .msg-head { flex-wrap: wrap; padding: 6px 6px 4px; gap: 0; border-bottom: 1px solid var(--border); }
+  .msg-head h2 { order: 3; flex-basis: 100%; font-size: 19px; padding: 6px 10px 4px; }
+  .msg-actions { margin-left: auto; }
+  .msg-actions .tb.icon, .back { width: 40px; height: 40px; }
+  .phone-actions { gap: 2px; }
+  .card { margin: 0 8px; }
+  .sender-row { flex-wrap: wrap; padding: 12px 4px 10px; row-gap: 2px; }
+  .sender-row .date { order: 3; flex-basis: 100%; padding-left: 56px; margin-top: -4px; }
+  .to-line { white-space: normal; }
+  .quick-reply { padding-bottom: env(safe-area-inset-bottom); }
+  .quick-reply .pill { flex: 1; justify-content: center; height: 40px; padding: 0 8px; }
+
+  .compose-bar { padding: 6px 8px; }
+  .compose-fields { padding: 0 10px; }
+  .editor { padding: 12px; }
+
+  .fab { position: fixed; z-index: 20; right: 16px; bottom: calc(18px + env(safe-area-inset-bottom)); height: 52px; padding: 0 20px; border-radius: 16px;
+    background: var(--brand); color: #fff; font-weight: 600; align-items: center; gap: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+  .fab .ico { color: #fff; }
+  .toast { bottom: calc(86px + env(safe-area-inset-bottom)); }
+  .login-card { padding: 24px 20px; }
 }
+@keyframes drawer-in { from { transform: translateX(-100%); } to { transform: none; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }

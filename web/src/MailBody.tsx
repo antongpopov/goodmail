@@ -80,17 +80,29 @@ export function MailBody({ html, text, remote, onBlocked }: { html: string; text
     const measure = () => {
       const d = f.contentDocument;
       if (!d?.documentElement) return;
-      setHeight(Math.max(d.documentElement.scrollHeight, d.body?.scrollHeight || 0) + 4);
+      // <html> has no fixed height, so its box is the content height (scrollHeight never shrinks below the frame).
+      const h = d.documentElement.getBoundingClientRect().height || d.documentElement.scrollHeight;
+      setHeight(Math.ceil(h) + 4);
+    };
+    // Newsletters are often fixed 600-700px tables: shrink them to fit instead of scrolling sideways.
+    const fit = () => {
+      const d = f.contentDocument;
+      if (!d?.body) return;
+      d.body.style.zoom = '';
+      const sw = d.documentElement.scrollWidth;
+      const cw = f.clientWidth;
+      if (cw > 0 && sw > cw + 4) d.body.style.zoom = String(Math.max(0.4, cw / sw));
+      measure();
     };
     const onLoad = () => {
-      measure();
+      fit();
       ro?.disconnect();
       const b = f.contentDocument?.body;
       if (b) {
         ro = new ResizeObserver(measure);
         ro.observe(b);
       }
-      f.contentDocument?.querySelectorAll('img').forEach((img) => img.addEventListener('load', measure));
+      f.contentDocument?.querySelectorAll('img').forEach((img) => img.addEventListener('load', fit));
     };
     f.addEventListener('load', onLoad);
     return () => {
