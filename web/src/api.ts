@@ -21,7 +21,7 @@ export interface CalEvent {
 export interface MailAccount { id: string; email: string; name: string; provider: string; imapHost: string; locked: boolean }
 export interface MfaChallenge { ticket: string; totp: boolean; passkey: boolean; email: string | null; recovery: boolean }
 export interface MfaStatus { enabled: boolean; totp: boolean; passkeys: { id: string; name: string; added: number; passwordless: boolean }[]; email: string | null; recoveryLeft: number; recovery?: string[] }
-export interface Me { email: string; name: string; imapHost: string; appName?: string }
+export interface Me { email: string; name: string; imapHost: string; appName?: string; appNames?: Record<string, string> }
 export interface ListResult { total: number; messages: Summary[]; hasMore: boolean }
 
 export class ApiError extends Error {
@@ -59,7 +59,7 @@ export const currentAccount = () => cur;
 const q = (o: Record<string, string | number>) => new URLSearchParams(Object.entries(o).map(([k, v]) => [k, String(v)])).toString();
 
 export const api = {
-  config: () => call<{ appName: string; source: string }>('GET', '/api/config'),
+  config: () => call<{ appName: string; appNames?: Record<string, string>; source: string }>('GET', '/api/config'),
   me: () => call<Me>('GET', '/api/me'),
   login: (body: Record<string, unknown>) => call<Me & { mfa?: MfaChallenge }>('POST', '/api/login', body),
   mfaVerify: (body: Record<string, unknown>) => call<Me>('POST', '/api/login/mfa', body),

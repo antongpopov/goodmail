@@ -47,7 +47,9 @@ const csrf = { 'x-goodmail': '1' };
 test('public config endpoint works without a session', async () => {
   const r = await req('GET', '/api/config');
   assert.equal(r.status, 200);
-  assert.ok((await r.json()).appName);
+  const j = await r.json();
+  assert.ok(j.appName);
+  assert.equal(typeof j.appNames, 'object'); // per-language titles (empty unless the config has title.<lang> lines)
 });
 
 test('every protected GET endpoint answers 401 without a login', async () => {

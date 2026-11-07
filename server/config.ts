@@ -8,6 +8,7 @@
 //   ca1=/etc/goodmail/ca.pem       # optional: extra CA bundle to verify the server against
 //   ciphers1=HIGH:!DHE             # optional: OpenSSL cipher list (e.g. to skip a weak DH key)
 //   title1=Example Mail            # optional: app name shown to these users after sign-in
+//   title1.de=Beispiel Mail        # optional: the same name for users whose browser language is de (da, de, sv, nb, fr, es, …)
 //
 //   domain9=*                      # catch-all for every domain not listed explicitly
 //   defaultdomain=example.com     # a login without @ becomes user@defaultdomain
@@ -15,6 +16,7 @@
 //   autodiscover=false             # true = guess servers for domains not listed (ISPDB / imap.<domain>)
 //   spamthreshold=6                # optional: spam score shown as fully red (default: rspamd 6 / SpamAssassin required=)
 //   title=goodmail                 # optional app name (sign-in page, and domains without their own titleN)
+//   title.da=goodmail              # optional: per-language variants of title (language codes as in the language picker)
 import fs from 'node:fs';
 import path from 'node:path';
 import { guessSettings } from './autoconfig.ts';
@@ -31,12 +33,14 @@ export interface ServerSettings {
   ca?: string;
   ciphers?: string;
   title?: string;
+  titles?: Record<string, string>; // per-language variants of title (titleN.<lang>)
 }
 
 interface Config {
   domains: Map<string, ServerSettings>;
   autodiscover: boolean;
   title: string;
+  titles: Record<string, string>; // per-language variants of title (title.<lang>)
   defaultDomain: string;
   spamThreshold?: number;
 }
@@ -46,6 +50,16 @@ export const CONFIG_PATH = path.resolve(process.env.GOODMAIL_CONFIG || 'goodmail
 function hostPort(v: string, defPort: number): [string, number] {
   const m = /^\[?([^\]]+?)\]?(?::(\d+))?$/.exec(v.trim());
   return [m?.[1] || v.trim(), m?.[2] ? Number(m[2]) : defPort];
+}
+
+/** All "<prefix>.<lang>=value" entries as { lang: value } (language codes lower-case). */
+function localized(kv: Map<string, string>, prefix: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of kv) {
+    const m = new RegExp('^' + prefix + '\\.([a-z]{2,3}(?:-[a-z0-9]+)?)$').exec(k);
+    if (m && v) out[m[1]] = v;
+  }
+  return out;
 }
 
 export function parseConfig(text: string): Config {
@@ -81,6 +95,7 @@ export function parseConfig(text: string): Config {
       ca: kv.get(`ca${n}`) ? fs.readFileSync(kv.get(`ca${n}`)!, 'utf8') : undefined,
       ciphers: kv.get(`ciphers${n}`) || undefined,
       title: kv.get(`title${n}`) || undefined,
+      titles: localized(kv, `title${n}`),
     };
     // One entry may list several domains: domain1=example.com, example.de
     for (const d of v.split(/[,\s]+/).filter(Boolean)) domains.set(d.toLowerCase(), settings);
@@ -89,6 +104,7 @@ export function parseConfig(text: string): Config {
     domains,
     autodiscover: kv.get('autodiscover') === 'true',
     title: kv.get('title') || 'goodmail',
+    titles: localized(kv, 'title'),
     defaultDomain: (kv.get('defaultdomain') || '').toLowerCase(),
     spamThreshold: kv.get('spamthreshold') ? Number(kv.get('spamthreshold')) : undefined,
   };
@@ -102,7 +118,7 @@ function load(): Config {
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
     console.warn(`config: ${CONFIG_PATH} not found — autodiscovering servers for every domain`);
-    return { domains: new Map(), autodiscover: true, title: 'goodmail', defaultDomain: '' };
+    return { domains: new Map(), autodiscover: true, title: 'goodmail', titles: {}, defaultDomain: '' };
   }
 }
 
@@ -116,6 +132,8 @@ fs.watchFile(CONFIG_PATH, { interval: 5000 }, () => {
 }).unref?.();
 
 export const appTitle = () => config.title;
+/** Per-language variants of the global title, for the sign-in page. */
+export const appTitles = () => config.titles;
 /** Score at which the spam bar turns fully red (the filter's junk threshold). Default: rspamd 6, SpamAssassin required=. */
 export const spamThreshold = () => config.spamThreshold;
 
@@ -123,6 +141,13 @@ export const spamThreshold = () => config.spamThreshold;
 export function titleFor(email: string) {
   const domain = email.split('@')[1]?.toLowerCase() || '';
   return (config.domains.get(domain) ?? config.domains.get('*'))?.title || config.title;
+}
+
+/** Per-language variants that go with titleFor(): the domain's own titleN.<lang> when it has its own title, else the global ones. */
+export function titlesFor(email: string) {
+  const domain = email.split('@')[1]?.toLowerCase() || '';
+  const entry = config.domains.get(domain) ?? config.domains.get('*');
+  return entry?.title ? entry.titles ?? {} : config.titles;
 }
 
 /** "bo" → "bo@<defaultdomain>" when a default domain is configured. */

@@ -3,7 +3,7 @@ import type { ImapFlow } from 'imapflow';
 import { Session, addSession, dropSession, connectImap } from '../session.ts';
 import { attachAccounts } from '../accounts.ts';
 import type { Account } from '../session.ts';
-import { appTitle, titleFor, normalizeLogin } from '../config.ts';
+import { appTitle, appTitles, titleFor, titlesFor, normalizeLogin } from '../config.ts';
 import { seal, userKey } from '../vault.ts';
 import * as mfa from '../mfa.ts';
 import { Router } from 'express';
@@ -27,7 +27,7 @@ export function throttled(ip: string) {
 }
 
 r.get('/api/config', (_req, res) => {
-  res.json({ appName: appTitle(), source: process.env.GOODMAIL_SOURCE_URL || 'https://github.com/antongpopov/goodmail' });
+  res.json({ appName: appTitle(), appNames: appTitles(), source: process.env.GOODMAIL_SOURCE_URL || 'https://github.com/antongpopov/goodmail' });
 });
 
 r.post(
@@ -74,7 +74,7 @@ export async function issueLogin(res: Response, account: Account, remember: bool
     'Set-Cookie',
     `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict${remember ? `; Max-Age=${YEAR}` : ''}${SECURE_COOKIE ? '; Secure' : ''}`,
   );
-  res.json({ email: account.email, name: account.name, imapHost: account.imapHost, appName: titleFor(account.email) });
+  res.json({ email: account.email, name: account.name, imapHost: account.imapHost, appName: titleFor(account.email), appNames: titlesFor(account.email) });
 }
 
 r.post('/api/logout', async (req, res) => {
@@ -86,7 +86,7 @@ r.post('/api/logout', async (req, res) => {
 
 r.get('/api/me', auth, (req, res) => {
   const a = (req as Authed).session.account;
-  res.json({ email: a.email, name: a.name, imapHost: a.imapHost, appName: titleFor(a.email) });
+  res.json({ email: a.email, name: a.name, imapHost: a.imapHost, appName: titleFor(a.email), appNames: titlesFor(a.email) });
 });
 
 export default r;

@@ -58,3 +58,28 @@ test('serversFor returns configured domains, nothing for unknown ones (autodisco
   assert.equal(await cfg.serversFor('someone@unknown.invalid'), undefined);
   assert.equal(await cfg.serversFor('no-at-sign'), undefined);
 });
+
+test('localized titles: title.<lang> and titleN.<lang> are parsed and kept apart', () => {
+  const c = cfg.parseConfig(`
+    title = Global
+    title.da = Global DA
+    title.de = Global DE
+    domain1 = a.example
+    imap1 = mail.a.example
+    title1 = A Mail
+    title1.da = A Mail DA
+    title1.FR = A Mail FR
+    domain2 = b.example
+    imap2 = mail.b.example
+    titlex = not a language entry
+  `);
+  assert.deepEqual(c.titles, { da: 'Global DA', de: 'Global DE' });
+  assert.deepEqual(c.domains.get('a.example')!.titles, { da: 'A Mail DA', fr: 'A Mail FR' });
+  assert.deepEqual(c.domains.get('b.example')!.titles, {});
+  assert.deepEqual(cfg.parseConfig('title = Only').titles, {});
+});
+
+test('localized titles: empty values and non-language suffixes are ignored', () => {
+  const c = cfg.parseConfig('title.da =\ntitle.toolongcode = x\ntitle.nb = Min post\n');
+  assert.deepEqual(c.titles, { nb: 'Min post' });
+});

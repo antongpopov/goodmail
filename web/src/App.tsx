@@ -13,7 +13,7 @@ import { MailBody } from './MailBody.tsx';
 import { Contacts } from './Contacts.tsx';
 import { Calendar } from './Calendar.tsx';
 import { bucket, displayName, fullAddr, fullTime, humanSize, save, store } from './util.ts';
-import { t } from './i18n.ts';
+import { t, localTitle } from './i18n.ts';
 import { listCache, msgCache, msgKey, rememberMsg } from './cache.ts';
 import { folderLabel, buildTree } from './folders.ts';
 import type { FolderNode } from './folders.ts';
@@ -28,7 +28,7 @@ const POLL_MS = 30_000;
 
 export default function App() {
   const [me, setMe] = useState<Me | null | undefined>(undefined);
-  const [cfg, setCfg] = useState({ appName: 'goodmail', source: 'https://github.com/antongpopov/goodmail' });
+  const [cfg, setCfg] = useState<{ appName: string; appNames?: Record<string, string>; source: string }>({ appName: 'goodmail', source: 'https://github.com/antongpopov/goodmail' });
 
   useEffect(() => {
     setUnauthorizedHandler(() => setMe(null));
@@ -36,13 +36,14 @@ export default function App() {
     api.me().then(setMe).catch(() => setMe(null));
   }, []);
 
-  const appName = me?.appName || cfg.appName; // per-domain title once signed in
+  // per-domain title once signed in, in the user's language when the config provides one
+  const appName = me?.appName ? localTitle(me.appName, me.appNames) : localTitle(cfg.appName, cfg.appNames);
   useEffect(() => {
     document.title = appName;
   }, [appName]);
 
   if (me === undefined) return <div className="splash" />;
-  if (!me) return <Login onLogin={setMe} appName={cfg.appName} source={cfg.source} />;
+  if (!me) return <Login onLogin={setMe} appName={localTitle(cfg.appName, cfg.appNames)} source={cfg.source} />;
   return <Mail me={me} appName={appName} source={cfg.source} onLogout={() => api.logout().finally(() => setMe(null))} />;
 }
 

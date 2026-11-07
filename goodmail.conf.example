@@ -7,6 +7,7 @@
 # loginN    email | local      username sent to the server: full address (default) or the part before @
 # insecureN true               accept self-signed certificates
 # titleN    Example Mail       app name these users see after signing in (default: title below)
+# titleN.xx Beispiel-Mail      the same name in another language, xx = da, de, en, es, fr, nb, sv (falls back to titleN)
 
 domain1=example.com
 imap1=mail.example.com
@@ -21,3 +22,4 @@ login2=local
 autodiscover=false
 
 # title=goodmail
+# title.de=goodmail            # per-language variants of the global title, e.g. title.da / title.de / title.fr

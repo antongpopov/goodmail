@@ -82,13 +82,21 @@ ciphers2=HIGH:!DHE               # optional OpenSSL cipher list
 login2=local                     # send "user" instead of "user@domain" as the IMAP/SMTP username
 insecure2=true                   # accept self-signed certificates
 title2=Example Mail              # app name these users see after signing in
+title2.de=Beispiel-Mail          # the same name in German (see "Localized app name" below)
 
 defaultdomain=example.com       # "bo" logs in as bo@example.com
 autodiscover=false               # true: guess servers for unlisted domains (autoconfig / ISPDB / MX)
 title=goodmail                   # sign-in page, and domains without their own titleN
+title.da=Min mail                # optional per-language variants of the global title
+title.fr=Ma messagerie
 ```
 
 The file is re-read automatically when it changes.
+
+**Localized app name.** `title` and `titleN` can be given per language with a `.<code>` suffix, using the codes of
+the language picker (`da`, `de`, `en`, `es`, `fr`, `nb`, `sv`). The sign-in page and the browser tab/header show the
+variant that matches the visitor's chosen (or browser) language, and fall back to the plain `title` when there is none.
+A domain that has its own `titleN` uses only its own `titleN.<code>` lines; domains without one use the global `title.<code>` lines.
 
 | Environment | Default | |
 |---|---|---|

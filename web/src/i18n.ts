@@ -39,6 +39,8 @@ let dict: Dict = LANGUAGES.find((l) => l.id === lang)!.dict;
 document.documentElement.lang = lang;
 
 export const currentLang = () => lang;
+/** The app name in the user's language when the server config has a title.<lang> for it, else the default name. */
+export const localTitle = (name: string, names?: Record<string, string>) => names?.[lang] || name;
 /** BCP-47 locale for Intl date/number formatting in the chosen language. */
 export const L = () => (lang === 'en' ? navigator.language || 'en' : lang);
 
