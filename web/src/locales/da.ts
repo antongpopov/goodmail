@@ -280,4 +280,6 @@ export const da: Dict = {
   'That folder no longer exists': 'Mappen findes ikke længere',
   'New subfolder…': 'Ny undermappe…',
   'Name of the new subfolder in "{name}"': 'Navn på den nye undermappe i "{name}"',
+  'A folder with that name is already there': 'Der findes allerede en mappe med det navn',
+  "A folder can't go into itself": "En mappe kan ikke lægges ind i sig selv",
 };

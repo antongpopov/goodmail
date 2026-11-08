@@ -106,6 +106,7 @@ export const api = {
   remove: (folder: string, uids: number[]) => call<{ permanent: boolean }>('POST', '/api/delete', { folder, uids, account: cur }),
   createFolder: (name: string) => call('POST', '/api/folder', { name, account: cur }),
   renameFolder: (path: string, name: string) => call<{ path: string }>('POST', '/api/folder/rename', { path, name, account: cur }),
+  moveFolder: (path: string, parent: string) => call<{ path: string }>('POST', '/api/folder/move', { path, parent, account: cur }),
   deleteFolder: (path: string) => call<{ permanent: boolean; path?: string }>('POST', '/api/folder/delete', { path, account: cur }),
   send: (body: Record<string, unknown>) => call('POST', '/api/send', body),
   accounts: () => call<MailAccount[]>('GET', '/api/accounts'),

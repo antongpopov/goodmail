@@ -268,4 +268,6 @@ export const es: Dict = {
   'That folder no longer exists': 'La carpeta ya no existe',
   'New subfolder…': 'Nueva subcarpeta…',
   'Name of the new subfolder in "{name}"': 'Nombre de la nueva subcarpeta en «{name}»',
+  'A folder with that name is already there': 'Ya hay una carpeta con ese nombre',
+  "A folder can't go into itself": "Una carpeta no se puede mover dentro de sí misma",
 };

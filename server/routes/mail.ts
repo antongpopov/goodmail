@@ -273,6 +273,28 @@ r.post(
   }),
 );
 
+/** Drag-and-drop: move a folder (with its subfolders) under another folder, or to the top level (parent = ""). */
+r.post(
+  '/api/folder/move',
+  auth,
+  wrap(async (req, res) => {
+    const c = await conn(req).imap();
+    const { f, list } = await userFolder(c, String(req.body?.path || ''));
+    const d = f.delimiter || '/';
+    const parent = String(req.body?.parent || '');
+    if (parent) {
+      if (!list.some((x) => x.path === parent)) return res.status(404).json({ error: 'That folder no longer exists' });
+      if (parent === f.path || parent.startsWith(f.path + d)) return res.status(400).json({ error: "A folder can't go into itself" });
+    }
+    const leaf = f.path.split(d).pop()!;
+    const to = parent ? `${parent}${d}${leaf}` : leaf;
+    if (to === f.path) return res.json({ path: to });
+    if (list.some((x) => x.path === to)) return res.status(400).json({ error: 'A folder with that name is already there' });
+    await c.mailboxRename(f.path, to);
+    res.json({ path: to });
+  }),
+);
+
 /** Delete = move into Trash (like Outlook); a folder that is already in Trash is removed for good. */
 r.post(
   '/api/folder/delete',

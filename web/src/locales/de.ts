@@ -268,4 +268,6 @@ export const de: Dict = {
   'That folder no longer exists': 'Dieser Ordner existiert nicht mehr',
   'New subfolder…': 'Neuer Unterordner…',
   'Name of the new subfolder in "{name}"': 'Name des neuen Unterordners in „{name}“',
+  'A folder with that name is already there': 'Dort gibt es schon einen Ordner mit diesem Namen',
+  "A folder can't go into itself": "Ein Ordner kann nicht in sich selbst verschoben werden",
 };

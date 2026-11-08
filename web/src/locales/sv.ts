@@ -268,4 +268,6 @@ export const sv: Dict = {
   'That folder no longer exists': 'Mappen finns inte längre',
   'New subfolder…': 'Ny undermapp…',
   'Name of the new subfolder in "{name}"': 'Namn på den nya undermappen i "{name}"',
+  'A folder with that name is already there': 'Det finns redan en mapp med det namnet där',
+  "A folder can't go into itself": "En mapp kan inte läggas i sig själv",
 };

@@ -467,6 +467,19 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
     goto(aid, path);
     setDrawer(false);
   };
+  /** Drag a folder onto another one (becomes its subfolder) or onto empty space in the list (top level). */
+  const moveFolder = async (aid: string, from: string, to: string) => {
+    try {
+      useAccount(aid);
+      const r = await api.moveFolder(from, to);
+      if (aid === acct && folder === from) goto(aid, r.path);
+      void loadFolders(true);
+    } catch (err) {
+      flash((err as Error).message);
+    } finally {
+      useAccount(acct);
+    }
+  };
   const newSubfolder = async (aid: string, n: FolderNode) => {
     const name = prompt(t('Name of the new subfolder in "{name}"', { name: n.name }));
     if (!name || !name.trim()) return;
@@ -519,14 +532,25 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
     if (uids.length && aid === acct && path !== folder) void doMove(path, uids);
   };
   const renderFolder = (n: FolderNode, aid: string): React.ReactNode => (
-    <FolderRow key={n.path} n={n} aid={aid} acct={acct} folder={folder} collapsed={collapsed} onOpen={openFolder} onToggle={toggleCollapsed} onDrop={dropOnFolder} onSub={newSubfolder} onRename={renameFolder} onDelete={deleteFolder} />
+    <FolderRow key={n.path} n={n} aid={aid} acct={acct} folder={folder} collapsed={collapsed} onOpen={openFolder} onToggle={toggleCollapsed} onDrop={dropOnFolder} onDropFolder={moveFolder} onSub={newSubfolder} onRename={renameFolder} onDelete={deleteFolder} />
   );
 
   const foldersBlock = (
     <>
             {drawer && <div className="backdrop" onClick={() => setDrawer(false)} />}
             {(!foldersHidden || drawer) && (
-              <aside className={`folders ${drawer ? 'drawer-open' : ''}`} style={{ width: folderW }}>
+              <aside
+                className={`folders ${drawer ? 'drawer-open' : ''}`}
+                style={{ width: folderW }}
+                onDragOver={(e) => e.dataTransfer.types.includes('application/x-goodmail-folder') && e.preventDefault()}
+                onDrop={(e) => {
+                  const f = e.dataTransfer.getData('application/x-goodmail-folder');
+                  if (!f) return;
+                  e.preventDefault();
+                  const src = JSON.parse(f) as { aid: string; path: string };
+                  void moveFolder(src.aid, src.path, '');
+                }}
+              >
                 {accounts.map((a) => {
                   const k = `acct:${a.id}`;
                   const unseen = (allFolders[a.id] || []).find((f) => f.specialUse === '\\Inbox')?.unseen || 0;

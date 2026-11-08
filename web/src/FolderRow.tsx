@@ -13,13 +13,14 @@ interface Props {
   onOpen: (aid: string, path: string) => void;
   onToggle: (key: string) => void;
   onDrop: (aid: string, path: string, uids: number[]) => void;
+  onDropFolder: (aid: string, from: string, to: string) => void;
   onSub: (aid: string, n: FolderNode) => void;
   onRename: (aid: string, n: FolderNode) => void;
   onDelete: (aid: string, n: FolderNode) => void;
 }
 
 /** A folder in the tree (and, recursively, its children). Accepts dragged messages. */
-export function FolderRow({ n, aid, acct, folder, collapsed, onOpen, onToggle, onDrop, onSub, onRename, onDelete }: Props) {
+export function FolderRow({ n, aid, acct, folder, collapsed, onOpen, onToggle, onDrop, onDropFolder, onSub, onRename, onDelete }: Props) {
   const key = `${aid}:${n.path}`;
   const [menu, setMenu] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -40,9 +41,22 @@ export function FolderRow({ n, aid, acct, folder, collapsed, onOpen, onToggle, o
           e.preventDefault();
           setMenu(true);
         }}
+        draggable={editable}
+        onDragStart={(e) => {
+          if (!editable) return;
+          e.dataTransfer.setData('application/x-goodmail-folder', JSON.stringify({ aid, path: n.path }));
+          e.dataTransfer.effectAllowed = 'move';
+        }}
         onDragOver={(e) => aid === acct && e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault();
+          e.stopPropagation();
+          const f = e.dataTransfer.getData('application/x-goodmail-folder');
+          if (f) {
+            const src = JSON.parse(f) as { aid: string; path: string };
+            if (src.aid === aid && src.path !== n.path) onDropFolder(aid, src.path, n.path);
+            return;
+          }
           onDrop(aid, n.path, JSON.parse(e.dataTransfer.getData('application/x-goodmail') || '[]'));
         }}
       >
@@ -77,7 +91,7 @@ export function FolderRow({ n, aid, acct, folder, collapsed, onOpen, onToggle, o
           </div>
         )}
       </div>
-      {!collapsed[key] && n.children.map((c) => <FolderRow key={c.path} n={c} aid={aid} acct={acct} folder={folder} collapsed={collapsed} onOpen={onOpen} onToggle={onToggle} onDrop={onDrop} onSub={onSub} onRename={onRename} onDelete={onDelete} />)}
+      {!collapsed[key] && n.children.map((c) => <FolderRow key={c.path} n={c} aid={aid} acct={acct} folder={folder} collapsed={collapsed} onOpen={onOpen} onToggle={onToggle} onDrop={onDrop} onDropFolder={onDropFolder} onSub={onSub} onRename={onRename} onDelete={onDelete} />)}
     </div>
   );
 }
