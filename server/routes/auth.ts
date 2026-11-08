@@ -3,7 +3,7 @@ import type { ImapFlow } from 'imapflow';
 import { Session, addSession, dropSession, connectImap } from '../session.ts';
 import { attachAccounts } from '../accounts.ts';
 import type { Account } from '../session.ts';
-import { appTitle, appTitles, titleFor, titlesFor, normalizeLogin } from '../config.ts';
+import { appTitle, appTitles, titleFor, titlesFor, normalizeLogin, resetSender } from '../config.ts';
 import { seal, userKey } from '../vault.ts';
 import * as mfa from '../mfa.ts';
 import { Router } from 'express';
@@ -27,7 +27,7 @@ export function throttled(ip: string) {
 }
 
 r.get('/api/config', (_req, res) => {
-  res.json({ appName: appTitle(), appNames: appTitles(), source: process.env.GOODMAIL_SOURCE_URL || 'https://github.com/antongpopov/goodmail' });
+  res.json({ appName: appTitle(), appNames: appTitles(), reset: !!resetSender(), source: process.env.GOODMAIL_SOURCE_URL || 'https://github.com/antongpopov/goodmail' });
 });
 
 r.post(

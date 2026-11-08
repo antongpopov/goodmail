@@ -15,6 +15,10 @@
 //   domain9=*                      # catch-all for every domain not listed explicitly
 //   defaultdomain=example.com     # a login without @ becomes user@defaultdomain
 //
+//   resetfrom=goodmail@example.com # optional: sender of "forgot password" mails — together with resetsmtp it turns the feature on
+//   resetsmtp=mail.example.com:587 # SMTP server that sends them (465 = TLS, 587 = STARTTLS)
+//   resetuser=goodmail@example.com # SMTP login for that sender (default: resetfrom)
+//   resetpass=…                    # SMTP password for it (keep the file readable by goodmail only)
 //   autodiscover=false             # true = guess servers for domains not listed (ISPDB / imap.<domain>)
 //   spamthreshold=6                # optional: spam score shown as fully red (default: rspamd 6 / SpamAssassin required=)
 //   title=goodmail                 # optional app name (sign-in page, and domains without their own titleN)
@@ -49,6 +53,18 @@ interface Config {
   titles: Record<string, string>; // per-language variants of title (title.<lang>)
   defaultDomain: string;
   spamThreshold?: number;
+  reset?: ResetSender;
+}
+
+/** The mailbox that sends "forgot password" mails (nobody is signed in then, so it can't be the user's own). */
+export interface ResetSender {
+  from: string;
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  pass: string;
+  insecureTls: boolean;
 }
 
 export const CONFIG_PATH = path.resolve(process.env.GOODMAIL_CONFIG || 'goodmail.conf');
@@ -119,8 +135,16 @@ export function parseConfig(text: string): Config {
     // One entry may list several domains: domain1=example.com, example.de
     for (const d of v.split(/[,\s]+/).filter(Boolean)) domains.set(d.toLowerCase(), settings);
   }
+  let reset: ResetSender | undefined;
+  const rfrom = kv.get('resetfrom');
+  const rsmtp = kv.get('resetsmtp');
+  if (rfrom && rsmtp) {
+    const [host, port] = hostPort(rsmtp, 587);
+    reset = { from: rfrom, host, port, secure: port === 465, user: kv.get('resetuser') || rfrom, pass: kv.get('resetpass') || '', insecureTls: kv.get('resetinsecure') === 'true' };
+  }
   return {
     domains,
+    reset,
     autodiscover: kv.get('autodiscover') === 'true',
     title: kv.get('title') || 'goodmail',
     titles: localized(kv, 'title'),
@@ -151,6 +175,7 @@ fs.watchFile(CONFIG_PATH, { interval: 5000 }, () => {
 }).unref?.();
 
 export const appTitle = () => config.title;
+export const resetSender = () => config.reset;
 /** Per-language variants of the global title, for the sign-in page. */
 export const appTitles = () => config.titles;
 /** Score at which the spam bar turns fully red (the filter's junk threshold). Default: rspamd 6, SpamAssassin required=. */

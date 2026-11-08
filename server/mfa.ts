@@ -21,6 +21,8 @@ export interface MfaData {
   passkeys: StoredPasskey[];
   email?: string; // verified backup address
   recovery: string[]; // sha256 hashes of unused recovery codes
+  /** Verified address for "forgot password" mails. Separate from the mailbox itself, which can't be reached when the password is lost. */
+  resetEmail?: string;
 }
 
 const DIR = path.join(DATA, 'mfa');
@@ -69,6 +71,7 @@ export function publicStatus(d: MfaData) {
     totp: !!d.totp,
     passkeys: d.passkeys.map((p) => ({ id: p.id, name: p.name, added: p.added, passwordless: !!p.login })),
     email: d.email || null,
+    resetEmail: d.resetEmail || null,
     recoveryLeft: d.recovery.length,
   };
 }
@@ -168,6 +171,9 @@ export interface Pending {
   totpSecret?: string;
   challenge?: string;
   emailAddr?: string;
+  resetAddr?: string;
+  resetCode?: string;
+  resetCodeExp?: number;
   emailCode?: string;
   emailCodeExp?: number;
   attempts: number;

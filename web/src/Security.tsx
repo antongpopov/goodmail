@@ -25,6 +25,10 @@ export function SecurityDialog({ onClose, flash, features }: { onClose: () => vo
   const [addr, setAddr] = useState('');
   const [addrSent, setAddrSent] = useState(false);
   const [addrCode, setAddrCode] = useState('');
+  // password-reset address
+  const [rAddr, setRAddr] = useState('');
+  const [rSent, setRSent] = useState(false);
+  const [rCode, setRCode] = useState('');
   // removals need the password
   const [confirm, setConfirm] = useState<{ label: string; run: (pw: string) => Promise<MfaStatus> } | null>(null);
   const [pw, setPw] = useState('');
@@ -101,6 +105,20 @@ export function SecurityDialog({ onClose, flash, features }: { onClose: () => vo
       setAddrSent(false);
       setAddr('');
       flash(t('Backup email turned on'));
+      return r;
+    });
+  const sendReset = () =>
+    run(async () => {
+      await api.resetEmailStart(rAddr);
+      setRSent(true);
+      setRCode('');
+    });
+  const confirmReset = () =>
+    run(async () => {
+      const r = await api.resetEmailConfirm(rCode);
+      setRSent(false);
+      setRAddr('');
+      flash(t('Reset address saved'));
       return r;
     });
   const ask = (label: string, fn: (pw: string) => Promise<MfaStatus>) => {
@@ -234,6 +252,34 @@ export function SecurityDialog({ onClose, flash, features }: { onClose: () => vo
                 </div>
               ))}
             </section>
+
+            {features?.reset && (
+              <section className="sec-item">
+                <div className="sec-head">
+                  <Icon name="mail" />
+                  <div className="grow">
+                    <b>{t('Password reset address')}</b>
+                    <div className="muted small">{st.resetEmail ? st.resetEmail : t('If you forget your password, a code is sent here. Use an address outside this mailbox.')}</div>
+                  </div>
+                  {st.resetEmail && <button className="link-btn" onClick={() => ask(t('Remove the password reset address'), (p) => api.resetEmailRemove(p))}>{t('Remove')}</button>}
+                </div>
+                {!st.resetEmail && (
+                  <form className="unlock-row sec-pad" onSubmit={(e) => { e.preventDefault(); void (rSent ? confirmReset() : sendReset()); }}>
+                    {!rSent ? (
+                      <>
+                        <input type="email" value={rAddr} onChange={(e) => setRAddr(e.target.value)} placeholder={t('another@address.com')} required />
+                        <button className="pill-btn" disabled={busy}>{t('Send code')}</button>
+                      </>
+                    ) : (
+                      <>
+                        <input value={rCode} onChange={(e) => setRCode(e.target.value)} inputMode="numeric" placeholder={t('Code sent to {to}', { to: rAddr })} required autoFocus />
+                        <button className="primary" disabled={busy}>{t('Save')}</button>
+                      </>
+                    )}
+                  </form>
+                )}
+              </section>
+            )}
 
             <section className="sec-item">
               <div className="sec-head">

@@ -7,13 +7,14 @@ import { LangPicker } from './LangPicker.tsx';
 import { Icon } from './icons.tsx';
 import { t } from './i18n.ts';
 
-export function Login({ onLogin, appName, source }: { onLogin: (m: Me) => void; appName: string; source: string }) {
+export function Login({ onLogin, appName, source, canReset }: { onLogin: (m: Me) => void; appName: string; source: string; canReset?: boolean }) {
   const [email, setEmail] = useState(() => store('lastEmail', ''));
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(() => store('remember', true));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [mfa, setMfa] = useState<MfaChallenge | null>(null);
+  const [forgot, setForgot] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +54,7 @@ export function Login({ onLogin, appName, source }: { onLogin: (m: Me) => void; 
     }
   };
 
+  if (forgot) return <ResetStep appName={appName} email={email} onBack={() => setForgot(false)} />;
   if (mfa) return <MfaStep appName={appName} challenge={mfa} onLogin={onLogin} onBack={() => setMfa(null)} />;
 
   return (
@@ -81,6 +83,11 @@ export function Login({ onLogin, appName, source }: { onLogin: (m: Me) => void; 
         <button className="primary" disabled={busy}>
           {busy ? t('Signing in…') : t('Sign in')}
         </button>
+        {canReset && (
+          <button type="button" className="link-btn forgot" onClick={() => setForgot(true)}>
+            {t('Forgot your password?')}
+          </button>
+        )}
         {'PublicKeyCredential' in window && (
           <button type="button" className="pill-btn passkey-btn" disabled={busy} onClick={() => void passkeyLogin()}>
             <Icon name="check" size={16} /> {t('Sign in with a passkey')}
@@ -195,6 +202,93 @@ function MfaStep({ appName, challenge, onLogin, onBack }: { appName: string; cha
             {t('Back')}
           </button>
         </div>
+      </form>
+    </div>
+  );
+}
+
+/** Forgot password: ask for a code at the saved reset address, then choose a new password. */
+function ResetStep({ appName, email: initial, onBack }: { appName: string; email: string; onBack: () => void }) {
+  const [email, setEmail] = useState(initial);
+  const [ticket, setTicket] = useState('');
+  const [code, setCode] = useState('');
+  const [next, setNext] = useState('');
+  const [next2, setNext2] = useState('');
+  const [done, setDone] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const go = async (fn: () => Promise<void>) => {
+    setBusy(true);
+    setError('');
+    try {
+      await fn();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="login">
+      <form
+        className="login-card"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void go(async () => {
+            if (done) return onBack();
+            if (!ticket) return setTicket((await api.resetStart(email)).ticket);
+            if (next !== next2) throw new Error(t('The two new passwords are not the same'));
+            await api.resetFinish(ticket, code, next);
+            setDone(true);
+          });
+        }}
+      >
+        <div className="login-brand">
+          <img src="/favicon.svg" alt="" width={36} height={36} />
+          <span>{appName}</span>
+        </div>
+        <div className="login-head">
+          <h1>{t('Reset your password')}</h1>
+          <LangPicker />
+        </div>
+        {done ? (
+          <p>{t('Your password has been changed. You can sign in with it now.')}</p>
+        ) : !ticket ? (
+          <>
+            <label>
+              {t('Email address')}
+              <input type="text" inputMode="email" autoCapitalize="none" spellCheck={false} value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+            </label>
+            <p className="muted small">{t('If you saved a reset address, we send a code to it.')}</p>
+          </>
+        ) : (
+          <>
+            <p className="small">{t('If a reset address is saved for this mailbox, a code is on its way. It is valid for 15 minutes.')}</p>
+            <label>
+              {t('Code')}
+              <input value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" autoComplete="one-time-code" required autoFocus />
+            </label>
+            <label>
+              {t('New password')}
+              <input type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} required />
+            </label>
+            <label>
+              {t('New password again')}
+              <input type="password" autoComplete="new-password" value={next2} onChange={(e) => setNext2(e.target.value)} required />
+            </label>
+          </>
+        )}
+        {error && <div className="error">{error}</div>}
+        <button className="primary" disabled={busy}>
+          {done ? t('Back to sign in') : !ticket ? t('Send code') : t('Change password')}
+        </button>
+        {!done && (
+          <button type="button" className="pill-btn" onClick={onBack}>
+            {t('Cancel')}
+          </button>
+        )}
       </form>
     </div>
   );

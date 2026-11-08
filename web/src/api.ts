@@ -20,9 +20,9 @@ export interface CalEvent {
 }
 export interface MailAccount { id: string; email: string; name: string; provider: string; imapHost: string; locked: boolean }
 export interface MfaChallenge { ticket: string; totp: boolean; passkey: boolean; email: string | null; recovery: boolean }
-export interface MfaStatus { enabled: boolean; totp: boolean; passkeys: { id: string; name: string; added: number; passwordless: boolean }[]; email: string | null; recoveryLeft: number; recovery?: string[] }
+export interface MfaStatus { enabled: boolean; totp: boolean; passkeys: { id: string; name: string; added: number; passwordless: boolean }[]; email: string | null; recoveryLeft: number; resetEmail?: string | null; recovery?: string[] }
 export interface Me { email: string; name: string; imapHost: string; appName?: string; appNames?: Record<string, string> }
-export interface Features { rules: boolean; password: boolean; passwordMin: number }
+export interface Features { rules: boolean; password: boolean; passwordMin: number; reset: boolean }
 export type RuleField = 'from' | 'to' | 'cc' | 'recipient' | 'subject' | 'list' | 'header';
 export type RuleOp = 'contains' | 'not-contains' | 'is' | 'begins' | 'ends';
 export type RuleActionType = 'move' | 'read' | 'flag' | 'forward' | 'discard' | 'stop';
@@ -66,7 +66,7 @@ export const currentAccount = () => cur;
 const q = (o: Record<string, string | number>) => new URLSearchParams(Object.entries(o).map(([k, v]) => [k, String(v)])).toString();
 
 export const api = {
-  config: () => call<{ appName: string; appNames?: Record<string, string>; source: string }>('GET', '/api/config'),
+  config: () => call<{ appName: string; appNames?: Record<string, string>; reset?: boolean; source: string }>('GET', '/api/config'),
   me: () => call<Me>('GET', '/api/me'),
   login: (body: Record<string, unknown>) => call<Me & { mfa?: MfaChallenge }>('POST', '/api/login', body),
   mfaVerify: (body: Record<string, unknown>) => call<Me>('POST', '/api/login/mfa', body),
@@ -88,6 +88,11 @@ export const api = {
   rules: () => call<{ rules: MailRule[]; foreign: boolean; active: string | null }>('GET', '/api/rules'),
   saveRules: (rules: MailRule[], replace = false) => call('PUT', '/api/rules', { rules, replace }),
   changePassword: (current: string, next: string) => call<Me>('POST', '/api/password', { current, next }),
+  resetEmailStart: (address: string) => call('POST', '/api/mfa/reset-email/start', { address }),
+  resetEmailConfirm: (code: string) => call<MfaStatus>('POST', '/api/mfa/reset-email/confirm', { code }),
+  resetEmailRemove: (password: string) => call<MfaStatus>('POST', '/api/mfa/reset-email/remove', { password }),
+  resetStart: (email: string) => call<{ ticket: string }>('POST', '/api/reset/start', { email }),
+  resetFinish: (ticket: string, code: string, next: string) => call('POST', '/api/reset/finish', { ticket, code, next }),
   logout: () => call('POST', '/api/logout', {}),
   folders: (account = cur, fresh = false) => call<Folder[]>('GET', `/api/folders?${q({ account, ...(fresh ? { fresh: 1 } : {}) })}`),
   messages: (folder: string, page: number, filter = 'all') =>

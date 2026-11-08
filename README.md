@@ -44,6 +44,11 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
   ManageSieve, so they also run while you are signed out. A script written elsewhere is never overwritten without asking
 - **Change password** (⚙ → Sign-in security, needs `passwordcmdN=`): current + new password; the mail server side is a
   command you provide, see "Changing passwords" below
+- **Forgot password** (needs `passwordcmdN=` plus `resetfrom=`/`resetsmtp=`): each user saves a **second address**
+  outside their own mailbox (⚙ → Sign-in security → Password reset address, confirmed with a code). From the sign-in
+  page, "Forgot your password?" mails a one-time code to that address, then the user picks a new password. The page
+  answers the same for unknown addresses, codes last 15 minutes with 5 tries, requests are rate-limited, and the mailbox
+  itself gets a notice afterwards. Two-step sign-in still applies after a reset
 - **Spam meter** under the date: green → yellow → red from the filter's score (rspamd or SpamAssassin headers;
   only the topmost header is trusted). Fully red at the junk threshold — rspamd 6 by default, `spamthreshold=` to change
 - **Fast on slow servers**: opened messages are cached server-side (`GOODMAIL_CACHE_MB`, default 150), folder lists
@@ -122,6 +127,13 @@ and the new one is checked for length (`passwordmin`) and control characters. Af
 password opens the mailbox, re-encrypts the user's saved extra accounts and passwordless passkeys under it, and signs the
 browser in again; other devices have to sign in again. A typical command is `ssh` to the mail server with a key that is
 locked to one forced command, which hashes the password and updates the user database.
+
+**Forgot password.** Nobody is signed in then, so the code can't go out through the user's own mailbox: `resetfrom=` is
+a dedicated sender address, `resetsmtp=host[:port]` its server (465 = TLS, 587 = STARTTLS), with `resetuser=`/`resetpass=`
+as its login (`resetinsecure=true` accepts a self-signed certificate). The reset itself runs the same `passwordcmdN`
+command as a normal change, with `"reset": true` and an empty `"old"` in the JSON. A reset also leaves the user's saved
+extra accounts locked until they enter their previous password once, and passwordless passkeys work again after the next
+password sign-in.
 
 | Environment | Default | |
 |---|---|---|

@@ -10,6 +10,7 @@ import routesAccounts from './routes/accounts.ts';
 import routesContacts from './routes/contacts.ts';
 import routesCalendar from './routes/calendar.ts';
 import routesSettings from './routes/settings.ts';
+import routesReset from './routes/reset.ts';
 
 const app = express();
 app.disable('x-powered-by');
@@ -36,6 +37,7 @@ app.use(routesAccounts);
 app.use(routesContacts);
 app.use(routesCalendar);
 app.use(routesSettings);
+app.use(routesReset);
 
 // ---------- static SPA ----------
 

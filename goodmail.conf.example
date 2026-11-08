@@ -26,3 +26,9 @@ autodiscover=false
 
 # title=goodmail
 # title.de=goodmail            # per-language variants of the global title, e.g. title.da / title.de / title.fr
+
+# "Forgot password" mails (together with passwordcmdN above):
+# resetfrom=goodmail@example.com
+# resetsmtp=mail.example.com:587
+# resetuser=goodmail@example.com
+# resetpass=...

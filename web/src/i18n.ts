@@ -67,6 +67,7 @@ const ERR_PATTERNS: [RegExp, string][] = [
   [/^At most (\d+) extra accounts$/, 'At most {x} extra accounts'],
   [/^The new password needs at least (\d+) characters$/, 'The new password needs at least {x} characters'],
   [/^Can't reach the rules service \((.+)\)$/, "Can't reach the rules service ({x})"],
+  [/^That code is not right, or it has expired/, 'That code is not right, or it has expired. Start again.'],
   [/^no (\w+) folder on this server$/, 'There is no {x} folder on this server'],
   [/^Wrong (?:email address|username) or password/, 'Wrong email address or password'],
   [/^The server rejected the email\/password/, 'The server rejected the email/password. Most providers need an app password here, not your normal password.'],

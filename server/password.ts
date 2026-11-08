@@ -10,6 +10,8 @@ export interface PasswordJob {
 
   old: string;
   next: string;
+  /** true when the user is resetting a lost password (no `old` is known) */
+  reset?: boolean;
 }
 
 export function runPasswordCommand(argv: string[], job: PasswordJob, timeoutMs = 25_000): Promise<void> {
@@ -42,7 +44,7 @@ export function runPasswordCommand(argv: string[], job: PasswordJob, timeoutMs =
       fail("The password could not be changed. Ask your administrator.");
     });
     p.stdin.on('error', () => {});
-    p.stdin.end(JSON.stringify({ login: job.login, user: job.user, old: job.old, new: job.next }) + '\n');
+    p.stdin.end(JSON.stringify({ login: job.login, user: job.user, old: job.old, new: job.next, ...(job.reset ? { reset: true } : {}) }) + '\n');
   });
 }
 

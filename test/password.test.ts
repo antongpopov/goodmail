@@ -54,3 +54,9 @@ test('config: sieveN and passwordcmdN turn the features on per domain', () => {
   assert.equal(b.sieveHost, undefined);
   assert.equal(b.passwordCmd, undefined);
 });
+
+test('config: resetfrom + resetsmtp turn on "forgot password"', () => {
+  const c = parseConfig('resetfrom=gm@a.com\nresetsmtp=mail.a.com:465\nresetpass=x\ndomain1=a.com\nimap1=m.a.com');
+  assert.deepEqual(c.reset, { from: 'gm@a.com', host: 'mail.a.com', port: 465, secure: true, user: 'gm@a.com', pass: 'x', insecureTls: false });
+  assert.equal(parseConfig('resetfrom=gm@a.com').reset, undefined);
+});

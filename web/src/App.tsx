@@ -29,7 +29,7 @@ const POLL_MS = 30_000;
 
 export default function App() {
   const [me, setMe] = useState<Me | null | undefined>(undefined);
-  const [cfg, setCfg] = useState<{ appName: string; appNames?: Record<string, string>; source: string }>({ appName: 'goodmail', source: 'https://github.com/antongpopov/goodmail' });
+  const [cfg, setCfg] = useState<{ appName: string; appNames?: Record<string, string>; reset?: boolean; source: string }>({ appName: 'goodmail', source: 'https://github.com/antongpopov/goodmail' });
 
   useEffect(() => {
     setUnauthorizedHandler(() => setMe(null));
@@ -44,7 +44,7 @@ export default function App() {
   }, [appName]);
 
   if (me === undefined) return <div className="splash" />;
-  if (!me) return <Login onLogin={setMe} appName={localTitle(cfg.appName, cfg.appNames)} source={cfg.source} />;
+  if (!me) return <Login onLogin={setMe} appName={localTitle(cfg.appName, cfg.appNames)} source={cfg.source} canReset={cfg.reset} />;
   return <Mail me={me} appName={appName} source={cfg.source} onLogout={() => api.logout().finally(() => setMe(null))} />;
 }
 

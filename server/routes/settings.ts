@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { Router } from 'express';
 import { auth, wrap, cookie, COOKIE } from '../http.ts';
 import type { Authed } from '../http.ts';
-import { serversFor } from '../config.ts';
+import { serversFor, resetSender } from '../config.ts';
 import type { ServerSettings } from '../config.ts';
 import { withSieve } from '../managesieve.ts';
 import type { SieveOptions } from '../managesieve.ts';
@@ -43,7 +43,7 @@ r.get(
   auth,
   wrap(async (req, res) => {
     const srv = await srvFor(req);
-    res.json({ rules: !!srv.sieveHost, password: !!srv.passwordCmd, passwordMin: srv.passwordMin || 10 });
+    res.json({ rules: !!srv.sieveHost, password: !!srv.passwordCmd, passwordMin: srv.passwordMin || 10, reset: !!resetSender() && !!srv.passwordCmd });
   }),
 );
 

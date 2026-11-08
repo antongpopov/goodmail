@@ -549,3 +549,4 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .rule-row input.short { width: 110px; }
 .pw-form { display: flex; flex-direction: column; gap: 8px; }
 .pw-form input:focus, .rule-row input:focus, .rule-row select:focus { outline: none; border-color: var(--brand); }
+.login-card .forgot { align-self: center; margin-top: -4px; }
