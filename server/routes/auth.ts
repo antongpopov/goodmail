@@ -35,7 +35,7 @@ r.post(
   wrap(async (req, res) => {
     if (throttled(req.ip || '?')) return res.status(429).json({ error: 'Too many attempts, try again in 15 minutes' });
     const b = req.body || {};
-    const email = normalizeLogin(String(b.email || ''));
+    const email = normalizeLogin(String(b.email || ''), req.hostname);
     const pass = String(b.password || '');
     if (!/^[^@\s]+@[^@\s]+$/.test(email) || !pass) return res.status(400).json({ error: 'Enter your email address and password' });
     const account = await accountFor(email, pass);

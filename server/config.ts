@@ -13,7 +13,8 @@
 //   title1.de=Beispiel Mail        # optional: the same name for users whose browser language is de (da, de, sv, nb, fr, es, …)
 //
 //   domain9=*                      # catch-all for every domain not listed explicitly
-//   defaultdomain=example.com     # a login without @ becomes user@defaultdomain
+//   defaultdomain=example.com     # a login without @ becomes user@defaultdomain — except on a host like
+//                                 # goodmail.<one of the domains above>, where that domain is used instead
 //
 //   resetfrom=goodmail@example.com # optional: sender of "forgot password" mails — together with resetsmtp it turns the feature on
 //   resetsmtp=mail.example.com:587 # SMTP server that sends them (465 = TLS, 587 = STARTTLS)
@@ -194,10 +195,17 @@ export function titlesFor(email: string) {
   return entry?.title ? entry.titles ?? {} : config.titles;
 }
 
-/** "bo" → "bo@<defaultdomain>" when a default domain is configured. */
-export function normalizeLogin(input: string) {
+/**
+ * "bo" → "bo@<domain>". On a host like goodmail.example.com, where example.com is one of the configured
+ * domains, that domain wins (so each domain's users can type just their name); otherwise `defaultdomain`.
+ */
+export function normalizeLogin(input: string, host = '') {
   const v = input.trim().toLowerCase();
-  return !v.includes('@') && config.defaultDomain ? `${v}@${config.defaultDomain}` : v;
+  if (v.includes('@')) return v;
+  const h = host.toLowerCase().replace(/:\d+$/, '');
+  const fromHost = h.includes('.') ? h.split('.').slice(1).join('.') : '';
+  const dom = (fromHost && config.domains.has(fromHost) ? fromHost : '') || config.defaultDomain;
+  return dom ? `${v}@${dom}` : v;
 }
 
 /** Servers for an address, or undefined when this install doesn't serve its domain. */

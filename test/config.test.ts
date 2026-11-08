@@ -83,3 +83,11 @@ test('localized titles: empty values and non-language suffixes are ignored', () 
   const c = cfg.parseConfig('title.da =\ntitle.toolongcode = x\ntitle.nb = Min post\n');
   assert.deepEqual(c.titles, { nb: 'Min post' });
 });
+
+test('a login without @ takes its domain from a goodmail.<domain> host', async () => {
+  const { normalizeLogin } = await import('../server/config.ts');
+  // the example config lists example.com; the default domain is whatever the config says, hosts override it
+  assert.equal(normalizeLogin('bo@x.org', 'goodmail.example.com'), 'bo@x.org');
+  assert.equal(normalizeLogin('Bo', 'goodmail.example.com:3000'), 'bo@example.com');
+  assert.equal(normalizeLogin('bo', 'mail.unknown.org'), normalizeLogin('bo', ''));
+});

@@ -119,7 +119,7 @@ setInterval(() => {
 r.post(
   '/api/reset/start',
   wrap(async (req, res) => {
-    const email = normalizeLogin(String(req.body?.email || ''));
+    const email = normalizeLogin(String(req.body?.email || ''), req.hostname);
     if (!addrOk(email)) return res.status(400).json({ error: 'Enter your email address' });
     if (hitLimit(byIp, req.ip || '?', 8, 60 * 60_000) || hitLimit(byAddr, email, 3, 60 * 60_000))
       return res.status(429).json({ error: 'Too many attempts, try again later' });
