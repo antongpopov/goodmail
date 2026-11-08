@@ -9,6 +9,7 @@
 # sieveN    host[:port]        ManageSieve server (default port 4190) → enables "Mail rules"
 # passwordcmdN  command …      command that sets a new password (gets JSON on stdin, see README) → enables "Change password"
 # passwordminN  10             shortest accepted new password
+# signatureN  Best regards\n{name}   default signature for these users' new mail (\n = new line; {name}, {email}); a user's own replaces it
 # titleN    Example Mail       app name these users see after signing in (default: title below)
 # titleN.xx Beispiel-Mail      the same name in another language, xx = da, de, en, es, fr, nb, sv (falls back to titleN)
 

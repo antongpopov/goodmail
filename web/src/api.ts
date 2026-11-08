@@ -33,6 +33,8 @@ export type RuleActionType = 'move' | 'read' | 'flag' | 'forward' | 'discard' | 
 export interface RuleCondition { field: RuleField; header?: string; op: RuleOp; value: string }
 export interface RuleAction { type: RuleActionType; value?: string }
 export interface MailRule { id: string; name: string; enabled: boolean; match: 'all' | 'any'; conditions: RuleCondition[]; actions: RuleAction[] }
+export interface Template { id: string; name: string; subject: string; html: string }
+export interface Prefs { signatures: Record<string, string>; templates: Template[]; defaultSignature: string }
 export interface ListResult { total: number; messages: Summary[]; hasMore: boolean }
 
 export class ApiError extends Error {
@@ -88,6 +90,10 @@ export const api = {
   backupEmailConfirm: (code: string) => call<MfaStatus>('POST', '/api/mfa/email/confirm', { code }),
   mfaRemove: (what: string, password: string, id?: string) => call<MfaStatus>('POST', '/api/mfa/remove', { what, password, id }),
   recoveryNew: (password: string) => call<MfaStatus>('POST', '/api/mfa/recovery', { password }),
+  prefs: () => call<Prefs>('GET', '/api/prefs'),
+  saveSignature: (account: string, html: string) => call<Omit<Prefs, 'defaultSignature'>>('PUT', '/api/prefs/signature', { account, html }),
+  saveTemplate: (t: Partial<Template>) => call<Omit<Prefs, 'defaultSignature'>>('POST', '/api/prefs/templates', t),
+  deleteTemplate: (id: string) => call<Omit<Prefs, 'defaultSignature'>>('POST', '/api/prefs/templates/delete', { id }),
   smime: () => call<SmimeStatus>('GET', '/api/smime'),
   smimeEnable: () => call('POST', '/api/smime/enable', {}),
   smimeImport: (file: string, filePassword: string) => call('POST', '/api/smime/import', { file, filePassword }),

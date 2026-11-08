@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from './api.ts';
-import type { Me, Message, MailAccount, Features } from './api.ts';
+import type { Me, Message, MailAccount, Features, Prefs } from './api.ts';
 import { smimePrefs } from './Smime.tsx';
 import { Icon } from './icons.tsx';
 import { escapeHtml, fullAddr, fullTime, humanSize, parseRecipients, textToHtml } from './util.ts';
 import DOMPurify from 'dompurify';
-import { t } from './i18n.ts';
+import { t, L } from './i18n.ts';
 
 export type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward';
 export interface ComposeInit { mode: ComposeMode; source?: Message; to?: string }
@@ -37,9 +37,16 @@ function initial(me: Me, init: ComposeInit) {
   return { to, cc, subject: prefix(s.subject, 'Re'), quote };
 }
 
-export function Compose({ me, features, init, contacts, onClose, onSent, accounts, defaultFrom }: { me: Me; features?: Features | null; init: ComposeInit; contacts: string[]; onClose: () => void; onSent: () => void; accounts: MailAccount[]; defaultFrom: string }) {
+export function Compose({ me, features, prefs, onManage, onPrefsChange, init, contacts, onClose, onSent, accounts, defaultFrom }: { me: Me; features?: Features | null; prefs?: Prefs | null; onManage?: (tab: 'signature' | 'templates') => void; onPrefsChange?: (p: Omit<Prefs, 'defaultSignature'>) => void; init: ComposeInit; contacts: string[]; onClose: () => void; onSent: () => void; accounts: MailAccount[]; defaultFrom: string }) {
   const [from, setFrom] = useState(() => (accounts.some((a) => a.id === defaultFrom) ? defaultFrom : 'main'));
   const start = useRef(initial(me, init)).current;
+  // signature of the account we send from: the user's own, else the server's default (main mailbox only)
+  const sigFor = (id: string) => (prefs ? (id in prefs.signatures ? prefs.signatures[id] : id === 'main' ? prefs.defaultSignature : '') : '');
+  const sigHtml = (id: string) => {
+    const h = sigFor(id);
+    return h ? `<div class="gm-sig" data-gm-sig="1">${DOMPurify.sanitize(h)}</div>` : '';
+  };
+  const [tplOpen, setTplOpen] = useState(false);
   const [to, setTo] = useState(start.to);
   const [cc, setCc] = useState(start.cc);
   const [bcc, setBcc] = useState('');
@@ -70,7 +77,7 @@ export function Compose({ me, features, init, contacts, onClose, onSent, account
 
   useEffect(() => {
     if (editor.current) {
-      editor.current.innerHTML = `<div><br></div><div><br></div>${start.quote}`;
+      editor.current.innerHTML = `<div><br></div><div><br></div>${sigHtml(from)}<div data-gm-quote="1">${start.quote}</div>`;
       if (init.mode === 'new' && !start.to) document.getElementById('gm-to')?.focus();
       else {
         editor.current.focus();
@@ -82,6 +89,74 @@ export function Compose({ me, features, init, contacts, onClose, onSent, account
       }
     }
   }, [start, init.mode]);
+
+  const firstFrom = useRef(true);
+  useEffect(() => {
+    if (firstFrom.current) {
+      firstFrom.current = false;
+      return;
+    }
+    const box = editor.current?.querySelector('[data-gm-sig]');
+    if (!box) return;
+    const h = sigFor(from);
+    if (h) box.innerHTML = DOMPurify.sanitize(h);
+    else box.remove();
+  }, [from]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** {name} {firstname} {date} {me} in a template */
+  const fill = (text: string) => {
+    const first = parseRecipients(to).split(', ')[0] || '';
+    const addr = /<([^>]+)>/.exec(first)?.[1] ?? first;
+    const named = first.replace(/<[^>]*>/, '').replace(/["']/g, '').trim();
+    const full = named || (addr.split('@')[0] || '').replace(/[._-]+/g, ' ');
+    return text
+      .replace(/\{name\}/g, escapeHtml(full))
+      .replace(/\{firstname\}/g, escapeHtml(full.split(' ')[0] || ''))
+      .replace(/\{date\}/g, escapeHtml(new Date().toLocaleDateString(L(), { year: 'numeric', month: 'long', day: 'numeric' })))
+      .replace(/\{me\}/g, escapeHtml(me.name || me.email));
+  };
+  const insertTemplate = (tp: { subject: string; html: string }) => {
+    setTplOpen(false);
+    const ed = editor.current;
+    if (!ed) return;
+    ed.focus();
+    const sel = getSelection();
+    if (!sel || !sel.rangeCount || !ed.contains(sel.anchorNode)) {
+      const r = document.createRange();
+      r.setStart(ed, 0);
+      r.collapse(true);
+      sel?.removeAllRanges();
+      sel?.addRange(r);
+    }
+    document.execCommand('insertHTML', false, DOMPurify.sanitize(fill(tp.html)));
+    if (!subject.trim() && tp.subject) setSubject(fill(tp.subject).replace(/<[^>]*>/g, '').replace(/&amp;/g, '&'));
+  };
+  /** The text the user wrote: the selection if there is one, else everything except signature and quoted mail. */
+  const saveAsTemplate = async () => {
+    setTplOpen(false);
+    const ed = editor.current;
+    if (!ed) return;
+    const sel = getSelection();
+    let html = '';
+    if (sel && sel.rangeCount && !sel.isCollapsed && ed.contains(sel.anchorNode)) {
+      const div = document.createElement('div');
+      div.appendChild(sel.getRangeAt(0).cloneContents());
+      html = div.innerHTML;
+    } else {
+      const copy = ed.cloneNode(true) as HTMLElement;
+      copy.querySelectorAll('[data-gm-sig],[data-gm-quote]').forEach((n) => n.remove());
+      html = copy.innerHTML;
+    }
+    if (!html.replace(/<[^>]*>/g, '').trim()) return setError(t('Write something first, then save it as a template.'));
+    const name = prompt(t('Name for the new template'), subject.trim());
+    if (!name) return;
+    try {
+      const p = await api.saveTemplate({ name, subject: subject.trim(), html: DOMPurify.sanitize(html) });
+      onPrefsChange?.(p);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
 
   const cmd = (c: string, v?: string) => {
     document.execCommand(c, false, v);
@@ -176,6 +251,23 @@ export function Compose({ me, features, init, contacts, onClose, onSent, account
         >
           <Icon name="link" />
         </button>
+        <span className="menu-wrap">
+          <button className={`tb ${tplOpen ? 'on' : ''}`} onMouseDown={(e) => e.preventDefault()} onClick={() => setTplOpen(!tplOpen)} title={t('Insert a template')}>
+            <Icon name="drafts" /> <span className="lbl">{t('Templates')}</span>
+          </button>
+          {tplOpen && (
+            <div className="menu tpl-menu" onMouseDown={(e) => e.preventDefault()}>
+              {(prefs?.templates || []).map((tp) => (
+                <button key={tp.id} className="menu-btn" onClick={() => insertTemplate(tp)}>{tp.name}</button>
+              ))}
+              {!prefs?.templates.length && <div className="muted small" style={{ padding: '6px 10px' }}>{t('No templates yet.')}</div>}
+              <div className="sep-line" />
+              <button className="menu-btn" onClick={() => void saveAsTemplate()}>{t('Save this text as a template…')}</button>
+              <button className="menu-btn" onClick={() => { setTplOpen(false); onManage?.('templates'); }}>{t('Manage templates…')}</button>
+              <button className="menu-btn" onClick={() => { setTplOpen(false); onManage?.('signature'); }}>{t('Signature…')}</button>
+            </div>
+          )}
+        </span>
         {smimeOn && (
           <>
             <button className={`tb ${sign ? 'on' : ''}`} onClick={() => setSign(!sign)} title={t('Sign this message with your S/MIME certificate')} aria-pressed={sign}>

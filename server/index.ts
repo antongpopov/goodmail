@@ -12,6 +12,7 @@ import routesCalendar from './routes/calendar.ts';
 import routesSettings from './routes/settings.ts';
 import routesReset from './routes/reset.ts';
 import routesSmime from './routes/smime.ts';
+import routesPrefs from './routes/prefs.ts';
 
 const app = express();
 app.disable('x-powered-by');
@@ -40,6 +41,7 @@ app.use(routesCalendar);
 app.use(routesSettings);
 app.use(routesReset);
 app.use(routesSmime);
+app.use(routesPrefs);
 
 // ---------- static SPA ----------
 

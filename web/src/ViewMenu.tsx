@@ -18,7 +18,7 @@ const PANES: { id: PaneMode; label: string }[] = [
   { id: 'hidden', label: t('Hidden') },
 ];
 
-export function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, onSecurity, onRules, onSmime, source }: { pane: PaneMode; onPane: (p: PaneMode) => void; preview: boolean; onPreview: (v: boolean) => void; onAccounts: () => void; onSecurity: () => void; onRules?: () => void; onSmime?: () => void; source: string }) {
+export function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, onSecurity, onRules, onSmime, onSignatures, source }: { pane: PaneMode; onPane: (p: PaneMode) => void; preview: boolean; onPreview: (v: boolean) => void; onAccounts: () => void; onSecurity: () => void; onRules?: () => void; onSmime?: () => void; onSignatures?: () => void; source: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -54,6 +54,11 @@ export function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, onSecur
           <button className="menu-btn" onClick={() => { setOpen(false); onAccounts(); }}>
             <Icon name="people" size={16} /> {t('Manage accounts…')}
           </button>
+          {onSignatures && (
+            <button className="menu-btn" onClick={() => { setOpen(false); onSignatures(); }}>
+              <Icon name="drafts" size={16} /> {t('Signatures & templates…')}
+            </button>
+          )}
           {onRules && (
             <button className="menu-btn" onClick={() => { setOpen(false); onRules(); }}>
               <Icon name="folder" size={16} /> {t('Mail rules…')}

@@ -5,8 +5,9 @@ import { AccountsDialog } from './Accounts.tsx';
 import { SecurityDialog } from './Security.tsx';
 import { RulesDialog } from './Rules.tsx';
 import { SmimeDialog, SmimeBadge } from './Smime.tsx';
+import { SignaturesDialog } from './Signatures.tsx';
 import { LangPicker } from './LangPicker.tsx';
-import type { Features, Folder, Me, Message, Summary } from './api.ts';
+import type { Features, Folder, Me, Message, Prefs, Summary } from './api.ts';
 import { Icon, folderIcon } from './icons.tsx';
 import { Login } from './Login.tsx';
 import { Compose } from './Compose.tsx';
@@ -62,6 +63,12 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   const [secDialog, setSecDialog] = useState(false);
   const [rulesDialog, setRulesDialog] = useState(false);
   const [smimeDialog, setSmimeDialog] = useState(false);
+  const [prefs, setPrefs] = useState<Prefs | null>(null);
+  const [sigDialog, setSigDialog] = useState<'signature' | 'templates' | null>(null);
+  useEffect(() => {
+    api.prefs().then(setPrefs).catch(() => {});
+  }, [me.email]);
+  const mergePrefs = (p: Omit<Prefs, 'defaultSignature'>) => setPrefs((old) => ({ defaultSignature: old?.defaultSignature || '', ...p }));
   const [ruleSeed, setRuleSeed] = useState<{ name: string; address: string; field: 'from' | 'to' } | undefined>();
   const [features, setFeatures] = useState<Features | null>(null);
   useEffect(() => {
@@ -622,6 +629,10 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                   <label className="menu-check">
                     <input type="checkbox" checked={preview} onChange={(e) => setPreview(e.target.checked)} /> {t('Show preview text')}
                   </label>
+                  <button className="folder" onClick={() => { setSigDialog('signature'); setDrawer(false); }}>
+                    <span className="twisty" />
+                    <Icon name="drafts" size={18} /> <span className="fname">{t('Signatures & templates…')}</span>
+                  </button>
                   {features?.smime && (
                     <button className="folder" onClick={() => { setSmimeDialog(true); setDrawer(false); }}>
                       <span className="twisty" />
@@ -695,7 +706,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
         </form>
         <div className="top-right">
           <span className="desk-only">
-            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} onAccounts={() => setAcctDialog(true)} onSecurity={() => setSecDialog(true)} onRules={features?.rules ? () => setRulesDialog(true) : undefined} onSmime={features?.smime ? () => setSmimeDialog(true) : undefined} source={source} />
+            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} onAccounts={() => setAcctDialog(true)} onSecurity={() => setSecDialog(true)} onRules={features?.rules ? () => setRulesDialog(true) : undefined} onSmime={features?.smime ? () => setSmimeDialog(true) : undefined} onSignatures={() => setSigDialog('signature')} source={source} />
           </span>
           <span className="who" title={`${me.email} · ${me.imapHost}`}>
             <Avatar addr={{ name: me.name, address: me.email }} size={28} />
@@ -836,6 +847,9 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                   key={`${compose.mode}-${compose.source?.uid ?? 'new'}`}
                   me={me}
                   features={features}
+                  prefs={prefs}
+                  onManage={(tab) => setSigDialog(tab)}
+                  onPrefsChange={mergePrefs}
                   init={compose}
                   accounts={accounts.filter((a) => !a.locked)}
                   defaultFrom={compose.source?.account || acct}
@@ -994,6 +1008,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
         </button>
       )}
       {secDialog && <SecurityDialog onClose={() => setSecDialog(false)} flash={flash} features={features} />}
+      {sigDialog && prefs && <SignaturesDialog onClose={() => setSigDialog(null)} prefs={prefs} setPrefs={setPrefs} accounts={[mainAcct, ...accounts.filter((a) => a.id !== 'main' && !a.locked)]} flash={flash} start={sigDialog} />}
       {smimeDialog && <SmimeDialog onClose={() => setSmimeDialog(false)} flash={flash} />}
       {rulesDialog && <RulesDialog onClose={() => { setRulesDialog(false); setRuleSeed(undefined); }} flash={flash} seed={ruleSeed} />}
       {acctDialog && (

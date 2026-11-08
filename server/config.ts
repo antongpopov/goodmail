@@ -9,6 +9,7 @@
 //   ciphers1=HIGH:!DHE             # optional: OpenSSL cipher list (e.g. to skip a weak DH key)
 //   sieve1=mail.example.com        # optional: ManageSieve server (host[:port], default 4190) → turns on the "Mail rules" editor
 //   passwordcmd1=ssh -i /etc/goodmail/pw-key pw@mail.example.com   # optional: command that sets a new password (see README) → turns on "Change password"
+//   signature1=Best regards\n{name}\nExample Ltd   # optional: default signature for new mail (a user's own signature replaces it)
 //   title1=Example Mail            # optional: app name shown to these users after sign-in
 //   title1.de=Beispiel Mail        # optional: the same name for users whose browser language is de (da, de, sv, nb, fr, es, …)
 //
@@ -48,6 +49,7 @@ export interface ServerSettings {
   sievePort?: number;
   passwordCmd?: string[]; // argv of the command that changes the mailbox password
   passwordMin?: number; // shortest accepted new password
+  signature?: string; // default signature text for these users (signatureN=; \n = new line, {name} {email})
 }
 
 interface Config {
@@ -141,6 +143,8 @@ export function parseConfig(text: string): Config {
     };
     const sieve = kv.get(`sieve${n}`);
     if (sieve && sieve !== 'off') [settings.sieveHost, settings.sievePort] = hostPort(sieve, 4190);
+    const sig = kv.get(`signature${n}`);
+    if (sig) settings.signature = sig.replace(/\\n/g, '\n');
     const cmd = kv.get(`passwordcmd${n}`);
     if (cmd) settings.passwordCmd = splitArgs(cmd);
     settings.passwordMin = Number(kv.get(`passwordmin${n}`) || kv.get('passwordmin')) || 10;

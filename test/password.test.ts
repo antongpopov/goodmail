@@ -60,3 +60,8 @@ test('config: resetfrom + resetsmtp turn on "forgot password"', () => {
   assert.deepEqual(c.reset, { from: 'gm@a.com', host: 'mail.a.com', port: 465, secure: true, user: 'gm@a.com', pass: 'x', insecureTls: false });
   assert.equal(parseConfig('resetfrom=gm@a.com').reset, undefined);
 });
+
+test('config: signatureN is the default signature of a domain', () => {
+  const c = parseConfig('domain1=a.com\nimap1=m.a.com\nsignature1=Best regards\\n{name}\\nA Ltd');
+  assert.equal(c.domains.get('a.com')!.signature, 'Best regards\n{name}\nA Ltd');
+});

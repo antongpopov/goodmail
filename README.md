@@ -42,6 +42,12 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
   **without a password** (per passkey, on by default): the server then keeps an encrypted copy of the mail password
   for that passkey, refreshed on the next password sign-in after a password change. Passkeys need the site's real
   host name — behind a proxy keep `Host` (`ProxyPreserveHost On`) or set `GOODMAIL_ORIGIN=https://mail.example.com`
+- **Signatures and templates** (⚙ → Signatures & templates): one signature per account, added to the end of new mail and
+  replies above the quoted text (switching the From account swaps it; you can still edit or delete it in the message). An
+  administrator can set a default for a domain with `signatureN=` (see below). **Templates** are ready-made texts with a
+  name and an optional subject, inserted from the composer's *Templates* button — or save what you just wrote as one.
+  Placeholders: `{name}` and `{firstname}` of the first recipient, `{date}`, `{me}`. Both are stored on the server, so they
+  follow the user to every device
 - **Mail rules** (⚙ → Mail rules, needs `sieveN=`): "when a message arrives and all/any of these match → move to a folder,
   mark read, flag, forward a copy, delete, stop". Rules are compiled to a Sieve script and stored on the mail server over
   ManageSieve, so they also run while you are signed out. A script written elsewhere is never overwritten without asking.
@@ -112,6 +118,7 @@ insecure2=true                   # accept self-signed certificates
 title2=Example Mail              # app name these users see after signing in
 title2.de=Beispiel-Mail          # the same name in German (see "Localized app name" below)
 
+signature2=Best regards\n{name}\nExample Ltd   # default signature for these users (\n = new line; {name}, {email}); a user's own replaces it
 sieve2=mail.example.net          # ManageSieve host[:port], default 4190 (STARTTLS) → turns on "Mail rules"
 passwordcmd2=ssh -i /etc/goodmail/pw-key pw@mail.example.net   # → turns on "Change password" (see below)
 passwordmin2=12                  # shortest accepted new password (default 10; passwordmin= for all domains)
