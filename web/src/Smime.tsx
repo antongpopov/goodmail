@@ -161,6 +161,21 @@ export function SmimeDialog({ onClose, flash }: { onClose: () => void; flash: (m
               )}
             </section>
 
+            <details className="sec-item smime-help">
+              <summary>{t('Get a certificate from a public authority')}</summary>
+              <p>
+                {t('A public authority checks that the email address is yours and issues a certificate that other people\'s mail apps trust without installing anything. Some offer free certificates for personal use, for example')}{' '}
+                <a href="https://www.actalis.com/" target="_blank" rel="noopener noreferrer">Actalis</a>
+                {'; '}
+                {t('paid ones include')}{' '}
+                <a href="https://www.sectigo.com/" target="_blank" rel="noopener noreferrer">Sectigo</a>,{' '}
+                <a href="https://www.globalsign.com/" target="_blank" rel="noopener noreferrer">GlobalSign</a>,{' '}
+                <a href="https://www.certum.eu/" target="_blank" rel="noopener noreferrer">Certum</a>.
+              </p>
+              <p>{t('The certificate must be for exactly this email address. Many authorities install it in your browser or keychain: export it as a .p12 / .pfx file (on a Mac: Keychain Access → right-click the certificate → Export) and import it above.')}</p>
+              <p>{t('Gmail can only sign and encrypt with S/MIME in Google Workspace, when an administrator turns it on. Apple Mail, Outlook and Thunderbird support it directly.')}</p>
+            </details>
+
             {st.cert && (
               <section className="sec-item">
                 <label className="menu-check sec-sub">

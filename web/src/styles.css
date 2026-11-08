@@ -580,3 +580,7 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .smime-hint { font-size: 12px; color: var(--text-2); padding: 2px 12px; }
 .smime-hint.bad { color: #b3261e; }
 .pill-btn { text-decoration: none; }
+.smime-help { padding: 10px 12px; font-size: 13px; }
+.smime-help summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.smime-help p { margin: 8px 0 0; color: var(--text-2); }
+.smime-help a { color: var(--brand); }

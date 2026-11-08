@@ -333,4 +333,9 @@ export const es: Dict = {
   'Choose a password of at least 6 characters for the file': 'Elige una contraseña de al menos 6 caracteres para el archivo',
   'Choose a certificate file in PEM format (.pem, .crt or .cer)': 'Elige un archivo de certificado en formato PEM (.pem, .crt o .cer)',
   'S/MIME needs the openssl command on the server': 'S/MIME necesita el comando openssl en el servidor',
+  'Get a certificate from a public authority': 'Obtener un certificado de una autoridad pública',
+  'A public authority checks that the email address is yours and issues a certificate that other people\'s mail apps trust without installing anything. Some offer free certificates for personal use, for example': 'Una autoridad pública comprueba que la dirección de correo es tuya y emite un certificado en el que las aplicaciones de correo de los demás confían sin instalar nada. Algunas ofrecen certificados gratuitos para uso personal, por ejemplo',
+  'paid ones include': 'de pago hay en',
+  'The certificate must be for exactly this email address. Many authorities install it in your browser or keychain: export it as a .p12 / .pfx file (on a Mac: Keychain Access → right-click the certificate → Export) and import it above.': 'El certificado debe ser exactamente para esta dirección de correo. Muchas autoridades lo instalan en tu navegador o llavero: expórtalo como archivo .p12 / .pfx (en Mac: Acceso a Llaveros → clic derecho en el certificado → Exportar) e impórtalo arriba.',
+  'Gmail can only sign and encrypt with S/MIME in Google Workspace, when an administrator turns it on. Apple Mail, Outlook and Thunderbird support it directly.': 'Gmail solo puede firmar y cifrar con S/MIME en Google Workspace, cuando un administrador lo activa. Apple Mail, Outlook y Thunderbird lo admiten directamente.',
 };

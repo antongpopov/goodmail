@@ -186,6 +186,9 @@ They exist in plain form only in a private temp directory for the length of one 
   (untrusted, expired, different address, altered).
 * **Encrypting** needs a certificate for every recipient — remembered from signed mail they sent you, added by hand, or a
   colleague on the same install — and your own, so you can read your Sent copy. Sign-then-encrypt is used when both are on.
+* **Real certificates.** Under ⚙ → Secure mail, "Get a certificate from a public authority" explains how to get one from a
+  public CA (some give free personal certificates) and import the .p12 / .pfx. Those are trusted by everyone's mail app without
+  installing your CA. Gmail only does S/MIME in Google Workspace; Apple Mail, Outlook and Thunderbird do it natively.
 * **Not covered (yet):** PGP, certificate revocation checking, S/MIME for the extra accounts a user adds, and signing
   drafts. A webmail can't protect against its own server being compromised: the server holds the keys while you're signed in.
 
