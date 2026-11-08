@@ -165,7 +165,7 @@ export function SmimeDialog({ onClose, flash }: { onClose: () => void; flash: (m
               <summary>{t('Get a certificate from a public authority')}</summary>
               <p>
                 {t('A public authority checks that the email address is yours and issues a certificate that other people\'s mail apps trust without installing anything. Some offer free certificates for personal use, for example')}{' '}
-                <a href="https://www.actalis.com/" target="_blank" rel="noopener noreferrer">Actalis</a>
+                <a href="https://www.actalis.com/s-mime-certificates" target="_blank" rel="noopener noreferrer">Actalis</a>
                 {'; '}
                 {t('paid ones include')}{' '}
                 <a href="https://www.sectigo.com/" target="_blank" rel="noopener noreferrer">Sectigo</a>,{' '}
