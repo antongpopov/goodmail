@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { startRegistration } from '@simplewebauthn/browser';
 import { api } from './api.ts';
-import type { MfaStatus } from './api.ts';
+import type { MfaStatus, Features } from './api.ts';
 import { Icon } from './icons.tsx';
 import { t, L } from './i18n.ts';
 
@@ -13,7 +13,7 @@ function deviceName() {
 }
 
 /** Sign-in security: authenticator app, passkeys, backup email, recovery codes. */
-export function SecurityDialog({ onClose, flash }: { onClose: () => void; flash: (m: string) => void }) {
+export function SecurityDialog({ onClose, flash, features }: { onClose: () => void; flash: (m: string) => void; features?: Features | null }) {
   const [st, setSt] = useState<MfaStatus | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -29,6 +29,19 @@ export function SecurityDialog({ onClose, flash }: { onClose: () => void; flash:
   const [confirm, setConfirm] = useState<{ label: string; run: (pw: string) => Promise<MfaStatus> } | null>(null);
   const [pw, setPw] = useState('');
   const [passwordless, setPasswordless] = useState(true);
+  // password change
+  const [pwOpen, setPwOpen] = useState(false);
+  const [pwCur, setPwCur] = useState('');
+  const [pwNew, setPwNew] = useState('');
+  const [pwNew2, setPwNew2] = useState('');
+  const changePw = () =>
+    run(async () => {
+      if (pwNew !== pwNew2) throw new Error(t('The two new passwords are not the same'));
+      await api.changePassword(pwCur, pwNew);
+      setPwOpen(false);
+      setPwCur(''); setPwNew(''); setPwNew2('');
+      flash(t('Password changed'));
+    });
 
   useEffect(() => {
     api.mfaStatus().then(setSt).catch((e) => setError((e as Error).message));
@@ -140,6 +153,32 @@ export function SecurityDialog({ onClose, flash }: { onClose: () => void; flash:
                   <button className="primary" onClick={() => setCodes(null)}>{t('I saved them')}</button>
                 </div>
               </div>
+            )}
+
+            {features?.password && (
+              <section className="sec-item">
+                <div className="sec-head">
+                  <Icon name="check" />
+                  <div className="grow">
+                    <b>{t('Password')}</b>
+                    <div className="muted small">{t('The password you sign in to your mail with')}</div>
+                  </div>
+                  {!pwOpen && <button className="pill-btn" onClick={() => setPwOpen(true)}>{t('Change')}</button>}
+                </div>
+                {pwOpen && (
+                  <form className="sec-pad pw-form" onSubmit={(e) => { e.preventDefault(); void changePw(); }}>
+                    <input type="password" autoComplete="current-password" value={pwCur} onChange={(e) => setPwCur(e.target.value)} placeholder={t('Current password')} required />
+                    <input type="password" autoComplete="new-password" minLength={features.passwordMin} value={pwNew} onChange={(e) => setPwNew(e.target.value)} placeholder={t('New password ({n}+ characters)', { n: features.passwordMin })} required />
+                    <input type="password" autoComplete="new-password" value={pwNew2} onChange={(e) => setPwNew2(e.target.value)} placeholder={t('New password again')} required />
+                    <p className="muted small">{t('Other devices and mail apps will ask for the new password.')}</p>
+                    <div className="ev-actions">
+                      <span className="grow" />
+                      <button type="button" className="pill-btn" onClick={() => { setPwOpen(false); setError(''); }}>{t('Cancel')}</button>
+                      <button className="primary" disabled={busy}>{t('Change password')}</button>
+                    </div>
+                  </form>
+                )}
+              </section>
             )}
 
             <section className="sec-item">

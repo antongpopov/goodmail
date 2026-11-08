@@ -209,3 +209,20 @@ export async function unlockWithOldPassword(s: Session, oldPassword: string) {
   if (!unlocked) throw Object.assign(new Error('That password did not unlock any account'), { status: 400 });
   return unlocked;
 }
+
+/** After a password change: move the saved accounts from the old key to the key of the new password. */
+export async function rekeyAccounts(login: string, oldPass: string, newPass: string) {
+  const oldKey = userKey(login, oldPass);
+  const newKey = userKey(login, newPass);
+  await serial(login, async () => {
+    const list = await load(login);
+    let changed = false;
+    for (const a of list) {
+      const pass = decryptWith(oldKey, a.secret);
+      if (pass === undefined) continue;
+      a.secret = encryptWith(newKey, pass);
+      changed = true;
+    }
+    if (changed) await store(login, list);
+  });
+}

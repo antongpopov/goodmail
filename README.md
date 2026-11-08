@@ -39,6 +39,11 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
   **without a password** (per passkey, on by default): the server then keeps an encrypted copy of the mail password
   for that passkey, refreshed on the next password sign-in after a password change. Passkeys need the site's real
   host name — behind a proxy keep `Host` (`ProxyPreserveHost On`) or set `GOODMAIL_ORIGIN=https://mail.example.com`
+- **Mail rules** (⚙ → Mail rules, needs `sieveN=`): "when a message arrives and all/any of these match → move to a folder,
+  mark read, flag, forward a copy, delete, stop". Rules are compiled to a Sieve script and stored on the mail server over
+  ManageSieve, so they also run while you are signed out. A script written elsewhere is never overwritten without asking
+- **Change password** (⚙ → Sign-in security, needs `passwordcmdN=`): current + new password; the mail server side is a
+  command you provide, see "Changing passwords" below
 - **Spam meter** under the date: green → yellow → red from the filter's score (rspamd or SpamAssassin headers;
   only the topmost header is trusted). Fully red at the junk threshold — rspamd 6 by default, `spamthreshold=` to change
 - **Fast on slow servers**: opened messages are cached server-side (`GOODMAIL_CACHE_MB`, default 150), folder lists
@@ -84,6 +89,10 @@ insecure2=true                   # accept self-signed certificates
 title2=Example Mail              # app name these users see after signing in
 title2.de=Beispiel-Mail          # the same name in German (see "Localized app name" below)
 
+sieve2=mail.example.net          # ManageSieve host[:port], default 4190 (STARTTLS) → turns on "Mail rules"
+passwordcmd2=ssh -i /etc/goodmail/pw-key pw@mail.example.net   # → turns on "Change password" (see below)
+passwordmin2=12                  # shortest accepted new password (default 10; passwordmin= for all domains)
+
 defaultdomain=example.com       # "bo" logs in as bo@example.com
 autodiscover=false               # true: guess servers for unlisted domains (autoconfig / ISPDB / MX)
 title=goodmail                   # sign-in page, and domains without their own titleN
@@ -97,6 +106,22 @@ The file is re-read automatically when it changes.
 the language picker (`da`, `de`, `en`, `es`, `fr`, `nb`, `sv`). The sign-in page and the browser tab/header show the
 variant that matches the visitor's chosen (or browser) language, and fall back to the plain `title` when there is none.
 A domain that has its own `titleN` uses only its own `titleN.<code>` lines; domains without one use the global `title.<code>` lines.
+
+**Mail rules** need a ManageSieve service (Dovecot Pigeonhole: `protocols = … sieve`, port 4190, STARTTLS). goodmail
+signs in with the user's own mailbox password, keeps its rules in a script called `goodmail` (the editable model is stored
+in a comment on the script's first line) and activates it. If the mailbox already has an active script that goodmail did
+not write, the editor says so and replaces it only after the user ticks "Replace the existing filter" — a copy is kept as
+`goodmail-previous`. Folder names are used exactly as the IMAP server lists them.
+
+**Changing passwords.** Mail servers store passwords in very different places, so goodmail does not guess: it runs the
+command from `passwordcmdN` (split into arguments, never through a shell) and writes one JSON line to its stdin:
+`{"login":"user@example.com","user":"<imap username>","old":"…","new":"…"}`. Exit status 0 means the password is now
+changed; any other status is a failure, and the first line the command printed on stdout (if any) is shown to the user
+(`Password is too weak`) — stderr is only logged. The user's current password was already checked against the session,
+and the new one is checked for length (`passwordmin`) and control characters. Afterwards goodmail confirms that the new
+password opens the mailbox, re-encrypts the user's saved extra accounts and passwordless passkeys under it, and signs the
+browser in again; other devices have to sign in again. A typical command is `ssh` to the mail server with a key that is
+locked to one forced command, which hashes the password and updates the user database.
 
 | Environment | Default | |
 |---|---|---|

@@ -6,6 +6,9 @@
 # smtpN     host[:port]        optional, defaults to the imap host; 465 = TLS (default), 587 = STARTTLS
 # loginN    email | local      username sent to the server: full address (default) or the part before @
 # insecureN true               accept self-signed certificates
+# sieveN    host[:port]        ManageSieve server (default port 4190) → enables "Mail rules"
+# passwordcmdN  command …      command that sets a new password (gets JSON on stdin, see README) → enables "Change password"
+# passwordminN  10             shortest accepted new password
 # titleN    Example Mail       app name these users see after signing in (default: title below)
 # titleN.xx Beispiel-Mail      the same name in another language, xx = da, de, en, es, fr, nb, sv (falls back to titleN)
 

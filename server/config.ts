@@ -7,6 +7,8 @@
 //   insecure1=true                 # optional: accept self-signed certificates
 //   ca1=/etc/goodmail/ca.pem       # optional: extra CA bundle to verify the server against
 //   ciphers1=HIGH:!DHE             # optional: OpenSSL cipher list (e.g. to skip a weak DH key)
+//   sieve1=mail.example.com        # optional: ManageSieve server (host[:port], default 4190) → turns on the "Mail rules" editor
+//   passwordcmd1=ssh -i /etc/goodmail/pw-key pw@mail.example.com   # optional: command that sets a new password (see README) → turns on "Change password"
 //   title1=Example Mail            # optional: app name shown to these users after sign-in
 //   title1.de=Beispiel Mail        # optional: the same name for users whose browser language is de (da, de, sv, nb, fr, es, …)
 //
@@ -34,6 +36,10 @@ export interface ServerSettings {
   ciphers?: string;
   title?: string;
   titles?: Record<string, string>; // per-language variants of title (titleN.<lang>)
+  sieveHost?: string; // ManageSieve server for the rules editor
+  sievePort?: number;
+  passwordCmd?: string[]; // argv of the command that changes the mailbox password
+  passwordMin?: number; // shortest accepted new password
 }
 
 interface Config {
@@ -59,6 +65,14 @@ function localized(kv: Map<string, string>, prefix: string): Record<string, stri
     const m = new RegExp('^' + prefix + '\\.([a-z]{2,3}(?:-[a-z0-9]+)?)$').exec(k);
     if (m && v) out[m[1]] = v;
   }
+  return out;
+}
+
+/** Split a command line into arguments (quotes group words); it is never run through a shell. */
+export function splitArgs(line: string): string[] {
+  const out: string[] = [];
+  const re = /"((?:[^"\\]|\\.)*)"|'([^']*)'|(\S+)/g;
+  for (let m; (m = re.exec(line)); ) out.push(m[1] !== undefined ? m[1].replace(/\\(.)/g, '$1') : m[2] ?? m[3]);
   return out;
 }
 
@@ -97,6 +111,11 @@ export function parseConfig(text: string): Config {
       title: kv.get(`title${n}`) || undefined,
       titles: localized(kv, `title${n}`),
     };
+    const sieve = kv.get(`sieve${n}`);
+    if (sieve && sieve !== 'off') [settings.sieveHost, settings.sievePort] = hostPort(sieve, 4190);
+    const cmd = kv.get(`passwordcmd${n}`);
+    if (cmd) settings.passwordCmd = splitArgs(cmd);
+    settings.passwordMin = Number(kv.get(`passwordmin${n}`) || kv.get('passwordmin')) || 10;
     // One entry may list several domains: domain1=example.com, example.de
     for (const d of v.split(/[,\s]+/).filter(Boolean)) domains.set(d.toLowerCase(), settings);
   }

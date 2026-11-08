@@ -22,6 +22,13 @@ export interface MailAccount { id: string; email: string; name: string; provider
 export interface MfaChallenge { ticket: string; totp: boolean; passkey: boolean; email: string | null; recovery: boolean }
 export interface MfaStatus { enabled: boolean; totp: boolean; passkeys: { id: string; name: string; added: number; passwordless: boolean }[]; email: string | null; recoveryLeft: number; recovery?: string[] }
 export interface Me { email: string; name: string; imapHost: string; appName?: string; appNames?: Record<string, string> }
+export interface Features { rules: boolean; password: boolean; passwordMin: number }
+export type RuleField = 'from' | 'to' | 'cc' | 'recipient' | 'subject' | 'list' | 'header';
+export type RuleOp = 'contains' | 'not-contains' | 'is' | 'begins' | 'ends';
+export type RuleActionType = 'move' | 'read' | 'flag' | 'forward' | 'discard' | 'stop';
+export interface RuleCondition { field: RuleField; header?: string; op: RuleOp; value: string }
+export interface RuleAction { type: RuleActionType; value?: string }
+export interface MailRule { id: string; name: string; enabled: boolean; match: 'all' | 'any'; conditions: RuleCondition[]; actions: RuleAction[] }
 export interface ListResult { total: number; messages: Summary[]; hasMore: boolean }
 
 export class ApiError extends Error {
@@ -77,6 +84,10 @@ export const api = {
   backupEmailConfirm: (code: string) => call<MfaStatus>('POST', '/api/mfa/email/confirm', { code }),
   mfaRemove: (what: string, password: string, id?: string) => call<MfaStatus>('POST', '/api/mfa/remove', { what, password, id }),
   recoveryNew: (password: string) => call<MfaStatus>('POST', '/api/mfa/recovery', { password }),
+  features: () => call<Features>('GET', '/api/features'),
+  rules: () => call<{ rules: MailRule[]; foreign: boolean; active: string | null }>('GET', '/api/rules'),
+  saveRules: (rules: MailRule[], replace = false) => call('PUT', '/api/rules', { rules, replace }),
+  changePassword: (current: string, next: string) => call<Me>('POST', '/api/password', { current, next }),
   logout: () => call('POST', '/api/logout', {}),
   folders: (account = cur, fresh = false) => call<Folder[]>('GET', `/api/folders?${q({ account, ...(fresh ? { fresh: 1 } : {}) })}`),
   messages: (folder: string, page: number, filter = 'all') =>

@@ -9,6 +9,7 @@ import routesMail from './routes/mail.ts';
 import routesAccounts from './routes/accounts.ts';
 import routesContacts from './routes/contacts.ts';
 import routesCalendar from './routes/calendar.ts';
+import routesSettings from './routes/settings.ts';
 
 const app = express();
 app.disable('x-powered-by');
@@ -34,6 +35,7 @@ app.use(routesMail);
 app.use(routesAccounts);
 app.use(routesContacts);
 app.use(routesCalendar);
+app.use(routesSettings);
 
 // ---------- static SPA ----------
 

@@ -3,8 +3,9 @@ import { api, setUnauthorizedHandler, useAccount, currentAccount } from './api.t
 import type { MailAccount } from './api.ts';
 import { AccountsDialog } from './Accounts.tsx';
 import { SecurityDialog } from './Security.tsx';
+import { RulesDialog } from './Rules.tsx';
 import { LangPicker } from './LangPicker.tsx';
-import type { Folder, Me, Message, Summary } from './api.ts';
+import type { Features, Folder, Me, Message, Summary } from './api.ts';
 import { Icon, folderIcon } from './icons.tsx';
 import { Login } from './Login.tsx';
 import { Compose } from './Compose.tsx';
@@ -58,6 +59,11 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   const [folder, setFolder] = useState(() => store('folder', 'INBOX'));
   const [acctDialog, setAcctDialog] = useState(false);
   const [secDialog, setSecDialog] = useState(false);
+  const [rulesDialog, setRulesDialog] = useState(false);
+  const [features, setFeatures] = useState<Features | null>(null);
+  useEffect(() => {
+    api.features().then(setFeatures).catch(() => {});
+  }, [me.email]);
   const goto = (id: string, path: string) => {
     useAccount(id);
     setAcctState(id);
@@ -541,6 +547,12 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                   <label className="menu-check">
                     <input type="checkbox" checked={preview} onChange={(e) => setPreview(e.target.checked)} /> {t('Show preview text')}
                   </label>
+                  {features?.rules && (
+                    <button className="folder" onClick={() => { setRulesDialog(true); setDrawer(false); }}>
+                      <span className="twisty" />
+                      <Icon name="folder" size={18} /> <span className="fname">{t('Mail rules…')}</span>
+                    </button>
+                  )}
                   <button className="folder" onClick={() => { setSecDialog(true); setDrawer(false); }}>
                     <span className="twisty" />
                     <Icon name="check" size={18} /> <span className="fname">{t('Sign-in security…')}</span>
@@ -602,7 +614,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
         </form>
         <div className="top-right">
           <span className="desk-only">
-            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} onAccounts={() => setAcctDialog(true)} onSecurity={() => setSecDialog(true)} source={source} />
+            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} onAccounts={() => setAcctDialog(true)} onSecurity={() => setSecDialog(true)} onRules={features?.rules ? () => setRulesDialog(true) : undefined} source={source} />
           </span>
           <span className="who" title={`${me.email} · ${me.imapHost}`}>
             <Avatar addr={{ name: me.name, address: me.email }} size={28} />
@@ -884,7 +896,8 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
           <Icon name="compose" /> {t('New mail')}
         </button>
       )}
-      {secDialog && <SecurityDialog onClose={() => setSecDialog(false)} flash={flash} />}
+      {secDialog && <SecurityDialog onClose={() => setSecDialog(false)} flash={flash} features={features} />}
+      {rulesDialog && <RulesDialog onClose={() => setRulesDialog(false)} flash={flash} />}
       {acctDialog && (
         <AccountsDialog
           accounts={accounts}
