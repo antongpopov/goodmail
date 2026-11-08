@@ -126,7 +126,10 @@ changed; any other status is a failure, and the first line the command printed o
 and the new one is checked for length (`passwordmin`) and control characters. Afterwards goodmail confirms that the new
 password opens the mailbox, re-encrypts the user's saved extra accounts and passwordless passkeys under it, and signs the
 browser in again; other devices have to sign in again. A typical command is `ssh` to the mail server with a key that is
-locked to one forced command, which hashes the password and updates the user database.
+locked to one forced command, which hashes the password and updates the user database. `ops/goodmail-setpw` is such a
+helper for Postfix + Dovecot + PostfixAdmin (BLF-CRYPT into the `mailbox` table): install it as root on the mail server, add
+`command="sudo -n /usr/local/sbin/goodmail-setpw",from="<web server IP>",no-pty,no-port-forwarding <public key>` to the
+forced-command user's `authorized_keys`, and allow just that script in sudoers.
 
 **Forgot password.** Nobody is signed in then, so the code can't go out through the user's own mailbox: `resetfrom=` is
 a dedicated sender address, `resetsmtp=host[:port]` its server (465 = TLS, 587 = STARTTLS), with `resetuser=`/`resetpass=`

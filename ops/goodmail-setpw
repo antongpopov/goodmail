@@ -1,0 +1,37 @@
+#!/usr/bin/python3
+# goodmail "passwordcmd" for a Postfix + Dovecot + PostfixAdmin server (virtual users in the `mailbox` table).
+# Reads {"login","user","old","new"[,"reset"]} as one JSON line on stdin and stores a BLF-CRYPT hash.
+# Run it through sudo from a forced-command SSH key; see the README ("Changing passwords").
+# Exit 0 = changed. Anything printed to stdout on failure is shown to the user; never print secrets.
+import json, re, subprocess, sys
+import bcrypt
+
+def fail(msg):
+    print(msg)
+    sys.exit(1)
+
+try:
+    job = json.loads(sys.stdin.readline())
+    login = str(job["login"]).strip().lower()
+    new = str(job["new"])
+except Exception:
+    fail("The request was not understood")
+
+if not re.fullmatch(r"[a-z0-9._+-]{1,64}@[a-z0-9.-]{1,200}", login):
+    fail("This is not a valid mail address")
+if not 10 <= len(new) <= 200 or re.search(r"[\x00-\x1f\x7f]", new):
+    fail("The new password needs 10 to 200 characters")
+
+h = bcrypt.hashpw(new.encode(), bcrypt.gensalt(12, b"2b")).decode().replace("$2b$", "$2y$", 1)
+if not bcrypt.checkpw(new.encode(), h.replace("$2y$", "$2b$", 1).encode()):
+    fail("Could not hash the password")
+stored = "{BLF-CRYPT}" + h
+assert re.fullmatch(r"\{BLF-CRYPT\}\$2y\$12\$[A-Za-z0-9./]{53}", stored)
+
+sql = "UPDATE mailbox SET password='%s', modified=NOW() WHERE username='%s' AND active=1; SELECT ROW_COUNT();" % (stored.replace("'", "''"), login)
+r = subprocess.run(["mysql", "-N", "-B", "postfixadmin"], input=sql, capture_output=True, text=True, timeout=15)
+if r.returncode != 0:
+    sys.stderr.write(r.stderr[:300])
+    fail("The mail server could not store the password")
+if r.stdout.strip() != "1":
+    fail("This mailbox is not managed by this server")
