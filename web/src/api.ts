@@ -10,7 +10,7 @@ export interface Message {
   uid: number; folder: string; subject: string; date: number; from: Addr; to: Addr[]; cc: Addr[]; replyTo: Addr[];
   messageId: string; references: string[]; html: string; text: string; flagged: boolean; listUnsubscribe: string;
   spam?: { score: number; threshold: number; reject?: number; engine: string } | null;
-  attachments: Attachment[]; account?: string;
+  attachments: Attachment[]; account?: string; smime?: SmimeInfo;
 }
 export interface Contact { id: string; name: string; emails: string[]; phones: string[]; company: string; notes: string; updated: number }
 export interface RRule { freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'; interval: number; until?: number; count?: number; byday?: string[] }
@@ -22,7 +22,11 @@ export interface MailAccount { id: string; email: string; name: string; provider
 export interface MfaChallenge { ticket: string; totp: boolean; passkey: boolean; email: string | null; recovery: boolean }
 export interface MfaStatus { enabled: boolean; totp: boolean; passkeys: { id: string; name: string; added: number; passwordless: boolean }[]; email: string | null; recoveryLeft: number; resetEmail?: string | null; recovery?: string[] }
 export interface Me { email: string; name: string; imapHost: string; appName?: string; appNames?: Record<string, string> }
-export interface Features { rules: boolean; password: boolean; passwordMin: number; reset: boolean }
+export interface Features { rules: boolean; password: boolean; passwordMin: number; reset: boolean; smime: boolean }
+export interface SmimeSignature { status: 'ok' | 'untrusted' | 'expired' | 'mismatch' | 'invalid'; signer?: { emails: string[]; name: string; issuer: string; fingerprint: string; notAfter: string } }
+export interface SmimeInfo { signed?: SmimeSignature; encrypted?: boolean; readable?: boolean; reason?: 'no-certificate' | 'not-for-you' }
+export interface CertView { emails: string[]; name: string; issuer: string; fingerprint: string; notBefore: string; notAfter: string; expired: boolean }
+export interface SmimeStatus { enabled: boolean; available?: boolean; canIssue?: boolean; cert?: (CertView & { kind: 'local' | 'imported'; added: number }) | null; ca?: CertView | null; contacts?: (CertView & { email: string })[] }
 export type RuleField = 'from' | 'to' | 'cc' | 'recipient' | 'subject' | 'list' | 'header';
 export type RuleOp = 'contains' | 'not-contains' | 'is' | 'begins' | 'ends';
 export type RuleActionType = 'move' | 'read' | 'flag' | 'forward' | 'discard' | 'stop';
@@ -84,6 +88,18 @@ export const api = {
   backupEmailConfirm: (code: string) => call<MfaStatus>('POST', '/api/mfa/email/confirm', { code }),
   mfaRemove: (what: string, password: string, id?: string) => call<MfaStatus>('POST', '/api/mfa/remove', { what, password, id }),
   recoveryNew: (password: string) => call<MfaStatus>('POST', '/api/mfa/recovery', { password }),
+  smime: () => call<SmimeStatus>('GET', '/api/smime'),
+  smimeEnable: () => call('POST', '/api/smime/enable', {}),
+  smimeImport: (file: string, filePassword: string) => call('POST', '/api/smime/import', { file, filePassword }),
+  smimeRemove: (password: string) => call('POST', '/api/smime/remove', { password }),
+  smimeAddCert: (file: string) => call<{ added: boolean }>('POST', '/api/smime/certs', { file }),
+  smimeForgetCert: (email: string) => call('POST', '/api/smime/certs/delete', { email }),
+  smimeLookup: (addresses: string[]) => call<{ can: Record<string, boolean>; mine: boolean }>('POST', '/api/smime/lookup', { addresses }),
+  smimeExport: async (password: string, filePassword: string) => {
+    const r = await fetch('/api/smime/export', { method: 'POST', credentials: 'same-origin', headers: { 'x-goodmail': '1', 'content-type': 'application/json' }, body: JSON.stringify({ password, filePassword }) });
+    if (!r.ok) throw new ApiError(r.status, tErr((await r.json().catch(() => ({}))).error || r.statusText));
+    return r.blob();
+  },
   features: () => call<Features>('GET', '/api/features'),
   rules: () => call<{ rules: MailRule[]; foreign: boolean; active: string | null }>('GET', '/api/rules'),
   saveRules: (rules: MailRule[], replace = false) => call('PUT', '/api/rules', { rules, replace }),

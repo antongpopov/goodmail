@@ -20,6 +20,9 @@
 //   resetsmtp=mail.example.com:587 # SMTP server that sends them (465 = TLS, 587 = STARTTLS)
 //   resetuser=goodmail@example.com # SMTP login for that sender (default: resetfrom)
 //   resetpass=…                    # SMTP password for it (keep the file readable by goodmail only)
+//   smime=true                     # optional: S/MIME — sign / encrypt / verify mail (needs the `openssl` command)
+//   smimeca=auto                   # who issues certificates: auto = a CA goodmail creates itself, off = users import their own
+//   smimecaname=Example Mail CA    # name of that CA   ·   smimedays=730  certificate lifetime   ·   smimetrust=/etc/goodmail/roots.pem extra trusted roots
 //   autodiscover=false             # true = guess servers for domains not listed (ISPDB / imap.<domain>)
 //   spamthreshold=6                # optional: spam score shown as fully red (default: rspamd 6 / SpamAssassin required=)
 //   title=goodmail                 # optional app name (sign-in page, and domains without their own titleN)
@@ -55,6 +58,14 @@ interface Config {
   defaultDomain: string;
   spamThreshold?: number;
   reset?: ResetSender;
+  smime?: SmimeConfig;
+}
+
+export interface SmimeConfig {
+  ca: 'auto' | 'off';
+  caName: string;
+  days: number;
+  trust?: string; // extra trusted root certificates (PEM file)
 }
 
 /** The mailbox that sends "forgot password" mails (nobody is signed in then, so it can't be the user's own). */
@@ -143,9 +154,14 @@ export function parseConfig(text: string): Config {
     const [host, port] = hostPort(rsmtp, 587);
     reset = { from: rfrom, host, port, secure: port === 465, user: kv.get('resetuser') || rfrom, pass: kv.get('resetpass') || '', insecureTls: kv.get('resetinsecure') === 'true' };
   }
+  const smime: SmimeConfig | undefined =
+    kv.get('smime') === 'true'
+      ? { ca: kv.get('smimeca') === 'off' ? 'off' : 'auto', caName: kv.get('smimecaname') || `${kv.get('title') || 'goodmail'} CA`, days: Number(kv.get('smimedays')) || 730, trust: kv.get('smimetrust') || undefined }
+      : undefined;
   return {
     domains,
     reset,
+    smime,
     autodiscover: kv.get('autodiscover') === 'true',
     title: kv.get('title') || 'goodmail',
     titles: localized(kv, 'title'),
@@ -177,6 +193,7 @@ fs.watchFile(CONFIG_PATH, { interval: 5000 }, () => {
 
 export const appTitle = () => config.title;
 export const resetSender = () => config.reset;
+export const smimeConfig = () => config.smime;
 /** Per-language variants of the global title, for the sign-in page. */
 export const appTitles = () => config.titles;
 /** Score at which the spam bar turns fully red (the filter's junk threshold). Default: rspamd 6, SpamAssassin required=. */

@@ -54,6 +54,12 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
   page, "Forgot your password?" mails a one-time code to that address, then the user picks a new password. The page
   answers the same for unknown addresses, codes last 15 minutes with 5 tries, requests are rate-limited, and the mailbox
   itself gets a notice afterwards. Two-step sign-in still applies after a reset
+- **S/MIME — sign, encrypt, verify** (needs `smime=true` and the `openssl` command): messages from people who sign
+  their mail show "Signed and verified" (or why not); encrypted mail is decrypted for you, signed or not. In the
+  composer, **Sign** and **Encrypt** buttons. Each user gets a certificate from goodmail's own little certificate
+  authority with one click (or imports a .p12 from a real CA), and can download it as a .p12 for Apple Mail / Outlook /
+  Thunderbird. Certificates of correspondents are collected from signed mail, added by hand, or found automatically for
+  colleagues on the same install. See "S/MIME" below
 - **Spam meter** under the date: green → yellow → red from the filter's score (rspamd or SpamAssassin headers;
   only the topmost header is trusted). Fully red at the junk threshold — rspamd 6 by default, `spamthreshold=` to change
 - **Fast on slow servers**: opened messages are cached server-side (`GOODMAIL_CACHE_MB`, default 150), folder lists
@@ -64,6 +70,13 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
 - Light / dark / auto theme with 8 accent colors (blue, teal, green, purple, pink, red, orange, graphite), reading pane right / below / hidden, works down to phone width
 
 ## Run
+
+```bash
+npm install
+npm run setup      # a short wizard: asks for your domains and servers, checks them, writes goodmail.conf
+```
+
+Or do it by hand:
 
 ```bash
 npm install
@@ -156,6 +169,25 @@ locked to one forced command, which hashes the password and updates the user dat
 helper for Postfix + Dovecot + PostfixAdmin (BLF-CRYPT into the `mailbox` table): install it as root on the mail server, add
 `command="sudo -n /usr/local/sbin/goodmail-setpw",from="<web server IP>",no-pty,no-port-forwarding <public key>` to the
 forced-command user's `authorized_keys`, and allow just that script in sudoers.
+
+**S/MIME.** `smime=true` turns it on. Cryptography is done by the `openssl cms` command (OpenSSL ≥ 1.1.1; macOS's
+built-in LibreSSL is not enough — set `GOODMAIL_OPENSSL=/opt/homebrew/bin/openssl`), because that is what real-world S/MIME
+needs (RSA PKCS#1 v1.5 key transport, which browsers no longer provide). Private keys never leave the server and are stored
+encrypted: a user's key under a key derived from the server key *and* their mail password, the CA key under the server key.
+They exist in plain form only in a private temp directory for the length of one openssl call.
+
+* **Certificate authority.** `smimeca=auto` (default) creates a CA (`smimecaname=`, 10 years) on first use under
+  `GOODMAIL_DATA/smime/` and issues 2048-bit RSA certificates (`smimedays=`, default 730) with the `emailProtection` usage and the
+  address in the certificate. `smimeca=off` means users import certificates they already have. The CA certificate is public at
+  `/api/smime/ca.crt` and listed under ⚙ → Secure mail: **people who install it trust your users' signatures**. Back up
+  `GOODMAIL_DATA/smime/ca.json` and `secret.key` together; losing either means issuing new certificates.
+* **Trust.** A signature is "verified" when it chains to your CA, to `smimetrust=` (a PEM file of extra roots) or to a public
+  root (Node's bundled Mozilla list), and the certificate's address matches the From address. Otherwise the message says why
+  (untrusted, expired, different address, altered).
+* **Encrypting** needs a certificate for every recipient — remembered from signed mail they sent you, added by hand, or a
+  colleague on the same install — and your own, so you can read your Sent copy. Sign-then-encrypt is used when both are on.
+* **Not covered (yet):** PGP, certificate revocation checking, S/MIME for the extra accounts a user adds, and signing
+  drafts. A webmail can't protect against its own server being compromised: the server holds the keys while you're signed in.
 
 **Forgot password.** Nobody is signed in then, so the code can't go out through the user's own mailbox: `resetfrom=` is
 a dedicated sender address, `resetsmtp=host[:port]` its server (465 = TLS, 587 = STARTTLS), with `resetuser=`/`resetpass=`

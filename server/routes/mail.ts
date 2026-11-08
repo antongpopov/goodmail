@@ -1,6 +1,8 @@
 import path from 'node:path';
 import nodemailer from 'nodemailer';
 import { simpleParser } from 'mailparser';
+import * as sm from '../smime.ts';
+const smimeOn = sm.smimeOn;
 import { attachments } from '../mime.ts';
 import { spamInfo } from '../spam.ts';
 import { messageCache, msgKey, dropMessages, patchFlag } from '../cache.ts';
@@ -90,6 +92,49 @@ r.get(
   }),
 );
 
+/** S/MIME: verify a signed message, or decrypt an encrypted one with the user's certificate. */
+async function openSecure(session: any, source: Buffer, parsed: Awaited<ReturnType<typeof simpleParser>>) {
+  if (!smimeOn()) return undefined;
+  const ct = parsed.headers.get('content-type') as { value?: string; params?: Record<string, string> } | undefined;
+  const kind = sm.kindOf(ct?.value || '', ct?.params || {});
+  if (!kind) return undefined;
+  const me = session.account.email as string;
+  const from = (parsed.from?.value?.[0]?.address || '').toLowerCase();
+  const signedInfo = async (raw: Buffer) => {
+    const v = await sm.verify(raw, from);
+    if (v.status === 'ok' && v.pem) void sm.rememberCert(me, v.pem).catch(() => {});
+    return { status: v.status, signer: v.signer };
+  };
+  if (kind === 'signed') return { info: { signed: await signedInfo(source) } };
+  if (kind === 'opaque') {
+    const v = await sm.verify(source, from);
+    if (!v.content) return { info: { signed: { status: v.status, signer: v.signer } } };
+    if (v.status === 'ok' && v.pem) void sm.rememberCert(me, v.pem).catch(() => {});
+    const inner = await simpleParser(sm.rebuild(source, v.content));
+    return { parsed: inner, attachments: innerAttachments(inner), info: { signed: { status: v.status, signer: v.signer } } };
+  }
+  // encrypted
+  const rec = await sm.loadUserCert(me);
+  if (!rec || !session.userKey) return { info: { encrypted: true, readable: false, reason: 'no-certificate' } };
+  const plain = await sm.decrypt(source, rec, session.userKey);
+  if (!plain) return { info: { encrypted: true, readable: false, reason: 'not-for-you' } };
+  const rebuilt = sm.rebuild(source, plain);
+  const inner = await simpleParser(rebuilt);
+  const ict = inner.headers.get('content-type') as { value?: string; params?: Record<string, string> } | undefined;
+  const ikind = sm.kindOf(ict?.value || '', ict?.params || {});
+  let signed;
+  if (ikind === 'signed') signed = await signedInfo(rebuilt);
+  return { parsed: inner, attachments: innerAttachments(inner), info: { encrypted: true, readable: true, signed } };
+}
+
+/** Attachments of a decrypted message: they can't be fetched by IMAP part number, so they are addressed by index. */
+function innerAttachments(p: Awaited<ReturnType<typeof simpleParser>>) {
+  const used = new Set(p.attachments.filter((a) => a.related && a.cid).map((a) => a.cid!.replace(/^<|>$/g, '')));
+  return p.attachments
+    .map((a, i) => ({ part: `smime:${i}`, filename: a.filename || 'attachment', type: a.contentType, size: a.size, cid: a.cid?.replace(/^<|>$/g, ''), inline: a.contentDisposition === 'inline' }))
+    .filter((a) => !(a.cid && used.has(a.cid)) && !/pkcs7-signature/i.test(a.type || ''));
+}
+
 r.get(
   '/api/message',
   auth,
@@ -111,7 +156,9 @@ r.get(
     const out = await withFolder(cn, folder, async (c) => {
       const m = await c.fetchOne(String(uid), { uid: true, source: true, bodyStructure: true, flags: true, envelope: true }, { uid: true });
       if (!m || !m.source) throw Object.assign(new Error('message not found'), { status: 404 });
-      const parsed = await simpleParser(m.source);
+      let parsed = await simpleParser(m.source);
+      const secure = cn === req.session ? await openSecure(req.session, m.source, parsed) : undefined;
+      if (secure?.parsed) parsed = secure.parsed;
       const wasSeen = m.flags?.has('\\Seen') ?? false;
       if (!peek && !wasSeen) await c.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true });
       const sourceBytes = m.source.length;
@@ -136,13 +183,15 @@ r.get(
         spam: spamInfo(parsed.headerLines),
         listUnsubscribe: parsed.headers.get('list-unsubscribe') ? String((parsed.headers.get('list-unsubscribe') as any)?.url || '') : '',
         // cid-referenced parts are already embedded in the HTML by mailparser; list everything else.
-        attachments: attachments(m.bodyStructure).filter((a) => !(a.cid && usedCids.has(a.cid))),
+        attachments: secure?.attachments ?? attachments(m.bodyStructure).filter((a) => !(a.cid && usedCids.has(a.cid)) && !/pkcs7-signature/i.test(a.type || '') && !/^smime\.p7s$/i.test(a.filename || '')),
+        smime: secure?.info,
+        _nocache: !!secure?.parsed,
         seen: wasSeen || !peek,
         _bytes: sourceBytes,
       };
     });
-    const { _bytes, ...msg } = out;
-    messageCache.set(key, msg, Math.max(_bytes, (msg.html?.length || 0) + (msg.text?.length || 0)) * 2);
+    const { _bytes, _nocache, ...msg } = out;
+    if (!_nocache) messageCache.set(key, msg, Math.max(_bytes, (msg.html?.length || 0) + (msg.text?.length || 0)) * 2);
     res.json(msg);
   }),
 );
@@ -154,6 +203,23 @@ r.get(
     const folder = String(req.query.folder || 'INBOX');
     const uid = String(Number(req.query.uid));
     const part = String(req.query.part || '1');
+    const sx = /^smime:(\d+)$/.exec(part);
+    if (sx) {
+      // an attachment inside an encrypted / opaque-signed message: decrypt again and serve it by index
+      const cn = conn(req);
+      if (cn !== req.session) return res.status(400).json({ error: 'bad part' });
+      const att = await withFolder(cn, folder, async (c) => {
+        const m = await c.fetchOne(uid, { source: true }, { uid: true });
+        if (!m || !m.source) return undefined;
+        const sec = await openSecure(req.session, m.source, await simpleParser(m.source));
+        return sec?.parsed?.attachments[Number(sx[1])];
+      });
+      if (!att) return res.status(404).json({ error: 'attachment not found' });
+      const name = String(req.query.name || att.filename || 'attachment').replace(/[\r\n"]/g, '');
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', `${req.query.inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(name)}`);
+      return res.end(att.content);
+    }
     if (!/^[0-9.]+$/.test(part)) return res.status(400).json({ error: 'bad part' });
     await withFolder(conn(req), folder, async (c) => {
       const dl = await c.download(uid, part, { uid: true });
@@ -317,6 +383,25 @@ r.post(
   }),
 );
 
+/** Sign and/or encrypt an outgoing message. Encrypting needs a certificate for every recipient (and our own, to read the Sent copy). */
+async function smimeProtect(session: any, raw: Buffer, envelope: any, sign: boolean, encrypt: boolean) {
+  const me = session.account.email as string;
+  const rec = await sm.loadUserCert(me);
+  if (!rec || !session.userKey) throw Object.assign(new Error('Set up your S/MIME certificate first (⚙ → Secure mail)'), { status: 409 });
+  let encryptTo: string[] | undefined;
+  if (encrypt) {
+    const missing: string[] = [];
+    encryptTo = [rec.cert];
+    for (const a of (envelope.to || []) as string[]) {
+      const pem = await sm.certFor(me, a);
+      if (pem) encryptTo.push(pem);
+      else missing.push(a);
+    }
+    if (missing.length) throw Object.assign(new Error(`No certificate for ${missing.join(', ')}, so the message can't be encrypted`), { status: 409, missing });
+  }
+  return sm.protect(raw, { sign: sign ? { rec, userKey: session.userKey } : undefined, encryptTo });
+}
+
 const SERVER_SAVES_SENT = /(^|\.)(gmail\.com|googlemail\.com|office365\.com|outlook\.com)$/i;
 
 r.post(
@@ -344,7 +429,11 @@ r.post(
     };
     // Build the message once so the copy we save to Sent is byte-identical to what went out.
     const built = await nodemailer.createTransport({ streamTransport: true, buffer: true }).sendMail(mail);
-    const raw = built.message as Buffer;
+    let raw = built.message as Buffer;
+    if ((b.sign || b.encrypt) && sm.smimeOn()) {
+      if (s !== req.session) return res.status(400).json({ error: 'S/MIME works for your main mailbox only' });
+      raw = await smimeProtect(req.session, raw, built.envelope, !!b.sign, !!b.encrypt);
+    }
     await s.smtp().sendMail({ envelope: built.envelope, raw });
     if (!SERVER_SAVES_SENT.test(s.account.smtpHost)) {
       const sent = await special(s, '\\Sent');

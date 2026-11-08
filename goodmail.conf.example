@@ -33,3 +33,10 @@ autodiscover=false
 # resetsmtp=mail.example.com:587
 # resetuser=goodmail@example.com
 # resetpass=...
+
+# S/MIME — sign / encrypt / verify mail (needs the openssl command). goodmail can be its own certificate authority.
+# smime=true
+# smimeca=auto            # auto = goodmail issues certificates itself · off = users import their own
+# smimecaname=Example Mail CA
+# smimedays=730
+# smimetrust=/etc/goodmail/extra-roots.pem

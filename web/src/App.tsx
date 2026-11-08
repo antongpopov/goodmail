@@ -4,6 +4,7 @@ import type { MailAccount } from './api.ts';
 import { AccountsDialog } from './Accounts.tsx';
 import { SecurityDialog } from './Security.tsx';
 import { RulesDialog } from './Rules.tsx';
+import { SmimeDialog, SmimeBadge } from './Smime.tsx';
 import { LangPicker } from './LangPicker.tsx';
 import type { Features, Folder, Me, Message, Summary } from './api.ts';
 import { Icon, folderIcon } from './icons.tsx';
@@ -60,6 +61,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   const [acctDialog, setAcctDialog] = useState(false);
   const [secDialog, setSecDialog] = useState(false);
   const [rulesDialog, setRulesDialog] = useState(false);
+  const [smimeDialog, setSmimeDialog] = useState(false);
   const [ruleSeed, setRuleSeed] = useState<{ name: string; address: string; field: 'from' | 'to' } | undefined>();
   const [features, setFeatures] = useState<Features | null>(null);
   useEffect(() => {
@@ -620,6 +622,12 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                   <label className="menu-check">
                     <input type="checkbox" checked={preview} onChange={(e) => setPreview(e.target.checked)} /> {t('Show preview text')}
                   </label>
+                  {features?.smime && (
+                    <button className="folder" onClick={() => { setSmimeDialog(true); setDrawer(false); }}>
+                      <span className="twisty" />
+                      <Icon name="shield" size={18} /> <span className="fname">{t('Secure mail (S/MIME)…')}</span>
+                    </button>
+                  )}
                   {features?.rules && (
                     <button className="folder" onClick={() => { setRulesDialog(true); setDrawer(false); }}>
                       <span className="twisty" />
@@ -687,7 +695,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
         </form>
         <div className="top-right">
           <span className="desk-only">
-            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} onAccounts={() => setAcctDialog(true)} onSecurity={() => setSecDialog(true)} onRules={features?.rules ? () => setRulesDialog(true) : undefined} source={source} />
+            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} onAccounts={() => setAcctDialog(true)} onSecurity={() => setSecDialog(true)} onRules={features?.rules ? () => setRulesDialog(true) : undefined} onSmime={features?.smime ? () => setSmimeDialog(true) : undefined} source={source} />
           </span>
           <span className="who" title={`${me.email} · ${me.imapHost}`}>
             <Avatar addr={{ name: me.name, address: me.email }} size={28} />
@@ -827,6 +835,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                 <Compose
                   key={`${compose.mode}-${compose.source?.uid ?? 'new'}`}
                   me={me}
+                  features={features}
                   init={compose}
                   accounts={accounts.filter((a) => !a.locked)}
                   defaultFrom={compose.source?.account || acct}
@@ -938,6 +947,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                         </button>
                       </div>
                     )}
+                    {open.smime && <SmimeBadge info={open.smime} />}
                     {open.attachments.length > 0 && (
                       <div className="attachments">
                         {open.attachments.map((a) => (
@@ -984,6 +994,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
         </button>
       )}
       {secDialog && <SecurityDialog onClose={() => setSecDialog(false)} flash={flash} features={features} />}
+      {smimeDialog && <SmimeDialog onClose={() => setSmimeDialog(false)} flash={flash} />}
       {rulesDialog && <RulesDialog onClose={() => { setRulesDialog(false); setRuleSeed(undefined); }} flash={flash} seed={ruleSeed} />}
       {acctDialog && (
         <AccountsDialog

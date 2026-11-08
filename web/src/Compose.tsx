@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from './api.ts';
-import type { Me, Message, MailAccount } from './api.ts';
+import type { Me, Message, MailAccount, Features } from './api.ts';
+import { smimePrefs } from './Smime.tsx';
 import { Icon } from './icons.tsx';
 import { escapeHtml, fullAddr, fullTime, humanSize, parseRecipients, textToHtml } from './util.ts';
 import DOMPurify from 'dompurify';
@@ -36,7 +37,7 @@ function initial(me: Me, init: ComposeInit) {
   return { to, cc, subject: prefix(s.subject, 'Re'), quote };
 }
 
-export function Compose({ me, init, contacts, onClose, onSent, accounts, defaultFrom }: { me: Me; init: ComposeInit; contacts: string[]; onClose: () => void; onSent: () => void; accounts: MailAccount[]; defaultFrom: string }) {
+export function Compose({ me, features, init, contacts, onClose, onSent, accounts, defaultFrom }: { me: Me; features?: Features | null; init: ComposeInit; contacts: string[]; onClose: () => void; onSent: () => void; accounts: MailAccount[]; defaultFrom: string }) {
   const [from, setFrom] = useState(() => (accounts.some((a) => a.id === defaultFrom) ? defaultFrom : 'main'));
   const start = useRef(initial(me, init)).current;
   const [to, setTo] = useState(start.to);
@@ -47,6 +48,23 @@ export function Compose({ me, init, contacts, onClose, onSent, accounts, default
   const [atts, setAtts] = useState<Att[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // S/MIME: sign / encrypt this message (defaults from the Secure mail settings)
+  const smimeOn = !!features?.smime && from === 'main';
+  const [sign, setSign] = useState(() => smimePrefs.sign());
+  const [encrypt, setEncrypt] = useState(() => smimePrefs.encrypt());
+  const [lookup, setLookup] = useState<{ can: Record<string, boolean>; mine: boolean } | null>(null);
+  const recipients = parseRecipients(to + ',' + cc + ',' + bcc)
+    .split(', ')
+    .filter(Boolean)
+    .map((x) => (/<([^>]+)>/.exec(x)?.[1] ?? x).trim().toLowerCase());
+  const recipKey = recipients.join(',');
+  useEffect(() => {
+    if (!smimeOn || !(encrypt || sign)) return;
+    const h = setTimeout(() => api.smimeLookup(recipients).then(setLookup).catch(() => setLookup(null)), 400);
+    return () => clearTimeout(h);
+  }, [smimeOn, encrypt, sign, recipKey]);
+  const missing = smimeOn && encrypt && lookup ? recipients.filter((a) => !lookup.can[a]) : [];
+  const noCert = smimeOn && (sign || encrypt) && lookup && !lookup.mine;
   const editor = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -102,6 +120,7 @@ export function Compose({ me, init, contacts, onClose, onSent, accounts, default
         references: s && init.mode !== 'forward' ? [...s.references, s.messageId].filter(Boolean) : undefined,
         replyTo: s && init.mode !== 'forward' ? { folder: s.folder, uid: s.uid, account: s.account } : undefined,
         attachments: atts.map(({ filename, type, content }) => ({ filename, type, content })),
+        ...(smimeOn ? { sign, encrypt } : {}),
       });
       onSent();
     } catch (err) {
@@ -157,12 +176,24 @@ export function Compose({ me, init, contacts, onClose, onSent, accounts, default
         >
           <Icon name="link" />
         </button>
+        {smimeOn && (
+          <>
+            <button className={`tb ${sign ? 'on' : ''}`} onClick={() => setSign(!sign)} title={t('Sign this message with your S/MIME certificate')} aria-pressed={sign}>
+              <Icon name="shield" /> <span className="lbl">{t('Sign')}</span>
+            </button>
+            <button className={`tb ${encrypt ? 'on' : ''}`} onClick={() => setEncrypt(!encrypt)} title={t('Encrypt this message so only the recipients can read it')} aria-pressed={encrypt}>
+              <Icon name="lock" /> <span className="lbl">{t('Encrypt')}</span>
+            </button>
+          </>
+        )}
         <span className="grow" />
         <button className="tb icon" onClick={onClose} title={t('Discard (Esc)')}>
           <Icon name="trash" />
         </button>
         <input ref={fileInput} type="file" multiple hidden onChange={(e) => void addFiles(e.target.files)} />
       </div>
+      {noCert && <div className="smime-hint bad">{t('You have no S/MIME certificate yet — create one under ⚙ → Secure mail.')}</div>}
+      {missing.length > 0 && <div className="smime-hint bad">{t('No certificate for {list}: the message cannot be encrypted.', { list: missing.join(', ') })}</div>}
       <datalist id="gm-contacts">
         {contacts.map((c) => (
           <option key={c} value={c} />
