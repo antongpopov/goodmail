@@ -246,6 +246,55 @@ r.post(
   }),
 );
 
+/** Folders the server or the user's mail apps rely on: never renamed or deleted from here. */
+async function userFolder(c: Awaited<ReturnType<typeof import('../session.ts').Conn.prototype.imap>>, path: string) {
+  if (!path || /^inbox$/i.test(path)) throw Object.assign(new Error('This folder cannot be changed'), { status: 400 });
+  const list = await c.list();
+  const f = list.find((x) => x.path === path);
+  if (!f) throw Object.assign(new Error('That folder no longer exists'), { status: 404 });
+  if (f.specialUse) throw Object.assign(new Error('This folder cannot be changed'), { status: 400 });
+  return { f, list };
+}
+
+r.post(
+  '/api/folder/rename',
+  auth,
+  wrap(async (req, res) => {
+    const name = String(req.body?.name || '').trim();
+    if (!name || /[\u0000-\u001f]/.test(name)) return res.status(400).json({ error: 'name required' });
+    const c = await conn(req).imap();
+    const { f } = await userFolder(c, String(req.body?.path || ''));
+    if (f.delimiter && name.includes(f.delimiter)) return res.status(400).json({ error: `The name may not contain "${f.delimiter}"` });
+    const parent = f.delimiter ? f.path.split(f.delimiter).slice(0, -1).join(f.delimiter) : '';
+    const to = parent ? `${parent}${f.delimiter}${name}` : name;
+    if (to === f.path) return res.json({ path: to });
+    await c.mailboxRename(f.path, to);
+    res.json({ path: to });
+  }),
+);
+
+/** Delete = move into Trash (like Outlook); a folder that is already in Trash is removed for good. */
+r.post(
+  '/api/folder/delete',
+  auth,
+  wrap(async (req, res) => {
+    const c = await conn(req).imap();
+    const { f, list } = await userFolder(c, String(req.body?.path || ''));
+    const trash = list.find((x) => x.specialUse === '\\Trash');
+    const d = f.delimiter || '/';
+    if (!trash || f.path.startsWith(trash.path + d)) {
+      await c.mailboxDelete(f.path);
+      return res.json({ permanent: true });
+    }
+    const leaf = f.path.split(d).pop()!;
+    const taken = new Set(list.map((x) => x.path));
+    let to = `${trash.path}${d}${leaf}`;
+    for (let i = 2; taken.has(to); i++) to = `${trash.path}${d}${leaf} (${i})`;
+    await c.mailboxRename(f.path, to);
+    res.json({ permanent: false, path: to });
+  }),
+);
+
 const SERVER_SAVES_SENT = /(^|\.)(gmail\.com|googlemail\.com|office365\.com|outlook\.com)$/i;
 
 r.post(

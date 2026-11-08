@@ -255,4 +255,17 @@ export const fr: Dict = {
   'That code is not right, or it has expired. Start again.': 'Le code est incorrect ou a expiré. Recommencez.',
   'Too many attempts, try again later': 'Trop de tentatives, réessayez plus tard',
   'Password reset is not set up on this server': 'La réinitialisation du mot de passe n’est pas configurée sur ce serveur',
+  // folder rename / delete
+  'Folder options': 'Options du dossier',
+  'Rename folder…': 'Renommer le dossier…',
+  'Delete folder…': 'Supprimer le dossier…',
+  'New name for the folder': 'Nouveau nom du dossier',
+  'Delete the folder "{name}" and its {n} messages?': 'Supprimer le dossier « {name} » et ses {n} messages ?',
+  'Delete the folder "{name}"?': 'Supprimer le dossier « {name} » ?',
+  'It moves to Trash, where you can still get it back.': 'Il est déplacé dans la corbeille, où vous pouvez le récupérer.',
+  'Folder moved to Trash': 'Dossier déplacé dans la corbeille',
+  'This folder cannot be changed': 'Ce dossier ne peut pas être modifié',
+  'That folder no longer exists': 'Ce dossier n’existe plus',
+  'New subfolder…': 'Nouveau sous-dossier…',
+  'Name of the new subfolder in "{name}"': 'Nom du nouveau sous-dossier dans « {name} »',
 };

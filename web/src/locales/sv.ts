@@ -255,4 +255,17 @@ export const sv: Dict = {
   'That code is not right, or it has expired. Start again.': 'Koden är fel eller har gått ut. Börja om.',
   'Too many attempts, try again later': 'För många försök, försök igen senare',
   'Password reset is not set up on this server': 'Återställning av lösenord är inte konfigurerad på den här servern',
+  // folder rename / delete
+  'Folder options': 'Mappalternativ',
+  'Rename folder…': 'Byt namn på mapp…',
+  'Delete folder…': 'Ta bort mapp…',
+  'New name for the folder': 'Nytt namn på mappen',
+  'Delete the folder "{name}" and its {n} messages?': 'Ta bort mappen "{name}" och dess {n} meddelanden?',
+  'Delete the folder "{name}"?': 'Ta bort mappen "{name}"?',
+  'It moves to Trash, where you can still get it back.': 'Den flyttas till Papperskorgen, där du kan få tillbaka den.',
+  'Folder moved to Trash': 'Mappen flyttades till Papperskorgen',
+  'This folder cannot be changed': 'Den här mappen kan inte ändras',
+  'That folder no longer exists': 'Mappen finns inte längre',
+  'New subfolder…': 'Ny undermapp…',
+  'Name of the new subfolder in "{name}"': 'Namn på den nya undermappen i "{name}"',
 };

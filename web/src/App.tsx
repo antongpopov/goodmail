@@ -467,6 +467,49 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
     goto(aid, path);
     setDrawer(false);
   };
+  const newSubfolder = async (aid: string, n: FolderNode) => {
+    const name = prompt(t('Name of the new subfolder in "{name}"', { name: n.name }));
+    if (!name || !name.trim()) return;
+    try {
+      useAccount(aid);
+      await api.createFolder(`${n.path}${n.delimiter || '/'}${name.trim()}`);
+      setCollapsed((c) => ({ ...c, [`${aid}:${n.path}`]: false }));
+      void loadFolders(true);
+    } catch (err) {
+      flash((err as Error).message);
+    } finally {
+      useAccount(acct);
+    }
+  };
+  const renameFolder = async (aid: string, n: FolderNode) => {
+    const name = prompt(t('New name for the folder'), n.name);
+    if (!name || name.trim() === n.name) return;
+    try {
+      useAccount(aid);
+      const r = await api.renameFolder(n.path, name.trim());
+      if (aid === acct && folder === n.path) goto(aid, r.path);
+      void loadFolders(true);
+    } catch (err) {
+      flash((err as Error).message);
+    } finally {
+      useAccount(acct);
+    }
+  };
+  const deleteFolder = async (aid: string, n: FolderNode) => {
+    const msg = n.total ? t('Delete the folder "{name}" and its {n} messages?', { name: n.name, n: n.total }) : t('Delete the folder "{name}"?', { name: n.name });
+    if (!confirm(msg + '\n\n' + t('It moves to Trash, where you can still get it back.'))) return;
+    try {
+      useAccount(aid);
+      await api.deleteFolder(n.path);
+      if (aid === acct && (folder === n.path || folder.startsWith(n.path + n.delimiter))) goto(aid, 'INBOX');
+      void loadFolders(true);
+      flash(t('Folder moved to Trash'));
+    } catch (err) {
+      flash((err as Error).message);
+    } finally {
+      useAccount(acct);
+    }
+  };
   const toggleCollapsed = (k: string) => {
     const c = { ...collapsed, [k]: !collapsed[k] };
     setCollapsed(c);
@@ -476,7 +519,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
     if (uids.length && aid === acct && path !== folder) void doMove(path, uids);
   };
   const renderFolder = (n: FolderNode, aid: string): React.ReactNode => (
-    <FolderRow key={n.path} n={n} aid={aid} acct={acct} folder={folder} collapsed={collapsed} onOpen={openFolder} onToggle={toggleCollapsed} onDrop={dropOnFolder} />
+    <FolderRow key={n.path} n={n} aid={aid} acct={acct} folder={folder} collapsed={collapsed} onOpen={openFolder} onToggle={toggleCollapsed} onDrop={dropOnFolder} onSub={newSubfolder} onRename={renameFolder} onDelete={deleteFolder} />
   );
 
   const foldersBlock = (

@@ -255,4 +255,17 @@ export const nb: Dict = {
   'That code is not right, or it has expired. Start again.': 'Koden er feil eller utløpt. Start på nytt.',
   'Too many attempts, try again later': 'For mange forsøk, prøv igjen senere',
   'Password reset is not set up on this server': 'Tilbakestilling av passord er ikke satt opp på denne serveren',
+  // folder rename / delete
+  'Folder options': 'Mappealternativer',
+  'Rename folder…': 'Gi mappen nytt navn…',
+  'Delete folder…': 'Slett mappe…',
+  'New name for the folder': 'Nytt navn på mappen',
+  'Delete the folder "{name}" and its {n} messages?': 'Slette mappen «{name}» og de {n} meldingene i den?',
+  'Delete the folder "{name}"?': 'Slette mappen «{name}»?',
+  'It moves to Trash, where you can still get it back.': 'Den flyttes til Papirkurv, der du kan hente den tilbake.',
+  'Folder moved to Trash': 'Mappen er flyttet til Papirkurv',
+  'This folder cannot be changed': 'Denne mappen kan ikke endres',
+  'That folder no longer exists': 'Mappen finnes ikke lenger',
+  'New subfolder…': 'Ny undermappe…',
+  'Name of the new subfolder in "{name}"': 'Navn på den nye undermappen i «{name}»',
 };

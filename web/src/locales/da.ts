@@ -267,4 +267,17 @@ export const da: Dict = {
   'That code is not right, or it has expired. Start again.': 'Koden er forkert eller udløbet. Start forfra.',
   'Too many attempts, try again later': 'For mange forsøg, prøv igen senere',
   'Password reset is not set up on this server': 'Nulstilling af adgangskode er ikke sat op på denne server',
+  // folder rename / delete
+  'Folder options': 'Mappeindstillinger',
+  'Rename folder…': 'Omdøb mappe…',
+  'Delete folder…': 'Slet mappe…',
+  'New name for the folder': 'Nyt navn til mappen',
+  'Delete the folder "{name}" and its {n} messages?': 'Vil du slette mappen "{name}" og dens {n} mails?',
+  'Delete the folder "{name}"?': 'Vil du slette mappen "{name}"?',
+  'It moves to Trash, where you can still get it back.': 'Den flyttes til Slettet post, hvor du kan hente den igen.',
+  'Folder moved to Trash': 'Mappen er flyttet til Slettet post',
+  'This folder cannot be changed': 'Denne mappe kan ikke ændres',
+  'That folder no longer exists': 'Mappen findes ikke længere',
+  'New subfolder…': 'Ny undermappe…',
+  'Name of the new subfolder in "{name}"': 'Navn på den nye undermappe i "{name}"',
 };
