@@ -554,14 +554,15 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 /* folder options (rename / delete) */
 .folder { position: relative; }
 .fmenu-wrap { margin-left: auto; position: relative; flex: none; }
-.fmenu-btn { opacity: 0; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 4px; color: var(--text-2); }
+.fmenu-btn { opacity: .55; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 4px; color: var(--text); }
 .folder:hover .fmenu-btn, .fmenu-btn:focus-visible { opacity: 1; }
+.fmenu-btn svg, .item-more svg { width: 20px; height: 20px; stroke-width: 3.4; }
 .fmenu-btn:hover { background: var(--hover); }
 .fmenu { left: auto; right: 0; top: 26px; min-width: 150px; max-width: 220px; z-index: 30; white-space: nowrap; }
-@media (hover: none) { .fmenu-btn svg { width: 22px; height: 22px; stroke-width: 2.4; } .fmenu-btn { opacity: 1; width: 40px; height: 40px; margin: -8px -4px -8px 0; color: var(--text-2); } .fmenu { top: 34px; } }
+@media (hover: none) { .fmenu-btn svg, .item-more svg { width: 22px; height: 22px; } .fmenu-btn { opacity: 1; width: 40px; height: 40px; margin: -8px -4px -8px 0; } .fmenu { top: 34px; } }
 
 /* per-message ⋯ menu (create rule …) */
-.item-more { display: none; width: 26px; height: 26px; place-items: center; border-radius: 4px; color: var(--text-2); flex: none; }
+.item-more { display: none; width: 28px; height: 28px; place-items: center; border-radius: 4px; color: var(--text); flex: none; }
 .item:hover .item-more, .item.sel .item-more { display: grid; }
 .item-more:hover { background: var(--hover); }
 .msg-menu { z-index: 80; min-width: 240px; }
