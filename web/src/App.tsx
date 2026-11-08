@@ -457,6 +457,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   const openFolder = (aid: string, path: string) => {
     setSearching('');
     setQuery('');
+    setView('mail');
     goto(aid, path);
     setDrawer(false);
   };
@@ -472,134 +473,8 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
     <FolderRow key={n.path} n={n} aid={aid} acct={acct} folder={folder} collapsed={collapsed} onOpen={openFolder} onToggle={toggleCollapsed} onDrop={dropOnFolder} />
   );
 
-  return (
-    <div className="app">
-      <header className="topbar">
-        <button className="top-btn phone-only" onClick={() => { if (view !== 'mail') setView('mail'); setDrawer(true); }} title={t('Folders')}>
-          <Icon name="menu" />
-        </button>
-        <div className="brand">
-          <img src="/favicon.svg" alt="" width={22} height={22} />
-          {appName}
-        </div>
-        <nav className="apps desk-only">
-          {(
-            [
-              ['mail', 'mail', t('Mail')],
-              ['calendar', 'calendar', t('Calendar')],
-              ['contacts', 'people', t('Contacts')],
-            ] as const
-          ).map(([id, icon, label]) => (
-            <button key={id} className={`app-btn ${view === id ? 'active' : ''}`} title={label} aria-label={label} aria-pressed={view === id} onClick={() => setView(id)}>
-              <Icon name={icon} />
-            </button>
-          ))}
-        </nav>
-        <form
-          className="search"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setSearching(query.trim());
-          }}
-        >
-          <Icon name="search" size={16} />
-          <input id="gm-search" placeholder={current ? t('Search {folder}', { folder: folderLabel(current) }) : t('Search mail')} value={query} onChange={(e) => setQuery(e.target.value)} />
-          {searching && (
-            <button
-              type="button"
-              className="x"
-              onClick={() => {
-                setQuery('');
-                setSearching('');
-              }}
-            >
-              <Icon name="close" size={14} />
-            </button>
-          )}
-        </form>
-        <div className="top-right">
-          <span className="desk-only">
-            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} onAccounts={() => setAcctDialog(true)} onSecurity={() => setSecDialog(true)} source={source} />
-          </span>
-          <span className="who" title={`${me.email} · ${me.imapHost}`}>
-            <Avatar addr={{ name: me.name, address: me.email }} size={28} />
-          </span>
-          <button className="top-btn desk-only" onClick={onLogout} title={t('Sign out')}>
-            <Icon name="signout" />
-          </button>
-        </div>
-      </header>
-
-      <div className="body">
-
-        <div className="main">
-          {view === 'calendar' ? (
-            <Calendar flash={flash} isPhone={phoneWidth} />
-          ) : view === 'contacts' ? (
-            <Contacts
-              contacts={book}
-              reload={reloadBook}
-              flash={flash}
-              initial={addContact}
-              onCompose={(to) => {
-                setView('mail');
-                setOpen(null);
-                setCompose({ mode: 'new', to });
-              }}
-            />
-          ) : (
-          <>
-          <div className="toolbar">
-            <button className="tb" onClick={() => { setFoldersHidden(!foldersHidden); save('foldersHidden', !foldersHidden); }} title={t('Show/hide folders')}>
-              <Icon name="menu" />
-            </button>
-            <button className="tb new" onClick={() => setCompose({ mode: 'new' })}>
-              <Icon name="compose" /> {t('New mail')}
-            </button>
-            <span className="sep" />
-            <button className="tb" disabled={!has} onClick={() => void doDelete()}>
-              <Icon name="trash" /> <span className="lbl">{t('Delete')}</span>
-            </button>
-            <button className="tb" disabled={!has} onClick={() => void doMove('archive')}>
-              <Icon name="archive" /> <span className="lbl">{t('Archive')}</span>
-            </button>
-            <div className="menu-wrap">
-              <button className="tb" disabled={!has} onClick={() => setMoveOpen((v) => !v)}>
-                <Icon name="move" /> <span className="lbl">{t('Move')}</span>
-              </button>
-              {moveOpen && (
-                <div className="menu" onMouseLeave={() => setMoveOpen(false)}>
-                  {folders
-                    .filter((f) => f.path !== folder)
-                    .sort((a, b) => a.path.localeCompare(b.path))
-                    .map((f) => (
-                      <button key={f.path} onClick={() => void doMove(f.path)}>
-                        <Icon name={folderIcon(f.specialUse)} size={16} /> {f.path.split(f.delimiter || '/').join(' / ')}
-                      </button>
-                    ))}
-                </div>
-              )}
-            </div>
-            <button
-              className="tb"
-              disabled={!has}
-              onClick={() => void toggleJunk()}
-              title={inJunk ? t('Not junk: move back to Inbox (!)') : t('Mark as junk (!)')}
-            >
-              <Icon name={inJunk ? 'inbox' : 'junk'} /> <span className="lbl">{inJunk ? t('Not junk') : t('Mark as junk')}</span>
-            </button>
-            <button className="tb" disabled={!has} onClick={toggleFlag}>
-              <Icon name="flag" /> <span className="lbl">{t('Flag')}</span>
-            </button>
-            <button className="tb" disabled={!has} onClick={toggleRead}>
-              <Icon name="unread" /> <span className="lbl">{t('Read / Unread')}</span>
-            </button>
-            <button className="tb" onClick={sync}>
-              <Icon name="sync" /> <span className="lbl">{t('Sync')}</span>
-            </button>
-          </div>
-
-          <div className={`panes pane-${pane}`}>
+  const foldersBlock = (
+    <>
             {drawer && <div className="backdrop" onClick={() => setDrawer(false)} />}
             {(!foldersHidden || drawer) && (
               <aside className={`folders ${drawer ? 'drawer-open' : ''}`} style={{ width: folderW }}>
@@ -677,6 +552,139 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                 </div>
               </aside>
             )}
+    </>
+  );
+
+  return (
+    <div className="app">
+      <header className="topbar">
+        <button className="top-btn phone-only" onClick={() => setDrawer(true)} title={t('Folders')}>
+          <Icon name="menu" />
+        </button>
+        <div className="brand">
+          <img src="/favicon.svg" alt="" width={22} height={22} />
+          {appName}
+        </div>
+        <nav className="apps desk-only">
+          {(
+            [
+              ['mail', 'mail', t('Mail')],
+              ['calendar', 'calendar', t('Calendar')],
+              ['contacts', 'people', t('Contacts')],
+            ] as const
+          ).map(([id, icon, label]) => (
+            <button key={id} className={`app-btn ${view === id ? 'active' : ''}`} title={label} aria-label={label} aria-pressed={view === id} onClick={() => setView(id)}>
+              <Icon name={icon} />
+            </button>
+          ))}
+        </nav>
+        <form
+          className="search"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setSearching(query.trim());
+          }}
+        >
+          <Icon name="search" size={16} />
+          <input id="gm-search" placeholder={current ? t('Search {folder}', { folder: folderLabel(current) }) : t('Search mail')} value={query} onChange={(e) => setQuery(e.target.value)} />
+          {searching && (
+            <button
+              type="button"
+              className="x"
+              onClick={() => {
+                setQuery('');
+                setSearching('');
+              }}
+            >
+              <Icon name="close" size={14} />
+            </button>
+          )}
+        </form>
+        <div className="top-right">
+          <span className="desk-only">
+            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} onAccounts={() => setAcctDialog(true)} onSecurity={() => setSecDialog(true)} source={source} />
+          </span>
+          <span className="who" title={`${me.email} · ${me.imapHost}`}>
+            <Avatar addr={{ name: me.name, address: me.email }} size={28} />
+          </span>
+          <button className="top-btn desk-only" onClick={onLogout} title={t('Sign out')}>
+            <Icon name="signout" />
+          </button>
+        </div>
+      </header>
+
+      <div className="body">
+
+        <div className="main">
+          {view !== 'mail' && drawer && foldersBlock}
+          {view === 'calendar' ? (
+            <Calendar flash={flash} isPhone={phoneWidth} />
+          ) : view === 'contacts' ? (
+            <Contacts
+              contacts={book}
+              reload={reloadBook}
+              flash={flash}
+              initial={addContact}
+              onCompose={(to) => {
+                setView('mail');
+                setOpen(null);
+                setCompose({ mode: 'new', to });
+              }}
+            />
+          ) : (
+          <>
+          <div className="toolbar">
+            <button className="tb" onClick={() => { setFoldersHidden(!foldersHidden); save('foldersHidden', !foldersHidden); }} title={t('Show/hide folders')}>
+              <Icon name="menu" />
+            </button>
+            <button className="tb new" onClick={() => setCompose({ mode: 'new' })}>
+              <Icon name="compose" /> {t('New mail')}
+            </button>
+            <span className="sep" />
+            <button className="tb" disabled={!has} onClick={() => void doDelete()}>
+              <Icon name="trash" /> <span className="lbl">{t('Delete')}</span>
+            </button>
+            <button className="tb" disabled={!has} onClick={() => void doMove('archive')}>
+              <Icon name="archive" /> <span className="lbl">{t('Archive')}</span>
+            </button>
+            <div className="menu-wrap">
+              <button className="tb" disabled={!has} onClick={() => setMoveOpen((v) => !v)}>
+                <Icon name="move" /> <span className="lbl">{t('Move')}</span>
+              </button>
+              {moveOpen && (
+                <div className="menu" onMouseLeave={() => setMoveOpen(false)}>
+                  {folders
+                    .filter((f) => f.path !== folder)
+                    .sort((a, b) => a.path.localeCompare(b.path))
+                    .map((f) => (
+                      <button key={f.path} onClick={() => void doMove(f.path)}>
+                        <Icon name={folderIcon(f.specialUse)} size={16} /> {f.path.split(f.delimiter || '/').join(' / ')}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+            <button
+              className="tb"
+              disabled={!has}
+              onClick={() => void toggleJunk()}
+              title={inJunk ? t('Not junk: move back to Inbox (!)') : t('Mark as junk (!)')}
+            >
+              <Icon name={inJunk ? 'inbox' : 'junk'} /> <span className="lbl">{inJunk ? t('Not junk') : t('Mark as junk')}</span>
+            </button>
+            <button className="tb" disabled={!has} onClick={toggleFlag}>
+              <Icon name="flag" /> <span className="lbl">{t('Flag')}</span>
+            </button>
+            <button className="tb" disabled={!has} onClick={toggleRead}>
+              <Icon name="unread" /> <span className="lbl">{t('Read / Unread')}</span>
+            </button>
+            <button className="tb" onClick={sync}>
+              <Icon name="sync" /> <span className="lbl">{t('Sync')}</span>
+            </button>
+          </div>
+
+          <div className={`panes pane-${pane}`}>
+            {foldersBlock}
             {!foldersHidden && <Splitter width={folderW} min={150} max={480} onChange={setFolderW} storeKey="folderW" />}
 
             <div className="work">
