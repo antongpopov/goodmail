@@ -274,4 +274,6 @@ export const nb: Dict = {
   'Permanently delete the folder "{name}"?': 'Slette mappen «{name}» permanent?',
   'This cannot be undone.': 'Dette kan ikke angres.',
   'Folder deleted': 'Mappen er slettet',
+  'More': 'Mer',
+  'Create rule from this message…': 'Lag regel fra denne meldingen…',
 };

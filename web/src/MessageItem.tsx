@@ -1,4 +1,6 @@
 import type React from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Avatar } from './Avatar.tsx';
 import { SpamBar } from './SpamBar.tsx';
 import { Icon } from './icons.tsx';
@@ -19,10 +21,26 @@ interface Props {
   onFlag: (uids: number[], flag: '\\Seen' | '\\Flagged', on: boolean) => void;
   onToggleJunk: (uids: number[]) => void;
   onDelete: (uids: number[]) => void;
+  /** Present when mail rules are available: adds the ⋯ / right-click menu with "Create rule from this message…". */
+  onRule?: (m: Summary) => void;
 }
 
 /** One row of the message list. */
-export function MessageItem({ m, who, isSentFolder, selected, selectedUids, preview, inJunk, compact, onSelect, onFlag, onToggleJunk, onDelete }: Props) {
+export function MessageItem({ m, who, isSentFolder, selected, selectedUids, preview, inJunk, compact, onSelect, onFlag, onToggleJunk, onDelete, onRule }: Props) {
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    window.addEventListener('mousedown', close);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('mousedown', close);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [menu]);
+  const openMenu = (x: number, y: number) => setMenu({ x: Math.max(8, Math.min(x, window.innerWidth - 250)), y: Math.min(y, window.innerHeight - 70) });
   // the bar only appears for mail the filter itself treats as spam (score at or above its junk threshold)
   const isSpam = !!m.spam && m.spam.score >= m.spam.threshold;
   const label = isSentFolder ? t('To: {name}', { name: displayName(who) }) : displayName(who);
@@ -42,6 +60,31 @@ export function MessageItem({ m, who, isSentFolder, selected, selectedUids, prev
       </button>
     </span>
   );
+  const more = onRule && (
+    <button
+      className="item-more"
+      title={t('More')}
+      aria-label={t('More')}
+      onClick={(e) => {
+        e.stopPropagation();
+        const r = e.currentTarget.getBoundingClientRect();
+        openMenu(r.right - 240, r.bottom + 4);
+      }}
+    >
+      <Icon name="more" size={16} />
+    </button>
+  );
+  const popup =
+    menu &&
+    onRule &&
+    createPortal(
+      <div className="menu msg-menu" style={{ position: 'fixed', left: menu.x, top: menu.y }} onMouseDown={(e) => e.stopPropagation()}>
+        <button className="menu-btn" onClick={() => { setMenu(null); onRule(m); }}>
+          <Icon name="folder" size={16} /> {t('Create rule from this message…')}
+        </button>
+      </div>,
+      document.body,
+    );
   const meta = (
     <span className="meta">
       {m.hasAttachments && <Icon name="clip" size={14} />}
@@ -53,6 +96,11 @@ export function MessageItem({ m, who, isSentFolder, selected, selectedUids, prev
   const common = {
     'data-uid': m.uid,
     onClick: (e: React.MouseEvent) => onSelect(m, e),
+    onContextMenu: (e: React.MouseEvent) => {
+      if (!onRule) return;
+      e.preventDefault();
+      openMenu(e.clientX, e.clientY);
+    },
     draggable: true,
     onDragStart: (e: React.DragEvent) => {
       const uids = selectedUids.has(m.uid) ? [...selectedUids] : [m.uid];
@@ -72,6 +120,8 @@ export function MessageItem({ m, who, isSentFolder, selected, selectedUids, prev
         {isSpam && m.spam && <SpamBar spam={m.spam} compact />}
         {meta}
         {actions}
+        {more}
+        {popup}
       </div>
     );
   }
@@ -83,6 +133,7 @@ export function MessageItem({ m, who, isSentFolder, selected, selectedUids, prev
         <div className="row1">
           <span className="sender">{label}</span>
           {actions}
+          {more}
         </div>
         <div className="row2">
           <span className="subject">{m.subject || t('(no subject)')}</span>
@@ -91,6 +142,7 @@ export function MessageItem({ m, who, isSentFolder, selected, selectedUids, prev
         {preview && <div className="row3">{m.snippet || ' '}</div>}
         {isSpam && m.spam && <SpamBar spam={m.spam} />}
       </div>
+      {popup}
     </div>
   );
 }

@@ -39,7 +39,7 @@ const blank = (): MailRule => ({
 });
 
 /** Mail rules: "when a message matches …, then …", stored as a Sieve filter on the mail server. */
-export function RulesDialog({ onClose, flash }: { onClose: () => void; flash: (m: string) => void }) {
+export function RulesDialog({ onClose, flash, seed }: { onClose: () => void; flash: (m: string) => void; seed?: { name: string; address: string; field: 'from' | 'to' } }) {
   const [rules, setRules] = useState<MailRule[] | null>(null);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [foreign, setForeign] = useState(false);
@@ -50,7 +50,18 @@ export function RulesDialog({ onClose, flash }: { onClose: () => void; flash: (m
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    api.rules().then((r) => { setRules(r.rules); setForeign(r.foreign); }).catch((e) => setError((e as Error).message));
+    api
+      .rules()
+      .then((r) => {
+        setRules(r.rules);
+        setForeign(r.foreign);
+        if (seed) {
+          // opened from a message: start a new rule that already matches its sender
+          setEdit({ ...blank(), name: seed.name || seed.address, conditions: [{ field: seed.field, op: 'contains', value: seed.address }] });
+          setIsNew(true);
+        }
+      })
+      .catch((e) => setError((e as Error).message));
     api.folders('main').then(setFolders).catch(() => {});
   }, []);
   useEffect(() => {
@@ -170,6 +181,11 @@ export function RulesDialog({ onClose, flash }: { onClose: () => void; flash: (m
               + {t('Add action')}
             </button>
 
+            {foreign && (
+              <label className="menu-check">
+                <input type="checkbox" checked={replace} onChange={(e) => setReplace(e.target.checked)} /> {t('Replace the existing filter')}
+              </label>
+            )}
             {error && <div className="error">{error}</div>}
             <div className="ev-actions">
               <span className="grow" />

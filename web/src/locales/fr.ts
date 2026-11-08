@@ -274,4 +274,6 @@ export const fr: Dict = {
   'Permanently delete the folder "{name}"?': 'Supprimer définitivement le dossier « {name} » ?',
   'This cannot be undone.': 'Cette action est irréversible.',
   'Folder deleted': 'Dossier supprimé',
+  'More': 'Plus',
+  'Create rule from this message…': 'Créer une règle à partir de ce message…',
 };

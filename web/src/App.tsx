@@ -60,6 +60,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   const [acctDialog, setAcctDialog] = useState(false);
   const [secDialog, setSecDialog] = useState(false);
   const [rulesDialog, setRulesDialog] = useState(false);
+  const [ruleSeed, setRuleSeed] = useState<{ name: string; address: string; field: 'from' | 'to' } | undefined>();
   const [features, setFeatures] = useState<Features | null>(null);
   useEffect(() => {
     api.features().then(setFeatures).catch(() => {});
@@ -809,6 +810,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                         onFlag={setFlag}
                         onToggleJunk={toggleJunk}
                         onDelete={doDelete}
+                        onRule={features?.rules && acct === 'main' ? (msg) => { const w = isSentFolder ? msg.to[0] || msg.from : msg.from; setRuleSeed({ name: displayName(w), address: w.address, field: isSentFolder ? 'to' : 'from' }); setRulesDialog(true); } : undefined}
                       />
                     ))}
                   </div>
@@ -857,6 +859,19 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                       <button className="tb icon" title={inJunk ? t('Not junk (!)') : t('Mark as junk (!)')} onClick={() => void toggleJunk([open.uid])}>
                         <Icon name={inJunk ? 'inbox' : 'junk'} />
                       </button>
+                      {features?.rules && acct === 'main' && (
+                        <button
+                          className="tb icon"
+                          title={t('Create rule from this message…')}
+                          onClick={() => {
+                            const w = isSentFolder ? open.to[0] || open.from : open.from;
+                            setRuleSeed({ name: displayName(w), address: w.address, field: isSentFolder ? 'to' : 'from' });
+                            setRulesDialog(true);
+                          }}
+                        >
+                          <Icon name="folder" />
+                        </button>
+                      )}
                       <span className="phone-only phone-actions">
                         <button className="tb icon" title={t('Delete')} onClick={() => void doDelete()}>
                           <Icon name="trash" />
@@ -969,7 +984,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
         </button>
       )}
       {secDialog && <SecurityDialog onClose={() => setSecDialog(false)} flash={flash} features={features} />}
-      {rulesDialog && <RulesDialog onClose={() => setRulesDialog(false)} flash={flash} />}
+      {rulesDialog && <RulesDialog onClose={() => { setRulesDialog(false); setRuleSeed(undefined); }} flash={flash} seed={ruleSeed} />}
       {acctDialog && (
         <AccountsDialog
           accounts={accounts}

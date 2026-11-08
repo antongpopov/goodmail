@@ -274,4 +274,6 @@ export const sv: Dict = {
   'Permanently delete the folder "{name}"?': 'Ta bort mappen "{name}" permanent?',
   'This cannot be undone.': 'Det går inte att ångra.',
   'Folder deleted': 'Mappen har tagits bort',
+  'More': 'Mer',
+  'Create rule from this message…': 'Skapa regel från det här meddelandet…',
 };

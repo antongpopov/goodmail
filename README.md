@@ -44,7 +44,9 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
   host name — behind a proxy keep `Host` (`ProxyPreserveHost On`) or set `GOODMAIL_ORIGIN=https://mail.example.com`
 - **Mail rules** (⚙ → Mail rules, needs `sieveN=`): "when a message arrives and all/any of these match → move to a folder,
   mark read, flag, forward a copy, delete, stop". Rules are compiled to a Sieve script and stored on the mail server over
-  ManageSieve, so they also run while you are signed out. A script written elsewhere is never overwritten without asking
+  ManageSieve, so they also run while you are signed out. A script written elsewhere is never overwritten without asking.
+  Every message has a ⋯ button (and a right-click menu, and a button in the reading pane) with "Create rule from this
+  message…": the editor opens with the sender (or, in Sent, the recipient) already filled in
 - **Change password** (⚙ → Sign-in security, needs `passwordcmdN=`): current + new password; the mail server side is a
   command you provide, see "Changing passwords" below
 - **Forgot password** (needs `passwordcmdN=` plus `resetfrom=`/`resetsmtp=`): each user saves a **second address**

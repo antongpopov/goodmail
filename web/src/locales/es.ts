@@ -274,4 +274,6 @@ export const es: Dict = {
   'Permanently delete the folder "{name}"?': '¿Eliminar definitivamente la carpeta «{name}»?',
   'This cannot be undone.': 'No se puede deshacer.',
   'Folder deleted': 'Carpeta eliminada',
+  'More': 'Más',
+  'Create rule from this message…': 'Crear regla a partir de este mensaje…',
 };

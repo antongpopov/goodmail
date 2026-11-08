@@ -559,3 +559,11 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .fmenu-btn:hover { background: var(--hover); }
 .fmenu { left: auto; right: 0; top: 26px; min-width: 150px; max-width: 220px; z-index: 30; white-space: nowrap; }
 @media (hover: none) { .fmenu-btn svg { width: 22px; height: 22px; stroke-width: 2.4; } .fmenu-btn { opacity: 1; width: 40px; height: 40px; margin: -8px -4px -8px 0; color: var(--text-2); } .fmenu { top: 34px; } }
+
+/* per-message ⋯ menu (create rule …) */
+.item-more { display: none; width: 26px; height: 26px; place-items: center; border-radius: 4px; color: var(--text-2); flex: none; }
+.item:hover .item-more, .item.sel .item-more { display: grid; }
+.item-more:hover { background: var(--hover); }
+.msg-menu { z-index: 80; min-width: 240px; }
+.item.compact .item-more { margin-left: 4px; }
+@media (hover: none) { .item-more { display: grid; width: 32px; height: 32px; } }
