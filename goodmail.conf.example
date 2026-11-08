@@ -12,6 +12,7 @@
 # titleN    Example Mail       app name these users see after signing in (default: title below)
 # titleN.xx Beispiel-Mail      the same name in another language, xx = da, de, en, es, fr, nb, sv (falls back to titleN)
 
+# One install can serve many domains; on goodmail.<domain> a login without @ gets that domain (see README).
 domain1=example.com
 imap1=mail.example.com
 smtp1=mail.example.com:587

@@ -15,7 +15,10 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
 
 - Sign in with just an e-mail address and password — a config file maps the domain to its servers
 - "Keep me signed in" for a year (sealed cookie; nothing stored server-side but a key)
-- Folder tree with unread counts, drag-and-drop to folders, create folders
+- Folder tree with unread counts. Drag messages onto a folder to move them; drag **folders** onto another folder (or
+  onto empty space for the top level) to re-arrange them. ⋯ / right-click on a folder: new subfolder, rename, delete
+  (a deleted folder, subfolders included, goes to Trash; one already in Trash is deleted for good and the dialog says
+  so). Inbox, Sent, Drafts, Trash, Junk and Archive can't be renamed, moved or deleted
 - Message list grouped Today / Yesterday / This week…, preview lines, unread/flag/attachment markers,
   hover actions, Ctrl/Shift multi-select, infinite scroll, All / Unread / Flagged filters
 - Server-side search (subject, from, to, body)
@@ -106,6 +109,27 @@ title.fr=Ma messagerie
 ```
 
 The file is re-read automatically when it changes.
+
+### Several domains, one install
+
+One goodmail can serve any number of mail domains. List them all in a `domainN=` line (comma separated) — or one line
+per domain when they use different servers — and give each domain a host name of the form **`goodmail.<domain>`**
+(or any `<name>.<domain>`):
+
+```ini
+domain1=example.com, example.org, example.net
+imap1=mail.example.com
+smtp1=mail.example.com:587
+```
+
+* **Login by host.** On `goodmail.example.org` a login without `@` is completed with *that* domain
+  (`bo` → `bo@example.org`); everywhere else `defaultdomain` applies. Full addresses always work, on any host.
+* **DNS + web server.** Point `goodmail.<domain>` at the server (A/AAAA, DNS-only if the zone is behind Cloudflare),
+  add every host name as a `ServerAlias` of the one virtual host, and put them all on one certificate — see
+  [`deploy/apache-multidomain.conf`](deploy/apache-multidomain.conf). Keep `ProxyPreserveHost On`.
+* **Passkeys are per host name** (a WebAuthn rule): a passkey made on `goodmail.example.org` does not work on
+  `goodmail.example.com`. Don't set `GOODMAIL_ORIGIN` when you serve several hosts — it pins one.
+* Titles can differ per domain (`titleN`, `titleN.<lang>`), see below.
 
 **Localized app name.** `title` and `titleN` can be given per language with a `.<code>` suffix, using the codes of
 the language picker (`da`, `de`, `en`, `es`, `fr`, `nb`, `sv`). The sign-in page and the browser tab/header show the
