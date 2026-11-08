@@ -270,4 +270,8 @@ export const sv: Dict = {
   'Name of the new subfolder in "{name}"': 'Namn på den nya undermappen i "{name}"',
   'A folder with that name is already there': 'Det finns redan en mapp med det namnet där',
   "A folder can't go into itself": "En mapp kan inte läggas i sig själv",
+  'Permanently delete the folder "{name}" and its {n} messages?': 'Ta bort mappen "{name}" och dess {n} meddelanden permanent?',
+  'Permanently delete the folder "{name}"?': 'Ta bort mappen "{name}" permanent?',
+  'This cannot be undone.': 'Det går inte att ångra.',
+  'Folder deleted': 'Mappen har tagits bort',
 };

@@ -509,14 +509,19 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
     }
   };
   const deleteFolder = async (aid: string, n: FolderNode) => {
-    const msg = n.total ? t('Delete the folder "{name}" and its {n} messages?', { name: n.name, n: n.total }) : t('Delete the folder "{name}"?', { name: n.name });
-    if (!confirm(msg + '\n\n' + t('It moves to Trash, where you can still get it back.'))) return;
+    // inside Trash already? Then it really is deleted for good — say so, don't promise a way back.
+    const trash = (allFolders[aid] || []).find((f) => f.specialUse === '\\Trash');
+    const inTrash = !trash || n.path.startsWith(trash.path + (n.delimiter || '/'));
+    const msg = inTrash
+      ? n.total ? t('Permanently delete the folder "{name}" and its {n} messages?', { name: n.name, n: n.total }) : t('Permanently delete the folder "{name}"?', { name: n.name })
+      : n.total ? t('Delete the folder "{name}" and its {n} messages?', { name: n.name, n: n.total }) : t('Delete the folder "{name}"?', { name: n.name });
+    if (!confirm(msg + '\n\n' + (inTrash ? t('This cannot be undone.') : t('It moves to Trash, where you can still get it back.')))) return;
     try {
       useAccount(aid);
-      await api.deleteFolder(n.path);
+      const r = await api.deleteFolder(n.path);
       if (aid === acct && (folder === n.path || folder.startsWith(n.path + n.delimiter))) goto(aid, 'INBOX');
       void loadFolders(true);
-      flash(t('Folder moved to Trash'));
+      flash(r.permanent ? t('Folder deleted') : t('Folder moved to Trash'));
     } catch (err) {
       flash((err as Error).message);
     } finally {

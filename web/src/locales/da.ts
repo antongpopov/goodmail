@@ -282,4 +282,8 @@ export const da: Dict = {
   'Name of the new subfolder in "{name}"': 'Navn på den nye undermappe i "{name}"',
   'A folder with that name is already there': 'Der findes allerede en mappe med det navn',
   "A folder can't go into itself": "En mappe kan ikke lægges ind i sig selv",
+  'Permanently delete the folder "{name}" and its {n} messages?': 'Vil du slette mappen "{name}" og dens {n} mails permanent?',
+  'Permanently delete the folder "{name}"?': 'Vil du slette mappen "{name}" permanent?',
+  'This cannot be undone.': 'Det kan ikke fortrydes.',
+  'Folder deleted': 'Mappen er slettet',
 };

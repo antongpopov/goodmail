@@ -270,4 +270,8 @@ export const es: Dict = {
   'Name of the new subfolder in "{name}"': 'Nombre de la nueva subcarpeta en «{name}»',
   'A folder with that name is already there': 'Ya hay una carpeta con ese nombre',
   "A folder can't go into itself": "Una carpeta no se puede mover dentro de sí misma",
+  'Permanently delete the folder "{name}" and its {n} messages?': '¿Eliminar definitivamente la carpeta «{name}» y sus {n} mensajes?',
+  'Permanently delete the folder "{name}"?': '¿Eliminar definitivamente la carpeta «{name}»?',
+  'This cannot be undone.': 'No se puede deshacer.',
+  'Folder deleted': 'Carpeta eliminada',
 };

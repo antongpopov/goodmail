@@ -270,4 +270,8 @@ export const de: Dict = {
   'Name of the new subfolder in "{name}"': 'Name des neuen Unterordners in „{name}“',
   'A folder with that name is already there': 'Dort gibt es schon einen Ordner mit diesem Namen',
   "A folder can't go into itself": "Ein Ordner kann nicht in sich selbst verschoben werden",
+  'Permanently delete the folder "{name}" and its {n} messages?': 'Den Ordner „{name}“ und seine {n} Nachrichten endgültig löschen?',
+  'Permanently delete the folder "{name}"?': 'Den Ordner „{name}“ endgültig löschen?',
+  'This cannot be undone.': 'Das kann nicht rückgängig gemacht werden.',
+  'Folder deleted': 'Ordner gelöscht',
 };
