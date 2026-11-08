@@ -558,4 +558,4 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .folder:hover .fmenu-btn, .fmenu-btn:focus-visible { opacity: 1; }
 .fmenu-btn:hover { background: var(--hover); }
 .fmenu { left: auto; right: 0; top: 26px; min-width: 150px; max-width: 220px; z-index: 30; white-space: nowrap; }
-@media (hover: none) { .fmenu-btn { opacity: .7; } }
+@media (hover: none) { .fmenu-btn svg { width: 22px; height: 22px; stroke-width: 2.4; } .fmenu-btn { opacity: 1; width: 40px; height: 40px; margin: -8px -4px -8px 0; color: var(--text-2); } .fmenu { top: 34px; } }
