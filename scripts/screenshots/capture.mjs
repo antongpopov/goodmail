@@ -116,5 +116,105 @@ const prefs = { preview: true, pane: 'right', theme: 'light', calView: 'week', f
   await ctx.close();
 }
 
+// ---- feature shots: folders, rules, composer + templates, S/MIME, security
+{
+  const { ctx, page } = await session(desk, prefs);
+  const menuItem = async (label) => {
+    await page.click('button[title="View settings"]');
+    await page.click(`.view-menu >> text=${label}`);
+    await page.waitForTimeout(900);
+  };
+
+  // folder menu (⋯) on a folder with subfolders
+  await page.locator('.folders .folder', { hasText: 'Projects' }).first().hover();
+  await page.locator('.folders .folder', { hasText: 'Projects' }).first().locator('.fmenu-btn').click();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${OUT}/folders.png` });
+  await page.keyboard.press('Escape');
+  await page.mouse.click(700, 880);
+
+  // mail rules
+  const rule = (name, conditions, actions, match = 'all') => ({ id: name.toLowerCase().replace(/\W+/g, '-'), name, enabled: true, match, conditions, actions });
+  await api(page, 'PUT', '/api/rules', {
+    rules: [
+      rule('Newsletters', [{ field: 'from', op: 'contains', value: 'weekendread.example' }], [{ type: 'move', value: 'Archive' }, { type: 'read' }]),
+      rule('Invoices from Lena', [{ field: 'from', op: 'is', value: 'lena.fischer@example.de' }, { field: 'subject', op: 'contains', value: 'Invoice' }], [{ type: 'flag' }, { type: 'move', value: 'Projects' }]),
+      rule('Travel bookings', [{ field: 'subject', op: 'contains', value: 'Booking' }, { field: 'from', op: 'contains', value: 'skyway.example' }], [{ type: 'move', value: 'Travel' }], 'any'),
+    ],
+  });
+  await menuItem('Mail rules');
+  await page.screenshot({ path: `${OUT}/rules.png` });
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+
+  // "create rule from this message" (right-click)
+  await page.click('text=Invoice 2026-114', { button: 'right' });
+  await page.click('.msg-menu >> text=Create rule from this message');
+  await page.waitForSelector('.rule-form');
+  await page.locator('.rule-row select.grow').selectOption({ label: 'Projects' }).catch(() => {});
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${OUT}/rule-editor.png` });
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+
+  // composer with the signature and the templates menu
+  for (const [name, subject, html] of [
+    ['Opening hours', 'Our opening hours', '<p>Hello {firstname},</p><p>we are open Monday to Friday, 9:00–17:00. You are welcome to drop by.</p>'],
+    ['Meeting follow-up', '', '<p>Hi {firstname},</p><p>thanks for the conversation today ({date}). As agreed, I will send the draft by Friday.</p>'],
+    ['Out of office', 'Out of office', '<p>Thank you for your message. I am away until the 20th and will reply when I am back.</p>'],
+  ])
+    await api(page, 'POST', '/api/prefs/templates', { name, subject, html });
+  await page.reload();
+  await page.waitForSelector('.item');
+  await page.click('.toolbar .tb.new');
+  await page.waitForSelector('.editor');
+  await page.fill('#gm-to', 'Priya Raman <priya.raman@example.org>');
+  await page.locator('.compose-bar .tb', { hasText: 'Templates' }).click();
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${OUT}/compose.png` });
+  await page.locator('.tpl-menu .menu-btn', { hasText: 'Meeting follow-up' }).click();
+  await page.waitForTimeout(300);
+  await page.locator('.compose-bar .icon[title^="Discard"]').click();
+  await page.waitForTimeout(300);
+
+  // S/MIME: make a certificate, send ourselves a signed + encrypted message, open it
+  await api(page, 'POST', '/api/smime/enable', {});
+  await api(page, 'POST', '/api/send', {
+    to: 'alex@example.com',
+    subject: 'Q4 figures — confidential',
+    text: 'Hi Alex,\n\nthe Q4 numbers are attached in the table below. Please keep this between us until the board meeting.\n\nBest,\nAlex',
+    html: '<p>Hi Alex,</p><p>the Q4 numbers are attached in the table below. Please keep this between us until the board meeting.</p><table border="1" cellpadding="6" style="border-collapse:collapse"><tr><td>Revenue</td><td>€ 1.82 M</td></tr><tr><td>Margin</td><td>23 %</td></tr></table><p>Best,<br>Alex</p>',
+    sign: true,
+    encrypt: true,
+  });
+  await page.reload();
+  await page.waitForSelector('.item');
+  await page.locator('.folders .folder', { hasText: 'Sent' }).first().click();
+  await page.click('text=Q4 figures');
+  await page.waitForSelector('.smime-badge');
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: `${OUT}/smime.png` });
+  await menuItem('Secure mail');
+  await page.screenshot({ path: `${OUT}/smime-settings.png` });
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+
+  // sign-in security (2-step, passkeys, password, reset address)
+  await menuItem('Sign-in security');
+  await page.screenshot({ path: `${OUT}/security.png` });
+  await ctx.close();
+}
+
+// ---- phone: the folder drawer with the ⋯ buttons
+{
+  const phone = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, colorScheme: 'light' };
+  const { ctx, page } = await session(phone, prefs);
+  await page.click('.top-btn.phone-only');
+  await page.waitForTimeout(1000);
+  await page.screenshot({ path: `${OUT}/phone-menu.png` });
+  await ctx.close();
+}
+
 await browser.close();
 console.log('done');

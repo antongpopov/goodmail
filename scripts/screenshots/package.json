@@ -2,6 +2,13 @@
   "name": "goodmail-screenshots",
   "private": true,
   "description": "Regenerates docs/screenshots from a fake mailbox with invented demo data",
-  "scripts": { "demo": "node demo-server.cjs", "capture": "node capture.mjs http://localhost:3100 ../../docs/screenshots" },
-  "devDependencies": { "hoodiecrow-imap": "^3.3.1", "smtp-server": "^3.21.3", "playwright-core": "^1.65.0" }
+  "scripts": {
+    "demo": "node demo-server.cjs & node demo-sieve.cjs & wait",
+    "capture": "node capture.mjs http://localhost:3100 ../../docs/screenshots"
+  },
+  "devDependencies": {
+    "hoodiecrow-imap": "^3.3.1",
+    "smtp-server": "^3.21.3",
+    "playwright-core": "^1.65.0"
+  }
 }

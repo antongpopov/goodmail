@@ -8,8 +8,16 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
 | Dark mode, remote images blocked | Calendar — week view |
 |---|---|
 | ![Dark mode with a newsletter; tracking image blocked](docs/screenshots/mail-dark.png) | ![Calendar week view](docs/screenshots/calendar.png) |
-| **Address book** | **On a phone** |
-| ![Address book](docs/screenshots/contacts.png) | <img src="docs/screenshots/phone-list.png" alt="Message list on a phone" width="49%"> <img src="docs/screenshots/phone-message.png" alt="Reading a message on a phone" width="49%"> |
+| **Folders** — ⋯ menu, subfolders, drag and drop | **Mail rules** — run on the server |
+| ![Folder menu with new subfolder, rename and delete](docs/screenshots/folders.png) | ![Mail rules list](docs/screenshots/rules.png) |
+| **Create a rule from any message** | **Composer** — signature and templates |
+| ![Rule editor pre-filled from a message](docs/screenshots/rule-editor.png) | ![Composer with signature and the templates menu](docs/screenshots/compose.png) |
+| **S/MIME** — signed and encrypted message | **S/MIME settings** — certificate, CA, correspondents |
+| ![An encrypted, signed and verified message](docs/screenshots/smime.png) | ![Secure mail settings](docs/screenshots/smime-settings.png) |
+| **Sign-in security** — password, 2-step, passkeys, reset address | **Address book** |
+| ![Sign-in security dialog](docs/screenshots/security.png) | ![Address book](docs/screenshots/contacts.png) |
+| **On a phone** | **Phone — folder drawer with ⋯ buttons** |
+| <img src="docs/screenshots/phone-list.png" alt="Message list on a phone" width="49%"> <img src="docs/screenshots/phone-message.png" alt="Reading a message on a phone" width="49%"> | <img src="docs/screenshots/phone-menu.png" alt="Folder drawer on a phone" width="60%"> |
 
 <sub>Screenshots use invented demo data — see [scripts/screenshots](scripts/screenshots).</sub>
 
