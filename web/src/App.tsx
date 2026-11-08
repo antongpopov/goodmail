@@ -475,7 +475,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   return (
     <div className="app">
       <header className="topbar">
-        <button className="top-btn phone-only" onClick={() => setDrawer(true)} title={t('Folders')}>
+        <button className="top-btn phone-only" onClick={() => { if (view !== 'mail') setView('mail'); setDrawer(true); }} title={t('Folders')}>
           <Icon name="menu" />
         </button>
         <div className="brand">
