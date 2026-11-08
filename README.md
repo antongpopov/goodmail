@@ -14,7 +14,8 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
 <sub>Screenshots use invented demo data — see [scripts/screenshots](scripts/screenshots).</sub>
 
 - Sign in with just an e-mail address and password — a config file maps the domain to its servers
-- "Keep me signed in" for a year (sealed cookie; nothing stored server-side but a key)
+- "Keep me signed in" for a year (a sealed cookie: no session database, and your mail password is never stored in readable form; per-user
+  extras such as contacts, calendar and preferences are small JSON files — see "Data and backups")
 - Folder tree with unread counts. Drag messages onto a folder to move them; drag **folders** onto another folder (or
   onto empty space for the top level) to re-arrange them. ⋯ / right-click on a folder: new subfolder, rename, delete
   (a deleted folder, subfolders included, goes to Trash; one already in Trash is deleted for good and the dialog says
@@ -88,7 +89,8 @@ Or do it by hand:
 npm install
 cp goodmail.conf.example goodmail.conf   # edit domains
 npm run dev        # API on :3000 + Vite on :5173 (needs Node ≥ 23.6, runs the TS server directly)
-npm test           # unit tests (vault, 2FA, config, contacts, calendar, i18n, utils) + a live-server smoke test
+npm test           # unit tests (vault, 2FA, config, rules, passwords, S/MIME against real openssl, contacts, calendar, i18n, utils)
+                   # + a live-server smoke test; the S/MIME tests skip themselves when openssl with `cms` is missing
 npm run typecheck  # tsc over server, web and tests
 ```
 
@@ -122,6 +124,11 @@ signature2=Best regards\n{name}\nExample Ltd   # default signature for these use
 sieve2=mail.example.net          # ManageSieve host[:port], default 4190 (STARTTLS) → turns on "Mail rules"
 passwordcmd2=ssh -i /etc/goodmail/pw-key pw@mail.example.net   # → turns on "Change password" (see below)
 passwordmin2=12                  # shortest accepted new password (default 10; passwordmin= for all domains)
+
+resetfrom=goodmail@example.net   # "Forgot password": sender of the code mails …
+resetsmtp=mail.example.net:587   # … and its SMTP server (resetuser= / resetpass= are its login)
+
+smime=true                       # sign / encrypt / verify (needs openssl); smimeca=auto|off, smimecaname=, smimedays=, smimetrust=
 
 defaultdomain=example.com       # "bo" logs in as bo@example.com
 autodiscover=false               # true: guess servers for unlisted domains (autoconfig / ISPDB / MX)
@@ -216,11 +223,28 @@ password sign-in.
 |---|---|---|
 | `PORT` / `HOST` | `3000` / `0.0.0.0` | listen address |
 | `GOODMAIL_CONFIG` | `./goodmail.conf` | config file |
-| `GOODMAIL_DATA` | `./data` | `secret.key` (cookie encryption key), `accounts/`, `contacts/`, `calendar/`, `mfa/` (one JSON file per account) |
+| `GOODMAIL_DATA` | `./data` | everything goodmail keeps — see "Data and backups" |
 | `GOODMAIL_SECRET` | — | use this instead of `secret.key` |
 | `GOODMAIL_SOURCE_URL` | this repo | where the in-app "Source code" link points (AGPL §13 — set it for modified versions) |
 | `GOODMAIL_CACHE_MB` | `150` | memory for cached parsed messages |
 | `GOODMAIL_TRUST_PROXY` | `false` | trust `X-Forwarded-For` (set behind a proxy) |
+| `GOODMAIL_ORIGIN` | from the request | pin the site's origin for passkeys (single host only) |
+| `GOODMAIL_OPENSSL` | `openssl` | the openssl command used for S/MIME |
+
+## Data and backups
+
+Everything lives under `GOODMAIL_DATA` (default `./data`), one small JSON file per user and kind, named by a hash of the login:
+
+| Folder / file | What |
+|---|---|
+| `secret.key` | the server key: seals login cookies and encrypts stored secrets. **Without it nobody can sign in and the files below are unreadable** |
+| `accounts/` | extra mail accounts users added (passwords encrypted under the server key *and* the user's own password) |
+| `contacts/`, `calendar/` | address books and calendars |
+| `prefs/` | signatures and templates |
+| `mfa/` | two-step sign-in: authenticator seeds, passkeys, recovery-code hashes, reset address |
+| `smime/` | `ca.json` (the certificate authority; its key is encrypted under the server key), `users/` (certificates, keys encrypted under the user's password), `contacts/` (correspondents' certificates) |
+
+Back up the whole folder, always including `secret.key`. Mail itself stays on your mail server; goodmail keeps none.
 
 ## Security model
 
@@ -228,7 +252,12 @@ password sign-in.
   survive restarts without a database. Deleting `secret.key` signs everyone out.
 - Open IMAP connections live in memory per session and are closed after 10 minutes idle.
 - Mutating API calls require a custom header (CSRF), cookies are `HttpOnly; SameSite=Strict`.
-- Login attempts are rate-limited per IP.
+- Login attempts are rate-limited per IP; so are password-reset requests and every code check.
+- Secrets at rest are encrypted: extra-account passwords, S/MIME private keys and passkey sign-in copies are tied to the user's own
+  password (or the server key) — the files alone are useless. Decrypted S/MIME mail is never cached.
+- The password command, the ManageSieve client and openssl are run with fixed argument lists, never through a shell; user text
+  reaching a Sieve script or a certificate request is validated and escaped first.
+- A webmail that holds your credentials while you are signed in is a trust decision: run it on a server you control.
 
 ## License
 
