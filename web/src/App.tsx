@@ -528,10 +528,6 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                   <Icon name="people" size={16} /> <span className="fname">{t('Add account')}</span>
                 </button>
                 <div className="drawer-foot phone-only">
-                  <button className="folder" onClick={() => { setSecDialog(true); setDrawer(false); }}>
-                    <span className="twisty" />
-                    <Icon name="check" size={18} /> <span className="fname">{t('Sign-in security…')}</span>
-                  </button>
                   <button className="folder" onClick={() => { setView('calendar'); setDrawer(false); }}>
                     <span className="twisty" />
                     <Icon name="calendar" size={18} /> <span className="fname">{t('Calendar')}</span>
@@ -545,6 +541,10 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                   <label className="menu-check">
                     <input type="checkbox" checked={preview} onChange={(e) => setPreview(e.target.checked)} /> {t('Show preview text')}
                   </label>
+                  <button className="folder" onClick={() => { setSecDialog(true); setDrawer(false); }}>
+                    <span className="twisty" />
+                    <Icon name="check" size={18} /> <span className="fname">{t('Sign-in security…')}</span>
+                  </button>
                   <button className="folder" onClick={onLogout}>
                     <span className="twisty" />
                     <Icon name="signout" size={18} /> <span className="fname">{t('Sign out')}</span>
