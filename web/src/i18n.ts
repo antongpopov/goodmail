@@ -60,9 +60,51 @@ export function setClock(v: Clock) {
   location.reload();
 }
 /** Intl options for the chosen clock; merge into any toLocale*String call that shows an hour. */
-export const timeOpts = (): Intl.DateTimeFormatOptions => (clockPref() === '12' ? { hour12: true } : clockPref() === '24' ? { hourCycle: 'h23' } : {});
-/** BCP-47 locale for Intl date/number formatting in the chosen language. */
-export const L = () => (lang === 'en' ? navigator.language || 'en' : lang);
+export const timeOpts = (): Intl.DateTimeFormatOptions => {
+  const c = clockPref();
+  if (c === '12') return { hour12: true };
+  if (c === '24') return { hourCycle: 'h23' };
+  // automatic: keep the browser's / language's own clock even when the date order comes from another locale
+  return { hour12: !!new Intl.DateTimeFormat(LT(), { hour: 'numeric' }).resolvedOptions().hour12 };
+};
+/** Date format preference: 'auto' follows the language/browser. */
+export type DateFmt = 'auto' | 'dmy' | 'mdy' | 'ymd';
+export function dateFmtPref(): DateFmt {
+  try {
+    const v = JSON.parse(localStorage.getItem('gm:datefmt') || 'null');
+    return v === 'dmy' || v === 'mdy' || v === 'ymd' ? v : 'auto';
+  } catch {
+    return 'auto';
+  }
+}
+export function setDateFmt(v: DateFmt) {
+  try {
+    localStorage.setItem('gm:datefmt', JSON.stringify(v));
+  } catch {
+    /* ignore */
+  }
+  location.reload();
+}
+const NUMERIC_LOCALE: Record<Exclude<DateFmt, 'auto'>, string> = { dmy: 'en-GB', mdy: 'en-US', ymd: 'en-CA' };
+/** BCP-47 locale for Intl date formatting: the language, and for English the day/month order the user picked. */
+export const L = () => {
+  if (lang !== 'en') return lang;
+  const f = dateFmtPref();
+  return f === 'auto' ? navigator.language || 'en' : NUMERIC_LOCALE[f];
+};
+/** BCP-47 locale for times (the clock setting is applied on top, see timeOpts). */
+export const LT = () => (lang === 'en' ? navigator.language || 'en' : lang);
+/** "09/11/2026" in the chosen order (any language); format 'auto' uses the language's own. */
+export function numericDate(d: Date) {
+  const f = dateFmtPref();
+  return d.toLocaleDateString(f === 'auto' ? L() : NUMERIC_LOCALE[f], { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+/** Order of day / month / year in numericDate(), e.g. ['d','m','y']. */
+export function dateOrder(): ('d' | 'm' | 'y')[] {
+  const f = dateFmtPref();
+  const parts = new Intl.DateTimeFormat(f === 'auto' ? L() : NUMERIC_LOCALE[f], { day: '2-digit', month: '2-digit', year: 'numeric' }).formatToParts(new Date(2000, 10, 22));
+  return parts.filter((p) => p.type === 'day' || p.type === 'month' || p.type === 'year').map((p) => (p.type === 'day' ? 'd' : p.type === 'month' ? 'm' : 'y'));
+}
 
 export function setLang(id: string) {
   try {

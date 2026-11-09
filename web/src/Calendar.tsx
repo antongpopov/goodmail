@@ -3,7 +3,8 @@ import { api } from './api.ts';
 import type { CalEvent, RRule } from './api.ts';
 import { Icon } from './icons.tsx';
 import { store, save } from './util.ts';
-import { t, L, weekdays, timeOpts } from './i18n.ts';
+import { t, L, LT, weekdays, timeOpts } from './i18n.ts';
+import { DateInput } from './DateInput.tsx';
 
 type View = 'day' | 'workweek' | 'week' | 'month';
 const HOUR = 48; // px per hour in the time grid
@@ -45,7 +46,7 @@ function parseClock(text: string): string | null {
 }
 const showClock = (hhmm: string) => {
   const [h, m] = hhmm.split(':').map(Number);
-  return new Date(2000, 0, 1, h, m).toLocaleTimeString(L(), { hour: '2-digit', minute: '2-digit', ...timeOpts() });
+  return new Date(2000, 0, 1, h, m).toLocaleTimeString(LT(), { hour: '2-digit', minute: '2-digit', ...timeOpts() });
 };
 const SLOTS = Array.from({ length: 96 }, (_, i) => `${String(Math.floor(i / 4)).padStart(2, '0')}:${String((i % 4) * 15).padStart(2, '0')}`);
 
@@ -133,7 +134,7 @@ function TimeInput({ value, onChange }: { value: string; onChange: (v: string) =
     </span>
   );
 }
-const fmtTime = (d: Date) => d.toLocaleTimeString(L(), { hour: '2-digit', minute: '2-digit', ...timeOpts() });
+const fmtTime = (d: Date) => d.toLocaleTimeString(LT(), { hour: '2-digit', minute: '2-digit', ...timeOpts() });
 
 interface Occ {
   ev: CalEvent;
@@ -360,10 +361,10 @@ function EventDialog({ draft, onClose, onSaved, flash }: { draft: Draft; onClose
         <div className="ev-row">
           <Icon name="clock" size={18} />
           <div className="ev-times">
-            <input type="date" value={d.sDate} onChange={(e) => { const v = e.target.value; setD((x) => ({ ...x, sDate: v, eDate: x.eDate < v ? v : x.eDate })); }} required />
+            <DateInput value={d.sDate} onChange={(v) => setD((x) => ({ ...x, sDate: v, eDate: x.eDate < v ? v : x.eDate }))} />
             {!d.allDay && <TimeInput value={d.sTime} onChange={(v) => set('sTime', v)} />}
             <span className="muted">{t('to')}</span>
-            <input type="date" value={d.eDate} onChange={(e) => set('eDate', e.target.value)} required />
+            <DateInput value={d.eDate} onChange={(v) => set('eDate', v)} />
             {!d.allDay && <TimeInput value={d.eTime} onChange={(v) => set('eTime', v)} />}
             <label className="menu-check">
               <input type="checkbox" checked={d.allDay} onChange={(e) => set('allDay', e.target.checked)} /> {t('All day')}
@@ -383,7 +384,7 @@ function EventDialog({ draft, onClose, onSaved, flash }: { draft: Draft; onClose
           {d.repeat !== 'none' && (
             <>
               <span className="muted">{t('until')}</span>
-              <input type="date" value={d.until} onChange={(e) => set('until', e.target.value)} />
+              <DateInput value={d.until} onChange={(v) => set('until', v)} />
             </>
           )}
         </div>
@@ -645,7 +646,7 @@ export function Calendar({ flash, isPhone }: { flash: (m: string) => void; isPho
                 <div className="tg-hours">
                   {Array.from({ length: 24 }, (_, h) => (
                     <div key={h} className="tg-hour" style={{ top: h * HOUR }}>
-                      {h === 0 ? '' : new Date(2000, 0, 1, h).toLocaleTimeString(L(), { hour: 'numeric', ...timeOpts() })}
+                      {h === 0 ? '' : new Date(2000, 0, 1, h).toLocaleTimeString(LT(), { hour: 'numeric', ...timeOpts() })}
                     </div>
                   ))}
                 </div>

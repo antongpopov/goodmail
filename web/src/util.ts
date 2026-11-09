@@ -1,5 +1,5 @@
 import type { Addr } from './api.ts';
-import { t, L, timeOpts } from './i18n.ts';
+import { t, L, LT, timeOpts, numericDate } from './i18n.ts';
 
 const PALETTE = ['#c239b3', '#e3008c', '#d13438', '#ca5010', '#986f0b', '#498205', '#038387', '#0078d4', '#5c2e91', '#8764b8', '#4f6bed', '#007f7f'];
 
@@ -25,11 +25,11 @@ export function listTime(ts: number) {
   const d = new Date(ts);
   const now = new Date();
   const days = Math.round((startOfDay(now) - startOfDay(d)) / 86400000);
-  if (days === 0) return d.toLocaleTimeString(L(), { hour: '2-digit', minute: '2-digit', ...timeOpts() });
+  if (days === 0) return d.toLocaleTimeString(LT(), { hour: '2-digit', minute: '2-digit', ...timeOpts() });
   if (days === 1) return t('Yesterday');
   if (days < 7) return d.toLocaleDateString(L(), { weekday: 'short', hour: '2-digit', minute: '2-digit', ...timeOpts() });
   if (d.getFullYear() === now.getFullYear()) return d.toLocaleDateString(L(), { day: 'numeric', month: 'short' });
-  return d.toLocaleDateString(L(), { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return numericDate(d);
 }
 
 export function fullTime(ts: number) {

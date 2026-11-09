@@ -374,4 +374,5 @@ export const nb: Dict = {
   'Automatic': 'Automatisk',
   '12-hour': '12-timers',
   '24-hour': '24-timers',
+  'Date format': 'Datoformat',
 };

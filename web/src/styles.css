@@ -603,3 +603,16 @@ a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
 .time-list button { display: block; width: 100%; text-align: left; padding: 6px 12px; font-size: 14px; }
 .time-list button:hover, .time-list button.hi { background: var(--hover); }
 .time-list button.cur { font-weight: 600; color: var(--brand); }
+
+/* date field with month popup */
+.date-input { width: 118px; }
+.cal-pop { position: absolute; z-index: 70; top: 100%; left: 0; width: 244px; background: var(--surface); box-shadow: 0 8px 24px rgba(0,0,0,.25); border-radius: 8px; padding: 8px; }
+.cal-pop-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 6px; font-size: 14px; }
+.cal-pop-head button { width: 28px; height: 28px; border-radius: 4px; font-size: 18px; }
+.cal-pop-head button:hover, .cal-pop-grid button:hover { background: var(--hover); }
+.cal-pop-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.cal-pop-grid .dow { font-size: 11px; color: var(--text-2); padding: 4px 0; }
+.cal-pop-grid button { height: 30px; border-radius: 15px; font-size: 13px; }
+.cal-pop-grid button.other { color: var(--text-2); opacity: .55; }
+.cal-pop-grid button.today { font-weight: 700; color: var(--brand); }
+.cal-pop-grid button.sel { background: var(--brand); color: #fff; opacity: 1; }

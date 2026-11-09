@@ -4,7 +4,7 @@ import { startRegistration } from '@simplewebauthn/browser';
 import { api } from './api.ts';
 import type { MfaStatus, Features } from './api.ts';
 import { Icon } from './icons.tsx';
-import { t, L } from './i18n.ts';
+import { t, numericDate } from './i18n.ts';
 
 function deviceName() {
   const ua = navigator.userAgent;
@@ -243,7 +243,7 @@ export function SecurityDialog({ onClose, flash, features }: { onClose: () => vo
               {st.passkeys.map((p) => (
                 <div key={p.id} className="sec-sub">
                   <span className="grow">
-                    {p.name} <span className="muted small">· {new Date(p.added).toLocaleDateString(L())}{p.passwordless ? ` · ${t('signs in without password')}` : ''}</span>
+                    {p.name} <span className="muted small">· {numericDate(new Date(p.added))}{p.passwordless ? ` · ${t('signs in without password')}` : ''}</span>
                   </span>
                   <button className="link-btn" disabled={busy} onClick={() => void run(() => api.passkeyPasswordless(p.id, !p.passwordless))}>
                     {p.passwordless ? t('Require password too') : t('Allow without password')}
