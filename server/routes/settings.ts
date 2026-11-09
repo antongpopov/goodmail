@@ -43,7 +43,7 @@ r.get(
   auth,
   wrap(async (req, res) => {
     const srv = await srvFor(req);
-    res.json({ rules: !!srv.sieveHost, password: !!srv.passwordCmd, passwordMin: srv.passwordMin || 10, reset: !!resetSender() && !!srv.passwordCmd, smime: !!smimeConfig() });
+    res.json({ rules: !!srv.sieveHost, password: !!srv.passwordCmd, passwordMin: srv.passwordMin || 10, reset: !!resetSender() && !!srv.passwordCmd, smime: !!smimeConfig(), admin: !!srv.adminCmd });
   }),
 );
 

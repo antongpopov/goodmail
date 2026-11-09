@@ -1,0 +1,336 @@
+#!/usr/bin/python3
+# goodmail "admincmd" for a Postfix + Dovecot + PostfixAdmin server (virtual users in the `mailbox` / `alias` tables).
+# Lets people who are administrators in PostfixAdmin manage mailboxes and aliases from goodmail, scoped to their domains.
+#
+# Reads ONE JSON line on stdin:  {"op": "...", "caller": "<signed-in mailbox address>", ...arguments}
+# Prints ONE JSON line on stdout: {"ok": true, ...} or {"error": "text for the user"}.   Exit 0 whenever it answered.
+# Run it through sudo from a forced-command SSH key; see the README ("Administration").
+#
+# Who may do what is decided HERE, from PostfixAdmin's own tables, on every call: the caller must be an active row in
+# `admin` (whose username is the caller's mailbox address) and may only touch domains listed in `domain_admins`
+# (or every domain when `superadmin` = 1). goodmail only forwards the address the user signed in with.
+# Never print secrets; password hashes never leave this script.
+import json, os, re, subprocess, sys
+
+DB = os.environ.get("GOODMAIL_ADMIN_DB", "postfixadmin")  # only reachable by root running it by hand (sudo resets the environment)
+MIN_PW = 10
+MAX_GOTO = 50
+
+
+class Refuse(Exception):
+    pass
+
+
+def out(obj):
+    sys.stdout.write(json.dumps(obj, ensure_ascii=False) + "\n")
+    sys.exit(0)
+
+
+# ---------- tiny MariaDB client (mysql CLI, as root over the socket; values are validated and quoted) ----------
+def q(v):
+    if v is None:
+        return "NULL"
+    if isinstance(v, bool):
+        return "1" if v else "0"
+    if isinstance(v, int):
+        return str(v)
+    s = str(v)
+    if re.search(r"[\x00-\x1f\x7f]", s):
+        raise Refuse("Control characters are not allowed")
+    return "'" + s.replace("\\", "\\\\").replace("'", "''") + "'"
+
+
+PRE = "SET SESSION sql_mode=REPLACE(@@sql_mode,'NO_BACKSLASH_ESCAPES','');\n"
+
+
+def run(sql):
+    r = subprocess.run(["mysql", "-N", "-B", DB], input=PRE + sql, capture_output=True, text=True, timeout=20)
+    if r.returncode != 0:
+        sys.stderr.write(r.stderr[:400])
+        raise Refuse("The mail server database refused the change")
+    return r.stdout
+
+
+def unesc(f):
+    if f == "NULL":
+        return None
+    return re.sub(r"\\([tn0\\])", lambda m: {"t": "\t", "n": "\n", "0": "\0", "\\": "\\"}[m.group(1)], f)
+
+
+def rows(sql):
+    return [[unesc(f) for f in line.split("\t")] for line in run(sql).splitlines() if line != ""]
+
+
+def one(sql):
+    r = rows(sql)
+    return r[0] if r else None
+
+
+# ---------- validation ----------
+ADDR = re.compile(r"^[a-z0-9._+-]{1,64}@[a-z0-9]([a-z0-9.-]{0,200}[a-z0-9])?$")
+LOCAL = re.compile(r"^[a-z0-9._+-]{1,64}$")
+DOMAIN = re.compile(r"^[a-z0-9]([a-z0-9.-]{0,200}[a-z0-9])?$")
+
+
+def addr(v, what="address"):
+    s = str(v or "").strip().lower()
+    if not ADDR.fullmatch(s):
+        raise Refuse("This is not a valid %s" % what)
+    return s
+
+
+def clean_name(v):
+    return re.sub(r"[\x00-\x1f\x7f]", " ", str(v or "")).strip()[:80]
+
+
+def check_password(pw):
+    pw = str(pw or "")
+    if not MIN_PW <= len(pw) <= 200 or re.search(r"[\x00-\x1f\x7f]", pw):
+        raise Refuse("The password needs %d to 200 characters" % MIN_PW)
+    return pw
+
+
+def hash_password(pw):
+    import bcrypt
+
+    h = bcrypt.hashpw(pw.encode(), bcrypt.gensalt(12, b"2b")).decode().replace("$2b$", "$2y$", 1)
+    stored = "{BLF-CRYPT}" + h
+    if not re.fullmatch(r"\{BLF-CRYPT\}\$2y\$12\$[A-Za-z0-9./]{53}", stored):
+        raise Refuse("Could not hash the password")
+    return stored
+
+
+# ---------- who is calling, and for which domains ----------
+def scope(caller):
+    """(is_superadmin, set_of_domains) — empty when the caller is not an administrator."""
+    a = one("SELECT superadmin FROM admin WHERE username=%s AND active=1" % q(caller))
+    if a is None:
+        return False, set()
+    # the caller must also be a live mailbox (goodmail signs people in with their mailbox)
+    if one("SELECT 1 FROM mailbox WHERE username=%s AND active=1" % q(caller)) is None:
+        return False, set()
+    sup = a[0] == "1"
+    ds = {r[0] for r in rows("SELECT domain FROM domain_admins WHERE username=%s AND active=1" % q(caller))}
+    if sup or "ALL" in ds:
+        return sup, {r[0] for r in rows("SELECT domain FROM domain")}
+    return False, ds & {r[0] for r in rows("SELECT domain FROM domain")}
+
+
+def need_domain(domains, d):
+    d = str(d or "").strip().lower()
+    if not DOMAIN.fullmatch(d) or d not in domains:
+        raise Refuse("You do not administer this domain")
+    return d
+
+
+def log(caller, domain, action, data):
+    run(
+        "INSERT INTO log (timestamp,username,domain,action,data) VALUES (NOW(),%s,%s,%s,%s)"
+        % (q(caller + " (goodmail)"), q(domain), q(action), q(data[:250]))
+    )
+
+
+# ---------- operations ----------
+def op_whoami(caller, job, sup, domains):
+    return {"admin": bool(domains) or sup, "superadmin": sup, "domains": sorted(domains)}
+
+
+def op_domain_get(caller, job, sup, domains):
+    d = need_domain(domains, job.get("domain"))
+    info = one("SELECT description,mailboxes,aliases,active FROM domain WHERE domain=%s" % q(d))
+    boxes = rows("SELECT username,name,active,quota FROM mailbox WHERE domain=%s ORDER BY username" % q(d))
+    box_set = {b[0] for b in boxes}
+    als = rows("SELECT address,goto,active FROM alias WHERE domain=%s ORDER BY (address LIKE '@%%'), address" % q(d))
+    fwd = {}
+    for a, g, _ in als:
+        if a in box_set:
+            extra = [x for x in (s.strip() for s in g.split(",")) if x and x != a]
+            if extra:
+                fwd[a] = extra
+    return {
+        "domain": d,
+        "description": info[0],
+        "limits": {"mailboxes": int(info[1]), "aliases": int(info[2])},
+        "active": info[3] == "1",
+        "mailboxes": [
+            {"address": b[0], "name": b[1], "active": b[2] == "1", "forwards": fwd.get(b[0], [])} for b in boxes
+        ],
+        "aliases": [
+            {"address": a[0], "goto": [x.strip() for x in a[1].split(",") if x.strip()], "active": a[2] == "1"}
+            for a in als
+            if a[0] not in box_set
+        ],
+    }
+
+
+def limit_ok(d, column, count_sql):
+    lim = int(one("SELECT %s FROM domain WHERE domain=%s" % (column, q(d)))[0])
+    if lim < 0:
+        raise Refuse("Adding %s is disabled for this domain" % ("mailboxes" if column == "mailboxes" else "aliases"))
+    if lim > 0 and int(one(count_sql)[0]) >= lim:
+        raise Refuse("This domain has reached its limit of %d %s" % (lim, "mailboxes" if column == "mailboxes" else "aliases"))
+
+
+def op_mailbox_create(caller, job, sup, domains):
+    a = addr(job.get("address"))
+    local, d = a.split("@")
+    need_domain(domains, d)
+    name = clean_name(job.get("name")) or local
+    pw = check_password(job.get("password"))
+    if one("SELECT 1 FROM alias WHERE address=%s" % q(a)) or one("SELECT 1 FROM mailbox WHERE username=%s" % q(a)):
+        raise Refuse("This address already exists (as a mailbox or an alias)")
+    limit_ok(d, "mailboxes", "SELECT COUNT(*) FROM mailbox WHERE domain=%s" % q(d))
+    stored = hash_password(pw)
+    run(
+        "START TRANSACTION;"
+        "INSERT INTO mailbox (username,password,name,maildir,quota,local_part,domain,created,modified,active)"
+        " VALUES (%s,%s,%s,%s,0,%s,%s,NOW(),NOW(),1);"
+        "INSERT INTO alias (address,goto,domain,created,modified,active) VALUES (%s,%s,%s,NOW(),NOW(),1);"
+        "COMMIT;" % (q(a), q(stored), q(name), q("%s/%s/" % (d, local)), q(local), q(d), q(a), q(a), q(d))
+    )
+    log(caller, d, "create_mailbox", a)
+    return {}
+
+
+def op_mailbox_update(caller, job, sup, domains):
+    a = addr(job.get("address"))
+    d = need_domain(domains, a.split("@")[1])
+    if one("SELECT 1 FROM mailbox WHERE username=%s" % q(a)) is None:
+        raise Refuse("This mailbox does not exist")
+    sets, actions = [], []
+    if "name" in job:
+        sets.append("name=%s" % q(clean_name(job["name"]) or a.split("@")[0]))
+        actions.append("edit_mailbox")
+    if "active" in job:
+        if a == caller and not job["active"]:
+            raise Refuse("You can not disable your own mailbox")
+        sets.append("active=%d" % (1 if job["active"] else 0))
+        actions.append("edit_mailbox")
+    if "password" in job:
+        sets.append("password=%s" % q(hash_password(check_password(job["password"]))))
+        actions.append("edit_password")
+    if not sets:
+        raise Refuse("Nothing to change")
+    run("UPDATE mailbox SET %s, modified=NOW() WHERE username=%s" % (", ".join(sets), q(a)))
+    if "active" in job:  # PostfixAdmin keeps the mailbox's own alias row in step
+        run("UPDATE alias SET active=%d, modified=NOW() WHERE address=%s" % (1 if job["active"] else 0, q(a)))
+    for act in dict.fromkeys(actions):
+        log(caller, d, act, a)
+    return {}
+
+
+def op_mailbox_delete(caller, job, sup, domains):
+    a = addr(job.get("address"))
+    d = need_domain(domains, a.split("@")[1])
+    if one("SELECT 1 FROM mailbox WHERE username=%s" % q(a)) is None:
+        raise Refuse("This mailbox does not exist")
+    if a == caller:
+        raise Refuse("You can not delete your own mailbox")
+    if int(one("SELECT COUNT(*) FROM mailbox WHERE domain=%s" % q(d))[0]) <= 1:
+        raise Refuse("This is the last mailbox of the domain")
+    # drop the mailbox, its own alias, and the address from other aliases' destinations (an alias left empty is removed)
+    stmts = ["START TRANSACTION"]
+    for al, g in rows("SELECT address,goto FROM alias WHERE domain=%s AND address<>%s" % (q(d), q(a))):
+        parts = [x.strip() for x in g.split(",") if x.strip()]
+        if a in parts:
+            rest = [x for x in parts if x != a]
+            if rest:
+                stmts.append("UPDATE alias SET goto=%s, modified=NOW() WHERE address=%s" % (q(",".join(rest)), q(al)))
+            else:
+                stmts.append("DELETE FROM alias WHERE address=%s" % q(al))
+    stmts += [
+        "DELETE FROM alias WHERE address=%s" % q(a),
+        "DELETE FROM vacation WHERE email=%s" % q(a),
+        "DELETE FROM mailbox WHERE username=%s" % q(a),
+        "COMMIT",
+    ]
+    run(";".join(stmts))
+    log(caller, d, "delete_mailbox", a)
+    return {"note": "The mail files stay on disk until the server administrator removes them."}
+
+
+def op_alias_save(caller, job, sup, domains):
+    raw = str(job.get("address") or "").strip().lower()
+    catch = raw.startswith("@")
+    if catch:
+        d = need_domain(domains, raw[1:])
+        a = "@" + d
+    else:
+        a = addr(raw)
+        d = need_domain(domains, a.split("@")[1])
+    if one("SELECT 1 FROM mailbox WHERE username=%s" % q(a)):
+        raise Refuse("This address is a mailbox — change the mailbox instead")
+    goto = job.get("goto")
+    goto = goto if isinstance(goto, list) else re.split(r"[,\s;]+", str(goto or ""))
+    dest = list(dict.fromkeys(addr(x, "destination address") for x in goto if str(x).strip()))
+    if not dest:
+        raise Refuse("Enter at least one destination address")
+    if len(dest) > MAX_GOTO:
+        raise Refuse("At most %d destinations" % MAX_GOTO)
+    if a in dest:
+        raise Refuse("An alias can not forward to itself")
+    active = 0 if job.get("active") is False else 1
+    exists = one("SELECT 1 FROM alias WHERE address=%s" % q(a)) is not None
+    if exists:
+        run("UPDATE alias SET goto=%s, active=%d, modified=NOW() WHERE address=%s" % (q(",".join(dest)), active, q(a)))
+    else:
+        limit_ok(
+            d,
+            "aliases",
+            "SELECT COUNT(*) FROM alias WHERE domain=%s AND address NOT IN (SELECT username FROM mailbox WHERE domain=%s)" % (q(d), q(d)),
+        )
+        run(
+            "INSERT INTO alias (address,goto,domain,created,modified,active) VALUES (%s,%s,%s,NOW(),NOW(),%d)"
+            % (q(a), q(",".join(dest)), q(d), active)
+        )
+    log(caller, d, "edit_alias" if exists else "create_alias", a)
+    return {}
+
+
+def op_alias_delete(caller, job, sup, domains):
+    raw = str(job.get("address") or "").strip().lower()
+    if raw.startswith("@"):
+        d = need_domain(domains, raw[1:])
+        a = "@" + d
+    else:
+        a = addr(raw)
+        d = need_domain(domains, a.split("@")[1])
+    if one("SELECT 1 FROM mailbox WHERE username=%s" % q(a)):
+        raise Refuse("This address is a mailbox — delete the mailbox instead")
+    if one("SELECT 1 FROM alias WHERE address=%s" % q(a)) is None:
+        raise Refuse("This alias does not exist")
+    run("DELETE FROM alias WHERE address=%s" % q(a))
+    log(caller, d, "delete_alias", a)
+    return {}
+
+
+OPS = {
+    "whoami": op_whoami,
+    "domain.get": op_domain_get,
+    "mailbox.create": op_mailbox_create,
+    "mailbox.update": op_mailbox_update,
+    "mailbox.delete": op_mailbox_delete,
+    "alias.save": op_alias_save,
+    "alias.delete": op_alias_delete,
+}
+
+try:
+    try:
+        job = json.loads(sys.stdin.readline())
+        caller = addr(job["caller"], "caller")
+        op = OPS[job["op"]]
+    except Refuse:
+        raise
+    except Exception:
+        raise Refuse("The request was not understood")
+    sup, domains = scope(caller)
+    if not domains and not sup:
+        if job["op"] == "whoami":
+            out({"ok": True, "admin": False, "superadmin": False, "domains": []})
+        raise Refuse("You are not an administrator")
+    res = op(caller, job, sup, domains)
+    out({"ok": True, **res})
+except Refuse as e:
+    out({"error": str(e)})
+except subprocess.TimeoutExpired:
+    out({"error": "The mail server database did not answer in time"})

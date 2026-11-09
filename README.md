@@ -197,6 +197,24 @@ helper for Postfix + Dovecot + PostfixAdmin (BLF-CRYPT into the `mailbox` table)
 `command="sudo -n /usr/local/sbin/goodmail-setpw",from="<web server IP>",no-pty,no-port-forwarding <public key>` to the
 forced-command user's `authorized_keys`, and allow just that script in sudoers.
 
+**Administration.** `admincmdN=` turns on ⚙ → Administration for people who administer mail domains: create, disable,
+rename, reset the password of and delete mailboxes, and manage aliases (including a catch-all), only for their own domains.
+As with passwords, goodmail does not touch the mail database itself: it runs the command (split into arguments, never through a
+shell) and writes one JSON line to its stdin, `{"op":"mailbox.create","caller":"user@example.com",…}`, and the command answers
+with one JSON line, `{"ok":true,…}` or `{"error":"text shown to the user"}`. Operations: `whoami`, `domain.get`, `mailbox.create`,
+`mailbox.update` (name, active, password), `mailbox.delete`, `alias.save`, `alias.delete`. **The command decides who may do
+what, on every call** — goodmail only says which mailbox the user signed in with, so a bug in the web interface cannot widen
+anyone's rights. `ops/goodmail-admin` does this for Postfix + Dovecot + PostfixAdmin, using PostfixAdmin's own tables: a person
+is a domain administrator when there is an active row in `admin` whose username is their *mailbox address*, linked to their
+domains in `domain_admins` (`superadmin = 1` or `ALL` = every domain). Changes are written to PostfixAdmin's `log` table, so
+both tools stay in step. Safeguards: nobody can disable or delete their own mailbox or a domain's last mailbox, domain limits
+are respected, mail files stay on disk when a mailbox is deleted, and nothing is shown to people who are not administrators.
+Install it like `goodmail-setpw` (root-owned script, a forced-command SSH user with `command="sudo -n
+/usr/local/sbin/goodmail-admin",from="<web server IP>",no-pty,no-port-forwarding <public key>`, and one sudoers line); it needs
+python3 with `bcrypt` and the `mysql` client as root. Add a person with `INSERT INTO admin (username,password,superadmin,created,
+modified,active) VALUES ('person@example.com','*',0,NOW(),NOW(),1)` (the `*` password means no separate PostfixAdmin login) and a
+row in `domain_admins` per domain.
+
 **S/MIME.** `smime=true` turns it on. Cryptography is done by the `openssl cms` command (OpenSSL ≥ 1.1.1; macOS's
 built-in LibreSSL is not enough — set `GOODMAIL_OPENSSL=/opt/homebrew/bin/openssl`), because that is what real-world S/MIME
 needs (RSA PKCS#1 v1.5 key transport, which browsers no longer provide). Private keys never leave the server and are stored

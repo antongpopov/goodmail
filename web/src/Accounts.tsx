@@ -51,7 +51,7 @@ export const PRESETS: Preset[] = [
   { id: 'imap', label: t('Other (IMAP)'), imapHost: '', imapPort: 993, smtpHost: '', smtpPort: 587, help: t('Enter your provider’s IMAP and SMTP servers. Many providers require an app password.') },
 ];
 
-export function AccountsDialog({ accounts, onClose, onChanged, flash }: { accounts: MailAccount[]; onClose: () => void; onChanged: () => void; flash: (m: string) => void }) {
+export function AccountsDialog({ accounts, onClose, onChanged, onMainName, flash }: { accounts: MailAccount[]; onClose: () => void; onChanged: () => void; onMainName: (name: string) => void; flash: (m: string) => void }) {
   const [adding, setAdding] = useState<Preset | null>(null);
   const [form, setForm] = useState({ email: '', password: '', name: '', imapHost: '', imapPort: 993, smtpHost: '', smtpPort: 587, user: '' });
   const [busy, setBusy] = useState(false);
@@ -108,6 +108,20 @@ export function AccountsDialog({ accounts, onClose, onChanged, flash }: { accoun
     }
   };
 
+  const rename = async (a: MailAccount) => {
+    const name = prompt(t('Full name for {email}', { email: a.email }), a.name || '');
+    if (name === null || name.trim() === (a.name || '')) return;
+    try {
+      if (a.id === 'main') {
+        await api.setMyName(name);
+        onMainName(name.trim());
+      } else await api.renameAccount(a.id, name);
+      onChanged();
+    } catch (err) {
+      flash((err as Error).message);
+    }
+  };
+
   const extras = accounts.filter((a) => a.id !== 'main');
   const locked = extras.filter((a) => a.locked);
 
@@ -157,7 +171,7 @@ export function AccountsDialog({ accounts, onClose, onChanged, flash }: { accoun
                 <div key={a.id} className="acct-row">
                   <Icon name={a.id === 'main' ? 'mail' : 'inbox'} />
                   <div className="grow">
-                    <div>{a.email}</div>
+                    <div>{a.name ? <><b>{a.name}</b> <span className="muted">{a.email}</span></> : a.email}</div>
                     <div className="muted small">{a.id === 'main' ? t('Signed-in account') : a.locked ? t('Locked — add it again with its password') : a.imapHost}</div>
                   </div>
                   {a.locked && (
@@ -165,6 +179,9 @@ export function AccountsDialog({ accounts, onClose, onChanged, flash }: { accoun
                       {t('Enter its password')}
                     </button>
                   )}
+                  <button className="tb icon" title={t('Change name')} onClick={() => void rename(a)}>
+                    <Icon name="compose" />
+                  </button>
                   {a.id !== 'main' && (
                     <button className="tb icon" title={t('Remove')} onClick={() => void remove(a)}>
                       <Icon name="trash" />

@@ -1,6 +1,7 @@
-import { listAccounts, addAccount, removeAccount, unlockWithOldPassword } from '../accounts.ts';
+import { listAccounts, addAccount, renameAccount, removeAccount, unlockWithOldPassword } from '../accounts.ts';
 import { guessSettings } from '../autoconfig.ts';
 import { Router } from 'express';
+import { nameFor } from '../prefs.ts';
 import { auth, wrap } from '../http.ts';
 
 const r = Router();
@@ -12,7 +13,7 @@ r.get(
   auth,
   wrap(async (req, res) => {
     const a = req.session.account;
-    res.json([{ id: 'main', email: a.email, name: a.name, provider: 'main', imapHost: a.imapHost, locked: false }, ...(await listAccounts(req.session))]);
+    res.json([{ id: 'main', email: a.email, name: await nameFor(a.email, a.name), provider: 'main', imapHost: a.imapHost, locked: false }, ...(await listAccounts(req.session))]);
   }),
 );
 
@@ -21,6 +22,14 @@ r.post(
   auth,
   wrap(async (req, res) => {
     res.json(await addAccount(req.session, req.body || {}));
+  }),
+);
+
+r.post(
+  '/api/accounts/rename',
+  auth,
+  wrap(async (req, res) => {
+    res.json(await renameAccount(req.session, String(req.body?.id || ''), String(req.body?.name ?? '')));
   }),
 );
 

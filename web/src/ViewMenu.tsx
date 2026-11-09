@@ -19,7 +19,7 @@ const PANES: { id: PaneMode; label: string }[] = [
   { id: 'hidden', label: t('Hidden') },
 ];
 
-export function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, onSecurity, onRules, onSmime, onSignatures, source }: { pane: PaneMode; onPane: (p: PaneMode) => void; preview: boolean; onPreview: (v: boolean) => void; onAccounts: () => void; onSecurity: () => void; onRules?: () => void; onSmime?: () => void; onSignatures?: () => void; source: string }) {
+export function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, onSecurity, onRules, onSmime, onSignatures, onAdmin, source }: { pane: PaneMode; onPane: (p: PaneMode) => void; preview: boolean; onPreview: (v: boolean) => void; onAccounts: () => void; onSecurity: () => void; onRules?: () => void; onSmime?: () => void; onSignatures?: () => void; onAdmin?: () => void; source: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -84,6 +84,11 @@ export function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, onSecur
           {onSmime && (
             <button className="menu-btn" onClick={() => { setOpen(false); onSmime(); }}>
               <Icon name="shield" size={16} /> {t('Secure mail (S/MIME)…')}
+            </button>
+          )}
+          {onAdmin && (
+            <button className="menu-btn" onClick={() => { setOpen(false); onAdmin(); }}>
+              <Icon name="people" size={16} /> {t('Administration…')}
             </button>
           )}
           <button className="menu-btn" onClick={() => { setOpen(false); onSecurity(); }}>

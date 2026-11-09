@@ -10,6 +10,8 @@ export interface Prefs {
   /** account id ("main" or an extra account's id) → signature HTML. An empty string means "no signature". */
   signatures: Record<string, string>;
   templates: Template[];
+  /** Display name of the signed-in (main) account: the name in From and in {name} of the default signature. */
+  name: string;
 }
 
 const MAX_SIG = 30_000;
@@ -27,9 +29,9 @@ function serial<T>(login: string, fn: () => Promise<T>): Promise<T> {
 export async function loadPrefs(login: string): Promise<Prefs> {
   try {
     const d = JSON.parse(await fs.readFile(file(login), 'utf8'));
-    return { signatures: d.signatures || {}, templates: d.templates || [] };
+    return { signatures: d.signatures || {}, templates: d.templates || [], name: typeof d.name === 'string' ? d.name : '' };
   } catch {
-    return { signatures: {}, templates: [] };
+    return { signatures: {}, templates: [], name: '' };
   }
 }
 
@@ -55,6 +57,18 @@ export const setSignature = (login: string, account: string, html: string) => {
     p.signatures[account] = html;
   });
 };
+
+export const setName = (login: string, name: string) => {
+  const clean = String(name ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 100);
+  return update(login, (p) => {
+    p.name = clean;
+  });
+};
+
+/** The name to show and send as for the signed-in account: the one the user set, else what the server knows. */
+export async function nameFor(login: string, fallback: string): Promise<string> {
+  return (await loadPrefs(login)).name || fallback || '';
+}
 
 export const saveTemplate = (login: string, t: Partial<Template>) => {
   const name = String(t.name || '').trim().slice(0, 80);

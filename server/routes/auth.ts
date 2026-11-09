@@ -6,6 +6,7 @@ import type { Account } from '../session.ts';
 import { appTitle, appTitles, titleFor, titlesFor, normalizeLogin, resetSender } from '../config.ts';
 import { seal, userKey } from '../vault.ts';
 import * as mfa from '../mfa.ts';
+import { nameFor } from '../prefs.ts';
 import { Router } from 'express';
 import { COOKIE, YEAR, SECURE_COOKIE, cookie, tokenId, accountFor, auth, wrap } from '../http.ts';
 import type { Authed } from '../http.ts';
@@ -74,7 +75,7 @@ export async function issueLogin(res: Response, account: Account, remember: bool
     'Set-Cookie',
     `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict${remember ? `; Max-Age=${YEAR}` : ''}${SECURE_COOKIE ? '; Secure' : ''}`,
   );
-  res.json({ email: account.email, name: account.name, imapHost: account.imapHost, appName: titleFor(account.email), appNames: titlesFor(account.email) });
+  res.json({ email: account.email, name: await nameFor(account.email, account.name), imapHost: account.imapHost, appName: titleFor(account.email), appNames: titlesFor(account.email) });
 }
 
 r.post('/api/logout', async (req, res) => {
@@ -84,9 +85,9 @@ r.post('/api/logout', async (req, res) => {
   res.json({ ok: true });
 });
 
-r.get('/api/me', auth, (req, res) => {
+r.get('/api/me', auth, wrap(async (req, res) => {
   const a = (req as Authed).session.account;
-  res.json({ email: a.email, name: a.name, imapHost: a.imapHost, appName: titleFor(a.email), appNames: titlesFor(a.email) });
-});
+  res.json({ email: a.email, name: await nameFor(a.email, a.name), imapHost: a.imapHost, appName: titleFor(a.email), appNames: titlesFor(a.email) });
+}));
 
 export default r;

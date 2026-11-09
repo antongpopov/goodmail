@@ -18,7 +18,8 @@ r.get(
   auth,
   wrap(async (req, res) => {
     const a = req.session.account;
-    res.json({ ...(await prefs.loadPrefs(a.email)), defaultSignature: await defaultSignature(a.email, a.name) });
+    const p = await prefs.loadPrefs(a.email);
+    res.json({ ...p, defaultSignature: await defaultSignature(a.email, p.name || a.name) });
   }),
 );
 
@@ -30,6 +31,14 @@ r.put(
     // only the user's own accounts
     if (!req.session.acct(account)) return res.status(404).json({ error: 'That account is no longer available — refresh the page' });
     res.json(await prefs.setSignature(req.session.account.email, account, String(req.body?.html ?? '')));
+  }),
+);
+
+r.put(
+  '/api/prefs/name',
+  auth,
+  wrap(async (req, res) => {
+    res.json(await prefs.setName(req.session.account.email, String(req.body?.name ?? '')));
   }),
 );
 

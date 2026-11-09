@@ -178,6 +178,22 @@ export async function addAccount(s: Session, body: Record<string, unknown>) {
   return publicView(stored, false);
 }
 
+/** Change the name that goes with an added account (shown in the From line of mail sent from it). */
+export async function renameAccount(s: Session, id: string, name: string) {
+  const clean = name.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 100);
+  const stored = await serial(s.account.email, async () => {
+    const list = await load(s.account.email);
+    const a = list.find((x) => x.id === id);
+    if (!a) throw Object.assign(new Error('Account not found'), { status: 404 });
+    a.name = clean;
+    await store(s.account.email, list);
+    return a;
+  });
+  const live = s.extra.get(id);
+  if (live) live.account.name = clean;
+  return publicView(stored, !live);
+}
+
 export async function removeAccount(s: Session, id: string) {
   await serial(s.account.email, async () => {
     await store(s.account.email, (await load(s.account.email)).filter((a) => a.id !== id));

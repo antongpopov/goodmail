@@ -270,10 +270,10 @@ export function Compose({ me, features, prefs, onManage, onPrefsChange, init, co
         </span>
         {smimeOn && (
           <>
-            <button className={`tb ${sign ? 'on' : ''}`} onClick={() => setSign(!sign)} title={t('Sign this message with your S/MIME certificate')} aria-pressed={sign}>
+            <button className={`tb toggle ${sign ? 'on' : ''}`} onClick={() => setSign(!sign)} title={t('Sign this message with your S/MIME certificate')} aria-pressed={sign}>
               <Icon name="shield" /> <span className="lbl">{t('Sign')}</span>
             </button>
-            <button className={`tb ${encrypt ? 'on' : ''}`} onClick={() => setEncrypt(!encrypt)} title={t('Encrypt this message so only the recipients can read it')} aria-pressed={encrypt}>
+            <button className={`tb toggle ${encrypt ? 'on' : ''}`} onClick={() => setEncrypt(!encrypt)} title={t('Encrypt this message so only the recipients can read it')} aria-pressed={encrypt}>
               <Icon name="lock" /> <span className="lbl">{t('Encrypt')}</span>
             </button>
           </>

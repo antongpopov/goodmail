@@ -2,6 +2,7 @@ import path from 'node:path';
 import nodemailer from 'nodemailer';
 import { simpleParser } from 'mailparser';
 import * as sm from '../smime.ts';
+import { nameFor } from '../prefs.ts';
 const smimeOn = sm.smimeOn;
 import { attachments } from '../mime.ts';
 import { spamInfo } from '../spam.ts';
@@ -425,7 +426,8 @@ r.post(
   wrap(async (req, res) => {
     const s = conn(req);
     const b = req.body || {};
-    const from = s.account.name ? { name: s.account.name, address: s.account.email } : s.account.email;
+    const fromName = s === req.session ? await nameFor(s.account.email, s.account.name) : s.account.name;
+    const from = fromName ? { name: fromName, address: s.account.email } : s.account.email;
     const mail = {
       from,
       to: b.to,

@@ -11,6 +11,7 @@ import routesContacts from './routes/contacts.ts';
 import routesCalendar from './routes/calendar.ts';
 import routesSettings from './routes/settings.ts';
 import routesReset from './routes/reset.ts';
+import routesAdmin from './routes/admin.ts';
 import routesSmime from './routes/smime.ts';
 import routesPrefs from './routes/prefs.ts';
 
@@ -40,6 +41,7 @@ app.use(routesContacts);
 app.use(routesCalendar);
 app.use(routesSettings);
 app.use(routesReset);
+app.use(routesAdmin);
 app.use(routesSmime);
 app.use(routesPrefs);
 

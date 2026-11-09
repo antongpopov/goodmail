@@ -9,6 +9,7 @@
 //   ciphers1=HIGH:!DHE             # optional: OpenSSL cipher list (e.g. to skip a weak DH key)
 //   sieve1=mail.example.com        # optional: ManageSieve server (host[:port], default 4190) → turns on the "Mail rules" editor
 //   passwordcmd1=ssh -i /etc/goodmail/pw-key pw@mail.example.com   # optional: command that sets a new password (see README) → turns on "Change password"
+//   admincmd1=ssh -i /etc/goodmail/admin-key adm@mail.example.com # optional: command that manages mailboxes/aliases for domain administrators (see README, "Administration") → turns on "Administration"
 //   signature1=Best regards\n{name}\nExample Ltd   # optional: default signature for new mail (a user's own signature replaces it)
 //   title1=Example Mail            # optional: app name shown to these users after sign-in
 //   title1.de=Beispiel Mail        # optional: the same name for users whose browser language is de (da, de, sv, nb, fr, es, …)
@@ -49,6 +50,7 @@ export interface ServerSettings {
   sievePort?: number;
   passwordCmd?: string[]; // argv of the command that changes the mailbox password
   passwordMin?: number; // shortest accepted new password
+  adminCmd?: string[]; // argv of the command that administers mailboxes and aliases (who may use it is decided by the command)
   signature?: string; // default signature text for these users (signatureN=; \n = new line, {name} {email})
 }
 
@@ -147,6 +149,8 @@ export function parseConfig(text: string): Config {
     if (sig) settings.signature = sig.replace(/\\n/g, '\n');
     const cmd = kv.get(`passwordcmd${n}`);
     if (cmd) settings.passwordCmd = splitArgs(cmd);
+    const acmd = kv.get(`admincmd${n}`);
+    if (acmd) settings.adminCmd = splitArgs(acmd);
     settings.passwordMin = Number(kv.get(`passwordmin${n}`) || kv.get('passwordmin')) || 10;
     // One entry may list several domains: domain1=example.com, example.de
     for (const d of v.split(/[,\s]+/).filter(Boolean)) domains.set(d.toLowerCase(), settings);

@@ -8,7 +8,7 @@ import { TextBtn } from './actions.tsx';
 import type { Act } from './actions.tsx';
 import { MoveDropdown, MoveSheet } from './MovePicker.tsx';
 import { LangPicker } from './LangPicker.tsx';
-import type { Features, Folder, Me, Message, Prefs, Summary } from './api.ts';
+import type { AdminMe, Features, Folder, Me, Message, Prefs, Summary } from './api.ts';
 import { Icon } from './icons.tsx';
 import { Login } from './Login.tsx';
 import { Compose } from './Compose.tsx';
@@ -47,10 +47,10 @@ export default function App() {
 
   if (me === undefined) return <div className="splash" />;
   if (!me) return <Login onLogin={setMe} appName={localTitle(cfg.appName, cfg.appNames)} source={cfg.source} canReset={cfg.reset} />;
-  return <Mail me={me} appName={appName} source={cfg.source} onLogout={() => api.logout().finally(() => setMe(null))} />;
+  return <Mail me={me} onName={(name) => setMe({ ...me, name })} appName={appName} source={cfg.source} onLogout={() => api.logout().finally(() => setMe(null))} />;
 }
 
-function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; source: string; onLogout: () => void }) {
+function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name: string) => void; appName: string; source: string; onLogout: () => void }) {
   const mainAcct: MailAccount = { id: 'main', email: me.email, name: me.name, provider: 'main', imapHost: me.imapHost, locked: false };
   const [accounts, setAccounts] = useState<MailAccount[]>([mainAcct]);
   const [acct, setAcctState] = useState(() => store('acct', 'main'));
@@ -66,8 +66,13 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   }, [me.email]);
   const mergePrefs = (p: Omit<Prefs, 'defaultSignature'>) => setPrefs((old) => ({ defaultSignature: old?.defaultSignature || '', ...p }));
   const [features, setFeatures] = useState<Features | null>(null);
+  const [adminMe, setAdminMe] = useState<AdminMe | null>(null);
   useEffect(() => {
-    api.features().then(setFeatures).catch(() => {});
+    api.features().then((f) => {
+      setFeatures(f);
+      // administrator rights are decided by the mail server; ask once per sign-in
+      if (f.admin) api.adminMe().then(setAdminMe).catch(() => setAdminMe(null));
+    }).catch(() => {});
   }, [me.email]);
   const goto = (id: string, path: string) => {
     useAccount(id);
@@ -668,6 +673,12 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                       <Icon name="folder" size={18} /> <span className="fname">{t('Mail rules…')}</span>
                     </button>
                   )}
+                  {adminMe?.admin && (
+                    <button className="folder" onClick={() => { setDialog({ kind: 'admin' }); setDrawer(false); }}>
+                      <span className="twisty" />
+                      <Icon name="people" size={18} /> <span className="fname">{t('Administration…')}</span>
+                    </button>
+                  )}
                   <button className="folder" onClick={() => { setDialog({ kind: 'security' }); setDrawer(false); }}>
                     <span className="twisty" />
                     <Icon name="check" size={18} /> <span className="fname">{t('Sign-in security…')}</span>
@@ -729,7 +740,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
         </form>
         <div className="top-right">
           <span className="desk-only">
-            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} onAccounts={() => setDialog({ kind: 'accounts' })} onSecurity={() => setDialog({ kind: 'security' })} onRules={features?.rules ? () => setDialog({ kind: 'rules' }) : undefined} onSmime={features?.smime ? () => setDialog({ kind: 'smime' }) : undefined} onSignatures={() => setDialog({ kind: 'signatures', tab: 'signature' })} source={source} />
+            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} onAccounts={() => setDialog({ kind: 'accounts' })} onSecurity={() => setDialog({ kind: 'security' })} onRules={features?.rules ? () => setDialog({ kind: 'rules' }) : undefined} onSmime={features?.smime ? () => setDialog({ kind: 'smime' }) : undefined} onSignatures={() => setDialog({ kind: 'signatures', tab: 'signature' })} onAdmin={adminMe?.admin ? () => setDialog({ kind: 'admin' }) : undefined} source={source} />
           </span>
           <span className="who" title={`${me.email} · ${me.imapHost}`}>
             <Avatar addr={{ name: me.name, address: me.email }} size={28} />
@@ -904,6 +915,11 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
         accounts={accounts}
         mainAcct={mainAcct}
         onAccountsChanged={() => void loadAccounts()}
+        adminMe={adminMe}
+        onMainName={(name) => {
+          onName(name);
+          api.prefs().then(setPrefs).catch(() => {}); // the default signature uses the name
+        }}
       />
       {toast && <div className="toast">{toast}</div>}
     </div>

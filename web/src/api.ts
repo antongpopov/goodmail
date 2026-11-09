@@ -22,7 +22,11 @@ export interface MailAccount { id: string; email: string; name: string; provider
 export interface MfaChallenge { ticket: string; totp: boolean; passkey: boolean; email: string | null; recovery: boolean }
 export interface MfaStatus { enabled: boolean; totp: boolean; passkeys: { id: string; name: string; added: number; passwordless: boolean }[]; email: string | null; recoveryLeft: number; resetEmail?: string | null; recovery?: string[] }
 export interface Me { email: string; name: string; imapHost: string; appName?: string; appNames?: Record<string, string> }
-export interface Features { rules: boolean; password: boolean; passwordMin: number; reset: boolean; smime: boolean }
+export interface Features { rules: boolean; password: boolean; passwordMin: number; reset: boolean; smime: boolean; admin: boolean }
+export interface AdminMe { admin: boolean; superadmin: boolean; domains: string[] }
+export interface AdminMailbox { address: string; name: string; active: boolean; forwards: string[] }
+export interface AdminAlias { address: string; goto: string[]; active: boolean }
+export interface AdminDomain { domain: string; description: string; active: boolean; limits: { mailboxes: number; aliases: number }; mailboxes: AdminMailbox[]; aliases: AdminAlias[] }
 export interface SmimeSignature { status: 'ok' | 'untrusted' | 'expired' | 'mismatch' | 'invalid'; signer?: { emails: string[]; name: string; issuer: string; fingerprint: string; notAfter: string } }
 export interface SmimeInfo { signed?: SmimeSignature; encrypted?: boolean; readable?: boolean; reason?: 'no-certificate' | 'not-for-you' }
 export interface CertView { emails: string[]; name: string; issuer: string; fingerprint: string; notBefore: string; notAfter: string; expired: boolean }
@@ -34,7 +38,7 @@ export interface RuleCondition { field: RuleField; header?: string; op: RuleOp; 
 export interface RuleAction { type: RuleActionType; value?: string }
 export interface MailRule { id: string; name: string; enabled: boolean; match: 'all' | 'any'; conditions: RuleCondition[]; actions: RuleAction[] }
 export interface Template { id: string; name: string; subject: string; html: string }
-export interface Prefs { signatures: Record<string, string>; templates: Template[]; defaultSignature: string }
+export interface Prefs { signatures: Record<string, string>; templates: Template[]; defaultSignature: string; name?: string }
 export interface ListResult { total: number; messages: Summary[]; hasMore: boolean }
 
 export class ApiError extends Error {
@@ -107,6 +111,13 @@ export const api = {
     return r.blob();
   },
   features: () => call<Features>('GET', '/api/features'),
+  adminMe: () => call<AdminMe>('GET', '/api/admin/me'),
+  adminDomain: (domain: string) => call<AdminDomain>('GET', `/api/admin/domain?${q({ domain })}`),
+  adminCreateMailbox: (b: { address: string; name: string; password: string }) => call('POST', '/api/admin/mailbox', b),
+  adminUpdateMailbox: (b: { address: string; name?: string; active?: boolean; password?: string }) => call('POST', '/api/admin/mailbox/update', b),
+  adminDeleteMailbox: (address: string) => call<{ note?: string }>('POST', '/api/admin/mailbox/delete', { address }),
+  adminSaveAlias: (b: { address: string; goto: string[]; active?: boolean }) => call('POST', '/api/admin/alias', b),
+  adminDeleteAlias: (address: string) => call('POST', '/api/admin/alias/delete', { address }),
   rules: () => call<{ rules: MailRule[]; foreign: boolean; active: string | null }>('GET', '/api/rules'),
   saveRules: (rules: MailRule[], replace = false) => call('PUT', '/api/rules', { rules, replace }),
   changePassword: (current: string, next: string) => call<Me>('POST', '/api/password', { current, next }),
@@ -135,6 +146,8 @@ export const api = {
   accounts: () => call<MailAccount[]>('GET', '/api/accounts'),
   addAccount: (body: Record<string, unknown>) => call<MailAccount>('POST', '/api/accounts', body),
   unlockAccounts: (oldPassword: string) => call<{ unlocked: number }>('POST', '/api/accounts/unlock', { oldPassword }),
+  setMyName: (name: string) => call('PUT', '/api/prefs/name', { name }),
+  renameAccount: (id: string, name: string) => call<MailAccount>('POST', '/api/accounts/rename', { id, name }),
   removeAccount: (id: string) => call('POST', '/api/accounts/delete', { id }),
   guessAccount: (email: string) =>
     call<{ imapHost: string; imapPort: number; smtpHost: string; smtpPort: number }>('POST', '/api/accounts/guess', { email }),
