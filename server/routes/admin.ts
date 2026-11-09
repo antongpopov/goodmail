@@ -66,4 +66,38 @@ r.post(
   wrap(async (req, res) => res.json(await call(req, 'alias.delete', { address: str((req.body || {}).address) }))),
 );
 
+// ---------- main administrator only (the command refuses anyone else) ----------
+
+r.get('/api/admin/domains', auth, wrap(async (req, res) => res.json(await call(req, 'domain.list'))));
+
+r.post(
+  '/api/admin/domain',
+  auth,
+  wrap(async (req, res) => {
+    const b = req.body || {};
+    const args: Record<string, unknown> = { domain: str(b.domain) };
+    if ('description' in b) args.description = str(b.description, 255) ?? '';
+    if ('active' in b) args.active = b.active === true;
+    if ('mailboxes' in b) args.mailboxes = Number(b.mailboxes);
+    if ('aliases' in b) args.aliases = Number(b.aliases);
+    res.json(await call(req, 'domain.save', args));
+  }),
+);
+
+r.post(
+  '/api/admin/domain/delete',
+  auth,
+  wrap(async (req, res) => res.json(await call(req, 'domain.delete', { domain: str((req.body || {}).domain) }))),
+);
+
+r.post(
+  '/api/admin/domain/admins',
+  auth,
+  wrap(async (req, res) => {
+    const b = req.body || {};
+    const admins = Array.isArray(b.admins) ? b.admins.map((x: unknown) => str(x, 320) || '').slice(0, 40) : str(b.admins, 4000);
+    res.json(await call(req, 'admins.set', { domain: str(b.domain), admins }));
+  }),
+);
+
 export default r;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from './api.ts';
-import type { AdminAlias, AdminDomain, AdminMailbox, AdminMe } from './api.ts';
+import type { AdminAlias, AdminDomain, AdminDomainRow, AdminMailbox, AdminMe } from './api.ts';
 import { Icon } from './icons.tsx';
 import { t } from './i18n.ts';
 
@@ -13,9 +13,14 @@ function generate(): string {
 
 /** Mailbox and alias administration for the domains this person administers (decided by the mail server, not here). */
 export function AdminDialog({ me, self, onClose, flash }: { me: AdminMe; self: string; onClose: () => void; flash: (m: string) => void }) {
+  const [myDomains, setMyDomains] = useState(me.domains);
   const [domain, setDomain] = useState(me.domains[0] || '');
   const [data, setData] = useState<AdminDomain | null>(null);
-  const [tab, setTab] = useState<'mailboxes' | 'aliases'>('mailboxes');
+  const [tab, setTab] = useState<'mailboxes' | 'aliases' | 'domains'>('mailboxes');
+  const [domainRows, setDomainRows] = useState<AdminDomainRow[] | null>(null);
+  const [newDomain, setNewDomain] = useState<{ domain: string; description: string } | null>(null);
+  const [editDomain, setEditDomain] = useState<string | null>(null);
+  const [dedit, setDedit] = useState({ description: '', mailboxes: '0', aliases: '0', admins: '' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -41,6 +46,27 @@ export function AdminDialog({ me, self, onClose, flash }: { me: AdminMe; self: s
     setShownPw('');
     if (domain) void load();
   }, [domain, load]);
+  const loadDomains = useCallback(async () => {
+    try {
+      setDomainRows((await api.adminDomains()).domains);
+      setError('');
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, []);
+  useEffect(() => {
+    if (tab === 'domains' && me.superadmin) void loadDomains();
+  }, [tab, me.superadmin, loadDomains]);
+  /** After domains were added or removed: refresh the list the selector offers. */
+  const refreshMine = async () => {
+    try {
+      const m = await api.adminMe();
+      setMyDomains(m.domains);
+      if (!m.domains.includes(domain)) setDomain(m.domains[0] || '');
+    } catch {
+      /* keep what we have */
+    }
+  };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
@@ -60,6 +86,41 @@ export function AdminDialog({ me, self, onClose, flash }: { me: AdminMe; self: s
     } finally {
       setBusy(false);
     }
+  };
+
+  const runDomains = async (fn: () => Promise<unknown>, ok: string, after?: () => void) => {
+    setBusy(true);
+    setError('');
+    try {
+      await fn();
+      flash(ok);
+      after?.();
+      await loadDomains();
+      await refreshMine();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const createDomain = () => {
+    if (!newDomain) return;
+    void runDomains(async () => {
+      const r = await api.adminSaveDomain({ domain: newDomain.domain.trim().toLowerCase(), description: newDomain.description });
+      if (r.note) flash(r.note);
+    }, t('Added {email}', { email: newDomain.domain.trim().toLowerCase() }), () => setNewDomain(null));
+  };
+  const saveDomain = (d: AdminDomainRow) => {
+    const admins = dedit.admins.split(/[,\s;]+/).filter(Boolean);
+    void runDomains(async () => {
+      await api.adminSaveDomain({ domain: d.domain, description: dedit.description, mailboxes: Number(dedit.mailboxes) || 0, aliases: Number(dedit.aliases) || 0 });
+      await api.adminSetAdmins(d.domain, admins);
+    }, t('Saved'), () => setEditDomain(null));
+  };
+  const toggleDomain = (d: AdminDomainRow) => void runDomains(() => api.adminSaveDomain({ domain: d.domain, active: !d.active }), d.active ? t('Disabled {email}', { email: d.domain }) : t('Enabled {email}', { email: d.domain }));
+  const deleteDomain = (d: AdminDomainRow) => {
+    if (!confirm(t('Delete the domain {email}?', { email: d.domain }) + '\n\n' + t('Only possible when it has no mailboxes or aliases. Its DNS and mail routing are not changed.'))) return;
+    void runDomains(() => api.adminDeleteDomain(d.domain), t('Deleted {email}', { email: d.domain }));
   };
 
   const createBox = () => {
@@ -115,9 +176,9 @@ export function AdminDialog({ me, self, onClose, flash }: { me: AdminMe; self: s
             <Icon name="close" />
           </button>
         </div>
-        {me.domains.length > 1 && (
+        {tab !== 'domains' && myDomains.length > 1 && (
           <select value={domain} onChange={(e) => setDomain(e.target.value)} className="from-select sig-acct">
-            {me.domains.map((d) => (
+            {myDomains.map((d) => (
               <option key={d} value={d}>{d}</option>
             ))}
           </select>
@@ -125,6 +186,7 @@ export function AdminDialog({ me, self, onClose, flash }: { me: AdminMe; self: s
         <div className="segment">
           <button className={tab === 'mailboxes' ? 'on' : ''} onClick={() => setTab('mailboxes')}>{t('Mailboxes')}{data ? ` (${data.mailboxes.length})` : ''}</button>
           <button className={tab === 'aliases' ? 'on' : ''} onClick={() => setTab('aliases')}>{t('Aliases')}{data ? ` (${data.aliases.length})` : ''}</button>
+          {me.superadmin && <button className={tab === 'domains' ? 'on' : ''} onClick={() => setTab('domains')}>{t('Domains')}</button>}
         </div>
         {error && <p className="error">{error}</p>}
         {shownPw && (
@@ -134,7 +196,7 @@ export function AdminDialog({ me, self, onClose, flash }: { me: AdminMe; self: s
             <button className="link-btn" onClick={() => setShownPw('')}>{t('Hide')}</button>
           </div>
         )}
-        {!data && !error && <span className="spinner" />}
+        {((tab === 'domains' && !domainRows) || (tab !== 'domains' && !data)) && !error && <span className="spinner" />}
 
         {data && tab === 'mailboxes' && (
           <div className="admin-pane">
@@ -235,6 +297,64 @@ export function AdminDialog({ me, self, onClose, flash }: { me: AdminMe; self: s
             ) : (
               <button className="primary admin-add" onClick={() => setAliasForm({ original: null, local: '', goto: '' })}>
                 <Icon name="plus" size={14} /> {t('New alias')}{limitNote(data.limits.aliases, data.aliases.length)}
+              </button>
+            )}
+          </div>
+        )}
+
+        {tab === 'domains' && me.superadmin && domainRows && (
+          <div className="admin-pane">
+            {domainRows.map((d) => (
+              <div key={d.domain} className={`admin-item ${d.active ? '' : 'off'}`}>
+                <div className="admin-line">
+                  <div className="admin-main">
+                    <b>{d.domain}</b>
+                    {!d.active && <span className="tag"> {t('disabled')}</span>}
+                    <div className="muted small">
+                      {t('{n} mailboxes', { n: d.counts.mailboxes })}{d.limits.mailboxes > 0 ? `/${d.limits.mailboxes}` : ''} · {t('{n} aliases', { n: d.counts.aliases })}{d.limits.aliases > 0 ? `/${d.limits.aliases}` : ''}
+                    </div>
+                    <div className="muted small">{t('Administrators')}: {d.admins.length ? d.admins.map((a) => a.address).join(', ') : '—'}</div>
+                  </div>
+                  <button className="pill-btn" onClick={() => {
+                    setEditDomain(editDomain === d.domain ? null : d.domain);
+                    setDedit({ description: d.description === d.domain ? '' : d.description, mailboxes: String(d.limits.mailboxes), aliases: String(d.limits.aliases), admins: d.admins.filter((a) => a.mailbox).map((a) => a.address).join('\n') });
+                  }}>{t('Edit')}</button>
+                  <button className="pill-btn" disabled={busy} onClick={() => toggleDomain(d)}>{d.active ? t('Disable') : t('Enable')}</button>
+                  <button className="pill-btn danger" disabled={busy || d.counts.mailboxes + d.counts.aliases > 0} title={d.counts.mailboxes + d.counts.aliases > 0 ? t('Only possible when it has no mailboxes or aliases. Its DNS and mail routing are not changed.') : ''} onClick={() => deleteDomain(d)}>{t('Delete')}</button>
+                </div>
+                {editDomain === d.domain && (
+                  <div className="pw-form admin-form">
+                    <label>{t('Description')}<input value={dedit.description} onChange={(e) => setDedit({ ...dedit, description: e.target.value })} maxLength={255} /></label>
+                    <div className="rule-row">
+                      <label>{t('Mailbox limit (0 = none)')}<input className="short" inputMode="numeric" value={dedit.mailboxes} onChange={(e) => setDedit({ ...dedit, mailboxes: e.target.value.replace(/\D/g, '') })} /></label>
+                      <label>{t('Alias limit (0 = none)')}<input className="short" inputMode="numeric" value={dedit.aliases} onChange={(e) => setDedit({ ...dedit, aliases: e.target.value.replace(/\D/g, '') })} /></label>
+                    </div>
+                    <label>
+                      {t('Administrators (mailbox addresses, one per line)')}
+                      <textarea rows={3} value={dedit.admins} onChange={(e) => setDedit({ ...dedit, admins: e.target.value })} />
+                    </label>
+                    {d.admins.some((a) => !a.mailbox) && <div className="muted small">{t('Also has a separate login-only admin account in the old admin tool, which stays as it is.')}</div>}
+                    <div className="rule-row">
+                      <button className="primary" disabled={busy} onClick={() => saveDomain(d)}>{t('Save')}</button>
+                      <button className="link-btn" onClick={() => setEditDomain(null)}>{t('Cancel')}</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+            {newDomain ? (
+              <div className="pw-form admin-form">
+                <label>{t('Domain name')}<input value={newDomain.domain} onChange={(e) => setNewDomain({ ...newDomain, domain: e.target.value })} placeholder="example.com" autoCapitalize="none" autoCorrect="off" /></label>
+                <label>{t('Description')}<input value={newDomain.description} onChange={(e) => setNewDomain({ ...newDomain, description: e.target.value })} maxLength={255} /></label>
+                <div className="muted small">{t('Adds the domain to the mail server database. Mail for it only arrives once its MX record points to this server.')}</div>
+                <div className="rule-row">
+                  <button className="primary" disabled={busy || !newDomain.domain.includes('.')} onClick={createDomain}>{t('Add domain')}</button>
+                  <button className="link-btn" onClick={() => setNewDomain(null)}>{t('Cancel')}</button>
+                </div>
+              </div>
+            ) : (
+              <button className="primary admin-add" onClick={() => setNewDomain({ domain: '', description: '' })}>
+                <Icon name="plus" size={14} /> {t('New domain')}
               </button>
             )}
           </div>

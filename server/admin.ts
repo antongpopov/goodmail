@@ -4,7 +4,7 @@
 // The command alone decides who may do what; goodmail only says which mailbox the user signed in with.
 import { spawn } from 'node:child_process';
 
-export type AdminOp = 'whoami' | 'domain.get' | 'mailbox.create' | 'mailbox.update' | 'mailbox.delete' | 'alias.save' | 'alias.delete';
+export type AdminOp = 'whoami' | 'domain.get' | 'mailbox.create' | 'mailbox.update' | 'mailbox.delete' | 'alias.save' | 'alias.delete' | 'domain.list' | 'domain.save' | 'domain.delete' | 'admins.set';
 
 export function runAdminCommand(argv: string[], op: AdminOp, caller: string, args: Record<string, unknown> = {}, timeoutMs = 30_000): Promise<Record<string, any>> {
   return new Promise((resolve, reject) => {

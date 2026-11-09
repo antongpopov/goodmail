@@ -111,6 +111,9 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   };
   const listRef = useRef<HTMLDivElement>(null);
   const reqId = useRef(0);
+  // Opening a message is async; these let a newer click, or removing that very message, cancel a load still in flight.
+  const openSeq = useRef(0);
+  const loadingUid = useRef<number | null>(null);
 
   const acctRef = useRef(acct);
   acctRef.current = acct;
@@ -261,10 +264,13 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
       const acctId = currentAccount();
       const k = msgKey(acctId, folder, m.uid);
       const hit = msgCache.get(k);
+      const seq = ++openSeq.current;
+      loadingUid.current = m.uid;
       if (!hit) setOpenLoading(true);
       try {
         const full = hit ?? (await api.message(folder, m.uid));
         rememberMsg(k, full);
+        if (seq !== openSeq.current) return; // a newer click, or the message was archived/deleted meanwhile
         setOpen(full);
         if (hit && !m.seen) void api.flags(folder, [m.uid], ['\\Seen']).catch(() => {});
         // warm up the next message in the list, the usual next click (or j)
@@ -276,9 +282,12 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
           setFolders((fs) => fs.map((f) => (f.path === folder ? { ...f, unseen: Math.max(0, f.unseen - 1) } : f)));
         }
       } catch (err) {
-        flash((err as Error).message);
+        if (seq === openSeq.current) flash((err as Error).message);
       } finally {
-        setOpenLoading(false);
+        if (seq === openSeq.current) {
+          loadingUid.current = null;
+          setOpenLoading(false);
+        }
       }
     },
     [folder, flash, prefetch],
@@ -336,13 +345,20 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
     const remaining = visible.filter((m) => !uids.includes(m.uid));
     setList((l) => l.filter((m) => !uids.includes(m.uid)));
     const next = remaining[Math.min(idx, remaining.length - 1)];
-    if (next && uids.length === 1 && open && uids.includes(open.uid)) {
+    // Is the message on screen, or still loading into the reading pane, one of those going away?
+    const loadingGone = loadingUid.current !== null && uids.includes(loadingUid.current);
+    if (loadingGone) {
+      openSeq.current++; // drop the load in flight
+      loadingUid.current = null;
+      setOpenLoading(false);
+    }
+    if (next && uids.length === 1 && ((open && uids.includes(open.uid)) || loadingGone)) {
       setSelected(new Set([next.uid]));
       setAnchor(next.uid);
       void openMessage(next);
     } else {
       setSelected(new Set());
-      if (open && uids.includes(open.uid)) setOpen(null);
+      if ((open && uids.includes(open.uid)) || loadingGone) setOpen(null);
     }
   };
 

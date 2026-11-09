@@ -26,6 +26,7 @@ export interface Features { rules: boolean; password: boolean; passwordMin: numb
 export interface AdminMe { admin: boolean; superadmin: boolean; domains: string[] }
 export interface AdminMailbox { address: string; name: string; active: boolean; forwards: string[] }
 export interface AdminAlias { address: string; goto: string[]; active: boolean }
+export interface AdminDomainRow { domain: string; description: string; active: boolean; limits: { mailboxes: number; aliases: number }; counts: { mailboxes: number; aliases: number }; admins: { address: string; mailbox: boolean }[] }
 export interface AdminDomain { domain: string; description: string; active: boolean; limits: { mailboxes: number; aliases: number }; mailboxes: AdminMailbox[]; aliases: AdminAlias[] }
 export interface SmimeSignature { status: 'ok' | 'untrusted' | 'expired' | 'mismatch' | 'invalid'; signer?: { emails: string[]; name: string; issuer: string; fingerprint: string; notAfter: string } }
 export interface SmimeInfo { signed?: SmimeSignature; encrypted?: boolean; readable?: boolean; reason?: 'no-certificate' | 'not-for-you' }
@@ -113,6 +114,10 @@ export const api = {
   features: () => call<Features>('GET', '/api/features'),
   adminMe: () => call<AdminMe>('GET', '/api/admin/me'),
   adminDomain: (domain: string) => call<AdminDomain>('GET', `/api/admin/domain?${q({ domain })}`),
+  adminDomains: () => call<{ domains: AdminDomainRow[] }>('GET', '/api/admin/domains'),
+  adminSaveDomain: (b: { domain: string; description?: string; active?: boolean; mailboxes?: number; aliases?: number }) => call<{ note?: string }>('POST', '/api/admin/domain', b),
+  adminDeleteDomain: (domain: string) => call('POST', '/api/admin/domain/delete', { domain }),
+  adminSetAdmins: (domain: string, admins: string[]) => call('POST', '/api/admin/domain/admins', { domain, admins }),
   adminCreateMailbox: (b: { address: string; name: string; password: string }) => call('POST', '/api/admin/mailbox', b),
   adminUpdateMailbox: (b: { address: string; name?: string; active?: boolean; password?: string }) => call('POST', '/api/admin/mailbox/update', b),
   adminDeleteMailbox: (address: string) => call<{ note?: string }>('POST', '/api/admin/mailbox/delete', { address }),

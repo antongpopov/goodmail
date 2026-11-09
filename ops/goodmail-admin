@@ -304,6 +304,128 @@ def op_alias_delete(caller, job, sup, domains):
     return {}
 
 
+# ---------- superadmin only: domains and who administers them ----------
+def need_super(sup):
+    if not sup:
+        raise Refuse("Only the main administrator can do this")
+
+
+def int_limit(v, what):
+    try:
+        n = int(v)
+    except Exception:
+        raise Refuse("%s must be a number" % what)
+    if not 0 <= n <= 100000:
+        raise Refuse("%s must be between 0 and 100000 (0 = no limit)" % what)
+    return n
+
+
+def domain_name(v):
+    d = str(v or "").strip().lower()
+    if not DOMAIN.fullmatch(d) or "." not in d:
+        raise Refuse("This is not a valid domain name")
+    return d
+
+
+def op_domain_list(caller, job, sup, domains):
+    need_super(sup)
+    admins = {}
+    for u, d in rows("SELECT da.username, da.domain FROM domain_admins da JOIN admin a ON a.username=da.username WHERE da.active=1 AND a.active=1 AND a.superadmin=0 AND da.domain<>'ALL'"):
+        admins.setdefault(d, []).append(u)
+    mailbox_users = {r[0] for r in rows("SELECT username FROM mailbox")}
+    out_rows = []
+    for d, desc, mb, al, act in rows("SELECT domain,description,mailboxes,aliases,active FROM domain ORDER BY domain"):
+        nm = int(one("SELECT COUNT(*) FROM mailbox WHERE domain=%s" % q(d))[0])
+        na = int(one("SELECT COUNT(*) FROM alias WHERE domain=%s AND address NOT IN (SELECT username FROM mailbox WHERE domain=%s)" % (q(d), q(d)))[0])
+        out_rows.append({
+            "domain": d, "description": desc, "active": act == "1",
+            "limits": {"mailboxes": int(mb), "aliases": int(al)},
+            "counts": {"mailboxes": nm, "aliases": na},
+            "admins": [{"address": u, "mailbox": u in mailbox_users} for u in sorted(admins.get(d, []))],
+        })
+    return {"domains": out_rows}
+
+
+def op_domain_save(caller, job, sup, domains):
+    need_super(sup)
+    d = domain_name(job.get("domain"))
+    exists = one("SELECT 1 FROM domain WHERE domain=%s" % q(d)) is not None
+    desc = re.sub(r"[\x00-\x1f\x7f]", " ", str(job.get("description") or "")).strip()[:255]
+    if not exists:
+        run(
+            "INSERT INTO domain (domain,description,aliases,mailboxes,maxquota,quota,transport,backupmx,created,modified,active)"
+            " VALUES (%s,%s,%d,%d,0,0,'virtual',0,NOW(),NOW(),%d)"
+            % (q(d), q(desc or d), int_limit(job.get("aliases", 0), "The alias limit"), int_limit(job.get("mailboxes", 0), "The mailbox limit"), 0 if job.get("active") is False else 1)
+        )
+        log(caller, d, "create_domain", d)
+        return {"note": "The domain is added to the database. Mail for it only arrives once its MX record points to this server."}
+    sets = []
+    if "description" in job:
+        sets.append("description=%s" % q(desc or d))
+    if "active" in job:
+        sets.append("active=%d" % (1 if job["active"] else 0))
+    if "mailboxes" in job:
+        sets.append("mailboxes=%d" % int_limit(job["mailboxes"], "The mailbox limit"))
+    if "aliases" in job:
+        sets.append("aliases=%d" % int_limit(job["aliases"], "The alias limit"))
+    if not sets:
+        raise Refuse("Nothing to change")
+    run("UPDATE domain SET %s, modified=NOW() WHERE domain=%s" % (", ".join(sets), q(d)))
+    log(caller, d, "edit_domain", d)
+    return {}
+
+
+def op_domain_delete(caller, job, sup, domains):
+    need_super(sup)
+    d = domain_name(job.get("domain"))
+    if one("SELECT 1 FROM domain WHERE domain=%s" % q(d)) is None:
+        raise Refuse("This domain does not exist")
+    if int(one("SELECT COUNT(*) FROM mailbox WHERE domain=%s" % q(d))[0]) or int(one("SELECT COUNT(*) FROM alias WHERE domain=%s" % q(d))[0]):
+        raise Refuse("Delete the mailboxes and aliases of this domain first")
+    run("START TRANSACTION;DELETE FROM domain_admins WHERE domain=%s;DELETE FROM domain WHERE domain=%s;COMMIT" % (q(d), q(d)))
+    log(caller, d, "delete_domain", d)
+    return {}
+
+
+def op_admins_set(caller, job, sup, domains):
+    """Who administers a domain: the given mailbox addresses (superadmins and legacy `admin@…` logins are left alone)."""
+    need_super(sup)
+    d = domain_name(job.get("domain"))
+    if one("SELECT 1 FROM domain WHERE domain=%s" % q(d)) is None:
+        raise Refuse("This domain does not exist")
+    want = job.get("admins")
+    want = want if isinstance(want, list) else re.split(r"[,\s;]+", str(want or ""))
+    want = list(dict.fromkeys(addr(x, "administrator address") for x in want if str(x).strip()))
+    if len(want) > 20:
+        raise Refuse("At most 20 administrators per domain")
+    if want:
+        live = {r[0] for r in rows("SELECT username FROM mailbox WHERE active=1 AND username IN (%s)" % ",".join(q(x) for x in want))}
+        missing = [x for x in want if x not in live]
+        if missing:
+            raise Refuse("Not an active mailbox on this server: %s" % ", ".join(missing))
+        supers = {r[0] for r in rows("SELECT username FROM admin WHERE superadmin=1 AND username IN (%s)" % ",".join(q(x) for x in want))}
+        want = [x for x in want if x not in supers]  # already administer everything
+    mailbox_users = {r[0] for r in rows("SELECT username FROM mailbox")}
+    current = [r[0] for r in rows("SELECT da.username FROM domain_admins da JOIN admin a ON a.username=da.username WHERE da.domain=%s AND a.superadmin=0" % q(d))]
+    current = [u for u in current if u in mailbox_users]  # legacy admin@domain logins stay
+    stmts = ["START TRANSACTION"]
+    for u in want:
+        if one("SELECT 1 FROM admin WHERE username=%s" % q(u)) is None:
+            stmts.append("INSERT INTO admin (username,password,superadmin,created,modified,active) VALUES (%s,'*',0,NOW(),NOW(),1)" % q(u))
+        else:
+            stmts.append("UPDATE admin SET active=1, modified=NOW() WHERE username=%s AND superadmin=0" % q(u))
+        if u not in current:
+            stmts.append("INSERT INTO domain_admins (username,domain,created,active) VALUES (%s,%s,NOW(),1)" % (q(u), q(d)))
+    for u in current:
+        if u not in want:
+            stmts.append("DELETE FROM domain_admins WHERE username=%s AND domain=%s" % (q(u), q(d)))
+            stmts.append("DELETE FROM admin WHERE username=%s AND superadmin=0 AND NOT EXISTS (SELECT 1 FROM domain_admins WHERE username=%s)" % (q(u), q(u)))
+    stmts.append("COMMIT")
+    run(";".join(stmts))
+    log(caller, d, "edit_admin", ",".join(want)[:240] or "-")
+    return {}
+
+
 OPS = {
     "whoami": op_whoami,
     "domain.get": op_domain_get,
@@ -312,6 +434,10 @@ OPS = {
     "mailbox.delete": op_mailbox_delete,
     "alias.save": op_alias_save,
     "alias.delete": op_alias_delete,
+    "domain.list": op_domain_list,
+    "domain.save": op_domain_save,
+    "domain.delete": op_domain_delete,
+    "admins.set": op_admins_set,
 }
 
 try:
