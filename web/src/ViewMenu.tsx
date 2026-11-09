@@ -3,7 +3,8 @@ import { Icon } from './icons.tsx';
 import { LangPicker } from './LangPicker.tsx';
 import { loadTheme, setTheme, ACCENTS, loadAccent, setAccent } from './theme.ts';
 import type { Theme } from './theme.ts';
-import { t } from './i18n.ts';
+import { t, clockPref, setClock } from './i18n.ts';
+import type { Clock } from './i18n.ts';
 
 const THEMES: { id: Theme; label: string; icon: string }[] = [
   { id: 'auto', label: t('Auto (system)'), icon: 'auto' },
@@ -36,6 +37,14 @@ export function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, onSecur
         <div className="menu view-menu">
           <div className="menu-label">{t('Theme')}</div>
           <Appearance />
+          <div className="menu-label">{t('Time format')}</div>
+          <div className="segment">
+            {([['auto', t('Automatic')], ['12', t('12-hour')], ['24', t('24-hour')]] as [Clock, string][]).map(([id, label]) => (
+              <button key={id} className={id === clockPref() ? 'on' : ''} onClick={() => id !== clockPref() && setClock(id)}>
+                {label}
+              </button>
+            ))}
+          </div>
           <div className="menu-label">{t('Reading pane')}</div>
           <div className="segment">
             {PANES.map((p) => (

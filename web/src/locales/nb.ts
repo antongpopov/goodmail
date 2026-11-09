@@ -370,4 +370,8 @@ export const nb: Dict = {
   'That template is too long': 'Malen er for lang',
   'Give the template a name': 'Gi malen et navn',
   'At most 100 templates': 'Maksimalt 100 maler',
+  'Time format': 'Tidsformat',
+  'Automatic': 'Automatisk',
+  '12-hour': '12-timers',
+  '24-hour': '24-timers',
 };

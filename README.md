@@ -82,6 +82,8 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
 - **Languages**: English, Dansk, Deutsch, Svenska, Norsk, Français, Español — picked from the browser,
   switchable on the sign-in page and under ⚙. Dates and weekdays follow the language. Adding a language is one
   file in `web/src/locales/` (English text is the key, so anything untranslated falls back to English).
+- **12- or 24-hour clock** (⚙ → Time format: automatic, 12-hour or 24-hour): applies to the message list, the calendar grid and the
+  event editor's time fields, which understand typing like `2:45 pm`, `1445` or `9.30`
 - Light / dark / auto theme with 8 accent colors (blue, teal, green, purple, pink, red, orange, graphite), reading pane right / below / hidden, works down to phone width
 
 ## Run

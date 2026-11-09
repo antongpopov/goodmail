@@ -3,7 +3,7 @@ import { api } from './api.ts';
 import type { CalEvent, RRule } from './api.ts';
 import { Icon } from './icons.tsx';
 import { store, save } from './util.ts';
-import { t, L, weekdays } from './i18n.ts';
+import { t, L, weekdays, timeOpts } from './i18n.ts';
 
 type View = 'day' | 'workweek' | 'week' | 'month';
 const HOUR = 48; // px per hour in the time grid
@@ -29,7 +29,60 @@ const fromInputs = (date: string, time: string) => {
   d.setHours(h, mi, 0, 0);
   return d;
 };
-const fmtTime = (d: Date) => d.toLocaleTimeString(L(), { hour: '2-digit', minute: '2-digit' });
+/** "9", "930", "09:30", "9.30 pm", "21h" → "HH:MM", or null. */
+function parseClock(text: string): string | null {
+  const m = /^\s*(\d{1,2})(?:\s*[:.h]?\s*(\d{2}))?\s*([ap])?\.?m?\.?\s*$/i.exec(text.replace(/\s+/g, ' '));
+  if (!m) return null;
+  let h = Number(m[1]);
+  const min = m[2] ? Number(m[2]) : 0;
+  const ap = m[3]?.toLowerCase();
+  if (ap) {
+    if (h < 1 || h > 12) return null;
+    h = (h % 12) + (ap === 'p' ? 12 : 0);
+  }
+  if (h > 23 || min > 59) return null;
+  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+}
+const showClock = (hhmm: string) => {
+  const [h, m] = hhmm.split(':').map(Number);
+  return new Date(2000, 0, 1, h, m).toLocaleTimeString(L(), { hour: '2-digit', minute: '2-digit', ...timeOpts() });
+};
+const SLOTS = Array.from({ length: 96 }, (_, i) => `${String(Math.floor(i / 4)).padStart(2, '0')}:${String((i % 4) * 15).padStart(2, '0')}`);
+
+/** A time field that follows the 12 / 24-hour setting (the browser's own <input type="time"> only follows the OS). */
+function TimeInput({ value, onChange, id }: { value: string; onChange: (v: string) => void; id: string }) {
+  const [text, setText] = useState(() => showClock(value));
+  useEffect(() => setText(showClock(value)), [value]);
+  const commit = (raw: string) => {
+    const v = parseClock(raw);
+    if (v) onChange(v);
+    setText(showClock(v || value));
+  };
+  return (
+    <>
+      <input
+        className="time-input"
+        list={id}
+        value={text}
+        inputMode="text"
+        autoComplete="off"
+        required
+        onChange={(e) => {
+          setText(e.target.value);
+          if (SLOTS.some((sl) => showClock(sl) === e.target.value)) commit(e.target.value); // picked from the list
+        }}
+        onBlur={(e) => commit(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && commit((e.target as HTMLInputElement).value)}
+      />
+      <datalist id={id}>
+        {SLOTS.map((sl) => (
+          <option key={sl} value={showClock(sl)} />
+        ))}
+      </datalist>
+    </>
+  );
+}
+const fmtTime = (d: Date) => d.toLocaleTimeString(L(), { hour: '2-digit', minute: '2-digit', ...timeOpts() });
 
 interface Occ {
   ev: CalEvent;
@@ -257,10 +310,10 @@ function EventDialog({ draft, onClose, onSaved, flash }: { draft: Draft; onClose
           <Icon name="clock" size={18} />
           <div className="ev-times">
             <input type="date" value={d.sDate} onChange={(e) => { const v = e.target.value; setD((x) => ({ ...x, sDate: v, eDate: x.eDate < v ? v : x.eDate })); }} required />
-            {!d.allDay && <input type="time" value={d.sTime} onChange={(e) => set('sTime', e.target.value)} required />}
+            {!d.allDay && <TimeInput id="ev-start-slots" value={d.sTime} onChange={(v) => set('sTime', v)} />}
             <span className="muted">{t('to')}</span>
             <input type="date" value={d.eDate} onChange={(e) => set('eDate', e.target.value)} required />
-            {!d.allDay && <input type="time" value={d.eTime} onChange={(e) => set('eTime', e.target.value)} required />}
+            {!d.allDay && <TimeInput id="ev-end-slots" value={d.eTime} onChange={(v) => set('eTime', v)} />}
             <label className="menu-check">
               <input type="checkbox" checked={d.allDay} onChange={(e) => set('allDay', e.target.checked)} /> {t('All day')}
             </label>
@@ -541,7 +594,7 @@ export function Calendar({ flash, isPhone }: { flash: (m: string) => void; isPho
                 <div className="tg-hours">
                   {Array.from({ length: 24 }, (_, h) => (
                     <div key={h} className="tg-hour" style={{ top: h * HOUR }}>
-                      {h === 0 ? '' : new Date(2000, 0, 1, h).toLocaleTimeString(L(), { hour: 'numeric' })}
+                      {h === 0 ? '' : new Date(2000, 0, 1, h).toLocaleTimeString(L(), { hour: 'numeric', ...timeOpts() })}
                     </div>
                   ))}
                 </div>

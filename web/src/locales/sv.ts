@@ -370,4 +370,8 @@ export const sv: Dict = {
   'That template is too long': 'Mallen är för lång',
   'Give the template a name': 'Ge mallen ett namn',
   'At most 100 templates': 'Högst 100 mallar',
+  'Time format': 'Tidsformat',
+  'Automatic': 'Automatiskt',
+  '12-hour': '12-timmars',
+  '24-hour': '24-timmars',
 };

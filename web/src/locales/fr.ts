@@ -370,4 +370,8 @@ export const fr: Dict = {
   'That template is too long': 'Le modèle est trop long',
   'Give the template a name': 'Donnez un nom au modèle',
   'At most 100 templates': '100 modèles au maximum',
+  'Time format': 'Format de l’heure',
+  'Automatic': 'Automatique',
+  '12-hour': '12 heures',
+  '24-hour': '24 heures',
 };

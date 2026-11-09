@@ -597,3 +597,4 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .tpl-menu .sep-line { height: 1px; background: var(--border); margin: 4px 0; }
 .tpl-menu button { white-space: normal; }
 a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
+.time-input { width: 96px; }

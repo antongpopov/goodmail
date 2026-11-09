@@ -370,4 +370,8 @@ export const de: Dict = {
   'That template is too long': 'Die Vorlage ist zu lang',
   'Give the template a name': 'Geben Sie der Vorlage einen Namen',
   'At most 100 templates': 'Höchstens 100 Vorlagen',
+  'Time format': 'Zeitformat',
+  'Automatic': 'Automatisch',
+  '12-hour': '12-Stunden',
+  '24-hour': '24-Stunden',
 };

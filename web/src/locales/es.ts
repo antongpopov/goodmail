@@ -370,4 +370,8 @@ export const es: Dict = {
   'That template is too long': 'La plantilla es demasiado larga',
   'Give the template a name': 'Ponle un nombre a la plantilla',
   'At most 100 templates': 'Máximo 100 plantillas',
+  'Time format': 'Formato de hora',
+  'Automatic': 'Automático',
+  '12-hour': '12 horas',
+  '24-hour': '24 horas',
 };

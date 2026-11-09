@@ -382,4 +382,8 @@ export const da: Dict = {
   'That template is too long': 'Skabelonen er for lang',
   'Give the template a name': 'Giv skabelonen et navn',
   'At most 100 templates': 'Højst 100 skabeloner',
+  'Time format': 'Tidsformat',
+  'Automatic': 'Automatisk',
+  '12-hour': '12-timers',
+  '24-hour': '24-timers',
 };

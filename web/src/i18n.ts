@@ -41,6 +41,26 @@ document.documentElement.lang = lang;
 export const currentLang = () => lang;
 /** The app name in the user's language when the server config has a title.<lang> for it, else the default name. */
 export const localTitle = (name: string, names?: Record<string, string>) => names?.[lang] || name;
+/** Clock preference: 'auto' follows the language/browser, '12' = am/pm, '24' = 24-hour. */
+export type Clock = 'auto' | '12' | '24';
+export function clockPref(): Clock {
+  try {
+    const v = JSON.parse(localStorage.getItem('gm:clock') || 'null');
+    return v === '12' || v === '24' ? v : 'auto';
+  } catch {
+    return 'auto';
+  }
+}
+export function setClock(v: Clock) {
+  try {
+    localStorage.setItem('gm:clock', JSON.stringify(v));
+  } catch {
+    /* ignore */
+  }
+  location.reload();
+}
+/** Intl options for the chosen clock; merge into any toLocale*String call that shows an hour. */
+export const timeOpts = (): Intl.DateTimeFormatOptions => (clockPref() === '12' ? { hour12: true } : clockPref() === '24' ? { hourCycle: 'h23' } : {});
 /** BCP-47 locale for Intl date/number formatting in the chosen language. */
 export const L = () => (lang === 'en' ? navigator.language || 'en' : lang);
 
