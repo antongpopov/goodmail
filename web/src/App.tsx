@@ -18,7 +18,7 @@ import { Calendar } from './Calendar.tsx';
 import { bucket, displayName, fullAddr, fullTime, humanSize, save, store } from './util.ts';
 import { t, localTitle } from './i18n.ts';
 import { listCache, msgCache, msgKey, rememberMsg } from './cache.ts';
-import { folderLabel, buildTree } from './folders.ts';
+import { folderLabel, buildTree, pathLabel, flatFolders } from './folders.ts';
 import type { FolderNode } from './folders.ts';
 import { Avatar } from './Avatar.tsx';
 import { Splitter } from './Splitter.tsx';
@@ -757,12 +757,11 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
               </button>
               {moveOpen && (
                 <div className="menu" onMouseLeave={() => setMoveOpen(false)}>
-                  {folders
+                  {flatFolders(folders)
                     .filter((f) => f.path !== folder)
-                    .sort((a, b) => a.path.localeCompare(b.path))
                     .map((f) => (
                       <button key={f.path} onClick={() => void doMove(f.path)}>
-                        <Icon name={folderIcon(f.specialUse)} size={16} /> {f.path.split(f.delimiter || '/').join(' / ')}
+                        <Icon name={folderIcon(f.specialUse)} size={16} /> {pathLabel(f.path, folders)}
                       </button>
                     ))}
                 </div>

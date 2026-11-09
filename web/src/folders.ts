@@ -34,3 +34,27 @@ export function buildTree(list: Folder[]): FolderNode[] {
   sortRec(roots, 0);
   return roots;
 }
+
+/** "Projects / Website" for a folder path, with special folders in the UI language ("Indbakke / …") like the folder list. */
+export function pathLabel(path: string, list: Folder[]) {
+  const d = list.find((x) => x.path === path)?.delimiter || list.find((x) => x.delimiter)?.delimiter || '/';
+  const parts = path.split(d);
+  return parts
+    .map((seg, i) => {
+      const g = list.find((x) => x.path === parts.slice(0, i + 1).join(d));
+      return g ? folderLabel(g) : seg;
+    })
+    .join(' / ');
+}
+
+/** All folders in the order of the folder list (special folders first, children under their parent). */
+export function flatFolders(list: Folder[]): FolderNode[] {
+  const out: FolderNode[] = [];
+  const walk = (ns: FolderNode[]) =>
+    ns.forEach((n) => {
+      out.push(n);
+      walk(n.children);
+    });
+  walk(buildTree(list));
+  return out;
+}

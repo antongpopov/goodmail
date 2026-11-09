@@ -3,6 +3,7 @@ import { api, ApiError } from './api.ts';
 import type { Folder, MailRule, RuleAction, RuleCondition } from './api.ts';
 import { Icon } from './icons.tsx';
 import { t } from './i18n.ts';
+import { pathLabel, flatFolders } from './folders.ts';
 
 const FIELDS: { id: RuleCondition['field']; label: () => string }[] = [
   { id: 'from', label: () => t('From') },
@@ -88,10 +89,7 @@ export function RulesDialog({ onClose, flash, seed }: { onClose: () => void; fla
     }
   };
 
-  const folderLabel = (path: string) => {
-    const f = folders.find((x) => x.path === path);
-    return f ? f.path.split(f.delimiter || '/').join(' / ') : path;
-  };
+  const folderLabel = (path: string) => pathLabel(path, folders);
   const move = (i: number, d: number) => {
     if (!rules) return;
     const next = [...rules];
@@ -168,7 +166,7 @@ export function RulesDialog({ onClose, flash, seed }: { onClose: () => void; fla
                 {a.type === 'move' && (
                   <select className="grow" value={a.value || ''} onChange={(e) => setAct(i, { value: e.target.value })} required>
                     <option value="">{t('Choose a folder…')}</option>
-                    {folders.map((f) => <option key={f.path} value={f.path}>{folderLabel(f.path)}</option>)}
+                    {flatFolders(folders).map((f) => <option key={f.path} value={f.path}>{folderLabel(f.path)}</option>)}
                   </select>
                 )}
                 {a.type === 'forward' && <input className="grow" type="email" value={a.value || ''} onChange={(e) => setAct(i, { value: e.target.value })} placeholder="name@example.com" required />}
