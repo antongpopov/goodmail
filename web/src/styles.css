@@ -597,4 +597,9 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .tpl-menu .sep-line { height: 1px; background: var(--border); margin: 4px 0; }
 .tpl-menu button { white-space: normal; }
 a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
+.time-wrap { position: relative; display: inline-block; }
 .time-input { width: 96px; }
+.time-list { position: absolute; z-index: 70; top: 100%; left: 0; width: 120px; max-height: 220px; overflow: auto; background: var(--surface); box-shadow: 0 8px 24px rgba(0,0,0,.25); border-radius: 6px; padding: 4px 0; }
+.time-list button { display: block; width: 100%; text-align: left; padding: 6px 12px; font-size: 14px; }
+.time-list button:hover, .time-list button.hi { background: var(--hover); }
+.time-list button.cur { font-weight: 600; color: var(--brand); }

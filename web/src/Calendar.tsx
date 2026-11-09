@@ -49,37 +49,88 @@ const showClock = (hhmm: string) => {
 };
 const SLOTS = Array.from({ length: 96 }, (_, i) => `${String(Math.floor(i / 4)).padStart(2, '0')}:${String((i % 4) * 15).padStart(2, '0')}`);
 
-/** A time field that follows the 12 / 24-hour setting (the browser's own <input type="time"> only follows the OS). */
-function TimeInput({ value, onChange, id }: { value: string; onChange: (v: string) => void; id: string }) {
+/** A time field that follows the 12 / 24-hour setting, with a dropdown of 15-minute choices (and free typing). */
+function TimeInput({ value, onChange }: { value: string; onChange: (v: string) => void; id?: string }) {
   const [text, setText] = useState(() => showClock(value));
+  const [open, setOpen] = useState(false);
+  const list = useRef<HTMLDivElement>(null);
+  const moved = useRef(false); // arrow keys used since the last typing
   useEffect(() => setText(showClock(value)), [value]);
+  // index of the slot at or after the current value (what the list scrolls to and highlights)
+  const nearest = (v: string) => {
+    const i = SLOTS.findIndex((sl) => sl >= v);
+    return i < 0 ? SLOTS.length - 1 : i;
+  };
+  const [hi, setHi] = useState(() => nearest(value));
+  useEffect(() => {
+    if (open) setHi(nearest(parseClock(text) || value));
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!open) return;
+    const el = list.current?.querySelector<HTMLElement>(`[data-i="${hi}"]`);
+    if (el && list.current) list.current.scrollTop = el.offsetTop - list.current.clientHeight / 2 + el.offsetHeight / 2;
+  }, [open, hi]);
   const commit = (raw: string) => {
     const v = parseClock(raw);
     if (v) onChange(v);
     setText(showClock(v || value));
   };
+  const pick = (sl: string) => {
+    onChange(sl);
+    setText(showClock(sl));
+    setOpen(false);
+  };
   return (
-    <>
+    <span className="time-wrap">
       <input
         className="time-input"
-        list={id}
         value={text}
-        inputMode="text"
         autoComplete="off"
         required
-        onChange={(e) => {
-          setText(e.target.value);
-          if (SLOTS.some((sl) => showClock(sl) === e.target.value)) commit(e.target.value); // picked from the list
+        onFocus={(e) => {
+          e.target.select();
+          setOpen(true);
         }}
-        onBlur={(e) => commit(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && commit((e.target as HTMLInputElement).value)}
+        onClick={() => setOpen(true)}
+        onChange={(e) => {
+          moved.current = false;
+          setText(e.target.value);
+          const v = parseClock(e.target.value);
+          if (v) setHi(nearest(v));
+        }}
+        onBlur={(e) => {
+          setOpen(false);
+          commit(e.target.value);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            setOpen(true);
+            moved.current = true;
+            setHi((i) => Math.max(0, Math.min(SLOTS.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1))));
+          } else if (e.key === 'Enter' && open) {
+            e.preventDefault();
+            if (moved.current) pick(SLOTS[hi]);
+            else {
+              commit(text);
+              setOpen(false);
+            }
+          } else if (e.key === 'Escape' && open) {
+            e.stopPropagation();
+            setOpen(false);
+          }
+        }}
       />
-      <datalist id={id}>
-        {SLOTS.map((sl) => (
-          <option key={sl} value={showClock(sl)} />
-        ))}
-      </datalist>
-    </>
+      {open && (
+        <div className="time-list" ref={list} onMouseDown={(e) => e.preventDefault()}>
+          {SLOTS.map((sl, i) => (
+            <button type="button" key={sl} data-i={i} className={`${sl === value ? 'cur' : ''} ${i === hi ? 'hi' : ''}`} onClick={() => pick(sl)}>
+              {showClock(sl)}
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
   );
 }
 const fmtTime = (d: Date) => d.toLocaleTimeString(L(), { hour: '2-digit', minute: '2-digit', ...timeOpts() });
@@ -310,10 +361,10 @@ function EventDialog({ draft, onClose, onSaved, flash }: { draft: Draft; onClose
           <Icon name="clock" size={18} />
           <div className="ev-times">
             <input type="date" value={d.sDate} onChange={(e) => { const v = e.target.value; setD((x) => ({ ...x, sDate: v, eDate: x.eDate < v ? v : x.eDate })); }} required />
-            {!d.allDay && <TimeInput id="ev-start-slots" value={d.sTime} onChange={(v) => set('sTime', v)} />}
+            {!d.allDay && <TimeInput value={d.sTime} onChange={(v) => set('sTime', v)} />}
             <span className="muted">{t('to')}</span>
             <input type="date" value={d.eDate} onChange={(e) => set('eDate', e.target.value)} required />
-            {!d.allDay && <TimeInput id="ev-end-slots" value={d.eTime} onChange={(v) => set('eTime', v)} />}
+            {!d.allDay && <TimeInput value={d.eTime} onChange={(v) => set('eTime', v)} />}
             <label className="menu-check">
               <input type="checkbox" checked={d.allDay} onChange={(e) => set('allDay', e.target.checked)} /> {t('All day')}
             </label>
