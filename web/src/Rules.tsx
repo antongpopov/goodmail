@@ -40,7 +40,14 @@ const blank = (): MailRule => ({
 });
 
 /** Mail rules: "when a message matches …, then …", stored as a Sieve filter on the mail server. */
-export function RulesDialog({ onClose, flash, seed }: { onClose: () => void; flash: (m: string) => void; seed?: { name: string; address: string; field: 'from' | 'to' } }) {
+/** Pre-fills a new rule from a message: who it came from (or went to). */
+export interface RuleSeed {
+  name: string;
+  address: string;
+  field: 'from' | 'to';
+}
+
+export function RulesDialog({ onClose, flash, seed }: { onClose: () => void; flash: (m: string) => void; seed?: RuleSeed }) {
   const [rules, setRules] = useState<MailRule[] | null>(null);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [foreign, setForeign] = useState(false);

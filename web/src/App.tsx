@@ -1,27 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, setUnauthorizedHandler, useAccount, currentAccount } from './api.ts';
 import type { MailAccount } from './api.ts';
-import { AccountsDialog } from './Accounts.tsx';
-import { SecurityDialog } from './Security.tsx';
-import { RulesDialog } from './Rules.tsx';
-import { SmimeDialog, SmimeBadge } from './Smime.tsx';
-import { SignaturesDialog } from './Signatures.tsx';
+import { Dialogs } from './Dialogs.tsx';
+import type { Dialog } from './Dialogs.tsx';
+import { MessageView } from './MessageView.tsx';
+import { TextBtn } from './actions.tsx';
+import type { Act } from './actions.tsx';
+import { MoveDropdown, MoveSheet } from './MovePicker.tsx';
 import { LangPicker } from './LangPicker.tsx';
 import type { Features, Folder, Me, Message, Prefs, Summary } from './api.ts';
-import { Icon, folderIcon } from './icons.tsx';
+import { Icon } from './icons.tsx';
 import { Login } from './Login.tsx';
 import { Compose } from './Compose.tsx';
 import type { ComposeInit } from './Compose.tsx';
-import { MailBody } from './MailBody.tsx';
 import { Contacts } from './Contacts.tsx';
 import { Calendar } from './Calendar.tsx';
-import { bucket, displayName, fullAddr, fullTime, humanSize, save, store } from './util.ts';
+import { bucket, displayName, fullAddr, save, store } from './util.ts';
 import { t, localTitle } from './i18n.ts';
 import { listCache, msgCache, msgKey, rememberMsg } from './cache.ts';
-import { folderLabel, buildTree, pathLabel, flatFolders } from './folders.ts';
+import { folderLabel, buildTree } from './folders.ts';
 import type { FolderNode } from './folders.ts';
 import { Avatar } from './Avatar.tsx';
-import { HeadersDialog } from './Headers.tsx';
 import { Splitter } from './Splitter.tsx';
 import { MessageItem } from './MessageItem.tsx';
 import { FolderRow } from './FolderRow.tsx';
@@ -60,18 +59,12 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   const folders = allFolders[acct] ?? [];
   const setFolders = (fn: (f: Folder[]) => Folder[]) => setAllFolders((all) => ({ ...all, [acct]: fn(all[acct] ?? []) }));
   const [folder, setFolder] = useState(() => store('folder', 'INBOX'));
-  const [acctDialog, setAcctDialog] = useState(false);
-  const [secDialog, setSecDialog] = useState(false);
-  const [rulesDialog, setRulesDialog] = useState(false);
-  const [smimeDialog, setSmimeDialog] = useState(false);
+  const [dialog, setDialog] = useState<Dialog | null>(null);
   const [prefs, setPrefs] = useState<Prefs | null>(null);
-  const [headersFor, setHeadersFor] = useState<{ folder: string; uid: number } | null>(null);
-  const [sigDialog, setSigDialog] = useState<'signature' | 'templates' | null>(null);
   useEffect(() => {
     api.prefs().then(setPrefs).catch(() => {});
   }, [me.email]);
   const mergePrefs = (p: Omit<Prefs, 'defaultSignature'>) => setPrefs((old) => ({ defaultSignature: old?.defaultSignature || '', ...p }));
-  const [ruleSeed, setRuleSeed] = useState<{ name: string; address: string; field: 'from' | 'to' } | undefined>();
   const [features, setFeatures] = useState<Features | null>(null);
   useEffect(() => {
     api.features().then(setFeatures).catch(() => {});
@@ -111,9 +104,6 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
       flash((err as Error).message);
     }
   };
-  const [remoteOk, setRemoteOk] = useState<Record<string, boolean>>(() => store('remoteOk', {}));
-  const [showRemoteOnce, setShowRemoteOnce] = useState(false);
-  const [blocked, setBlocked] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const reqId = useRef(0);
 
@@ -263,7 +253,6 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   const openMessage = useCallback(
     async (m: Summary) => {
       setCompose(null);
-      setShowRemoteOnce(false);
       const acctId = currentAccount();
       const k = msgKey(acctId, folder, m.uid);
       const hit = msgCache.get(k);
@@ -452,9 +441,6 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
     }
   };
 
-  const senderKey = open?.from.address.toLowerCase() || '';
-  const remote = showRemoteOnce || !!remoteOk[senderKey];
-
   const groups = useMemo(() => {
     const g: { label: string; items: Summary[] }[] = [];
     for (const m of visible) {
@@ -471,6 +457,41 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   const inJunk = current?.specialUse === '\\Junk';
   const toggleJunk = (uids = targetUids()) => doMove(inJunk ? 'INBOX' : 'junk', uids);
   const has = targetUids().length > 0;
+  /** Open the rule editor pre-filled from a message (who it came from, or who it went to in Sent/Drafts). */
+  const ruleFrom = (m: { from: { name: string; address: string }; to: { name: string; address: string }[] }) => {
+    const w = isSentFolder ? m.to[0] || m.from : m.from;
+    setDialog({ kind: 'rules', seed: { name: displayName(w), address: w.address, field: isSentFolder ? 'to' : 'from' } });
+  };
+
+  // Each action is defined once; the desktop toolbar, the message header and the phone toolbar all render these.
+  const act = {
+    delete: { icon: 'trash', label: t('Delete'), run: () => void doDelete(), disabled: !has },
+    archive: { icon: 'archive', label: t('Archive'), run: () => void doMove('archive'), disabled: !has },
+    move: { icon: 'move', label: t('Move'), run: () => setMoveOpen((v) => !v), disabled: !has },
+    junk: {
+      icon: inJunk ? 'inbox' : 'junk',
+      label: inJunk ? t('Not junk') : t('Mark as junk'),
+      title: inJunk ? t('Not junk: move back to Inbox (!)') : t('Mark as junk (!)'),
+      run: () => void toggleJunk(),
+      disabled: !has,
+    },
+    flag: { icon: 'flag', label: t('Flag'), run: toggleFlag, disabled: !has },
+    read: { icon: 'unread', label: t('Read / Unread'), run: toggleRead, disabled: !has },
+    sync: { icon: 'sync', label: t('Sync'), run: sync },
+  } satisfies Record<string, Act>;
+  const messageActs = (m: Message) => ({
+    reply: { icon: 'reply', label: t('Reply (r)'), run: () => setCompose({ mode: 'reply', source: m }) },
+    replyAll: { icon: 'replyAll', label: t('Reply all (a)'), run: () => setCompose({ mode: 'replyAll', source: m }) },
+    forward: { icon: 'forward', label: t('Forward (f)'), run: () => setCompose({ mode: 'forward', source: m }) },
+    junk: { ...act.junk, label: inJunk ? t('Not junk (!)') : t('Mark as junk (!)'), title: undefined },
+    headers: { icon: 'code', label: t('View headers'), run: () => setDialog({ kind: 'headers', folder, uid: m.uid }) },
+    rule: features?.rules && acct === 'main' ? { icon: 'folder', label: t('Create rule from this message…'), run: () => ruleFrom(m) } : undefined,
+    delete: act.delete,
+    archive: act.archive,
+    move: act.move,
+    flag: { ...act.flag, filled: m.flagged },
+    unread: { icon: 'unread', label: t('Mark unread'), run: () => { void setFlag([m.uid], '\\Seen', false); closeMessage(); } },
+  });
 
   const openFolder = (aid: string, path: string) => {
     setSearching('');
@@ -587,7 +608,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                         {collapsed[k] && unseen > 0 && <span className="count">{unseen}</span>}
                       </button>
                       {a.locked && (
-                        <button className="folder muted" onClick={() => setAcctDialog(true)}>
+                        <button className="folder muted" onClick={() => setDialog({ kind: 'accounts' })}>
                           <span className="twisty" />
                           <Icon name="close" size={16} /> <span className="fname">{t('Locked — re-enter password')}</span>
                         </button>
@@ -613,7 +634,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                   <span className="twisty" />
                   <Icon name="plus" size={16} /> <span className="fname">{t('Create new folder')}</span>
                 </button>
-                <button className="folder add" onClick={() => setAcctDialog(true)}>
+                <button className="folder add" onClick={() => setDialog({ kind: 'accounts' })}>
                   <span className="twisty" />
                   <Icon name="people" size={16} /> <span className="fname">{t('Add account')}</span>
                 </button>
@@ -631,23 +652,23 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                   <label className="menu-check">
                     <input type="checkbox" checked={preview} onChange={(e) => setPreview(e.target.checked)} /> {t('Show preview text')}
                   </label>
-                  <button className="folder" onClick={() => { setSigDialog('signature'); setDrawer(false); }}>
+                  <button className="folder" onClick={() => { setDialog({ kind: 'signatures', tab: 'signature' }); setDrawer(false); }}>
                     <span className="twisty" />
                     <Icon name="drafts" size={18} /> <span className="fname">{t('Signatures & templates…')}</span>
                   </button>
                   {features?.smime && (
-                    <button className="folder" onClick={() => { setSmimeDialog(true); setDrawer(false); }}>
+                    <button className="folder" onClick={() => { setDialog({ kind: 'smime' }); setDrawer(false); }}>
                       <span className="twisty" />
                       <Icon name="shield" size={18} /> <span className="fname">{t('Secure mail (S/MIME)…')}</span>
                     </button>
                   )}
                   {features?.rules && (
-                    <button className="folder" onClick={() => { setRulesDialog(true); setDrawer(false); }}>
+                    <button className="folder" onClick={() => { setDialog({ kind: 'rules' }); setDrawer(false); }}>
                       <span className="twisty" />
                       <Icon name="folder" size={18} /> <span className="fname">{t('Mail rules…')}</span>
                     </button>
                   )}
-                  <button className="folder" onClick={() => { setSecDialog(true); setDrawer(false); }}>
+                  <button className="folder" onClick={() => { setDialog({ kind: 'security' }); setDrawer(false); }}>
                     <span className="twisty" />
                     <Icon name="check" size={18} /> <span className="fname">{t('Sign-in security…')}</span>
                   </button>
@@ -708,7 +729,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
         </form>
         <div className="top-right">
           <span className="desk-only">
-            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} onAccounts={() => setAcctDialog(true)} onSecurity={() => setSecDialog(true)} onRules={features?.rules ? () => setRulesDialog(true) : undefined} onSmime={features?.smime ? () => setSmimeDialog(true) : undefined} onSignatures={() => setSigDialog('signature')} source={source} />
+            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} onAccounts={() => setDialog({ kind: 'accounts' })} onSecurity={() => setDialog({ kind: 'security' })} onRules={features?.rules ? () => setDialog({ kind: 'rules' }) : undefined} onSmime={features?.smime ? () => setDialog({ kind: 'smime' }) : undefined} onSignatures={() => setDialog({ kind: 'signatures', tab: 'signature' })} source={source} />
           </span>
           <span className="who" title={`${me.email} · ${me.imapHost}`}>
             <Avatar addr={{ name: me.name, address: me.email }} size={28} />
@@ -747,45 +768,16 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
               <Icon name="compose" /> {t('New mail')}
             </button>
             <span className="sep" />
-            <button className="tb" disabled={!has} onClick={() => void doDelete()}>
-              <Icon name="trash" /> <span className="lbl">{t('Delete')}</span>
-            </button>
-            <button className="tb" disabled={!has} onClick={() => void doMove('archive')}>
-              <Icon name="archive" /> <span className="lbl">{t('Archive')}</span>
-            </button>
+            <TextBtn a={act.delete} />
+            <TextBtn a={act.archive} />
             <div className="menu-wrap">
-              <button className="tb" disabled={!has} onClick={() => setMoveOpen((v) => !v)}>
-                <Icon name="move" /> <span className="lbl">{t('Move')}</span>
-              </button>
-              {moveOpen && (
-                <div className="menu" onMouseLeave={() => setMoveOpen(false)}>
-                  {flatFolders(folders)
-                    .filter((f) => f.path !== folder)
-                    .map((f) => (
-                      <button key={f.path} onClick={() => void doMove(f.path)}>
-                        <Icon name={folderIcon(f.specialUse)} size={16} /> {pathLabel(f.path, folders)}
-                      </button>
-                    ))}
-                </div>
-              )}
+              <TextBtn a={act.move} />
+              {moveOpen && <MoveDropdown folders={folders} current={folder} onPick={(p) => void doMove(p)} onClose={() => setMoveOpen(false)} />}
             </div>
-            <button
-              className="tb"
-              disabled={!has}
-              onClick={() => void toggleJunk()}
-              title={inJunk ? t('Not junk: move back to Inbox (!)') : t('Mark as junk (!)')}
-            >
-              <Icon name={inJunk ? 'inbox' : 'junk'} /> <span className="lbl">{inJunk ? t('Not junk') : t('Mark as junk')}</span>
-            </button>
-            <button className="tb" disabled={!has} onClick={toggleFlag}>
-              <Icon name="flag" /> <span className="lbl">{t('Flag')}</span>
-            </button>
-            <button className="tb" disabled={!has} onClick={toggleRead}>
-              <Icon name="unread" /> <span className="lbl">{t('Read / Unread')}</span>
-            </button>
-            <button className="tb" onClick={sync}>
-              <Icon name="sync" /> <span className="lbl">{t('Sync')}</span>
-            </button>
+            <TextBtn a={act.junk} />
+            <TextBtn a={act.flag} />
+            <TextBtn a={act.read} />
+            <TextBtn a={act.sync} />
           </div>
 
           <div className={`panes pane-${pane}`}>
@@ -830,7 +822,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                         onFlag={setFlag}
                         onToggleJunk={toggleJunk}
                         onDelete={doDelete}
-                        onRule={features?.rules && acct === 'main' ? (msg) => { const w = isSentFolder ? msg.to[0] || msg.from : msg.from; setRuleSeed({ name: displayName(w), address: w.address, field: isSentFolder ? 'to' : 'from' }); setRulesDialog(true); } : undefined}
+                        onRule={features?.rules && acct === 'main' ? ruleFrom : undefined}
                       />
                     ))}
                   </div>
@@ -849,7 +841,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                   me={me}
                   features={features}
                   prefs={prefs}
-                  onManage={(tab) => setSigDialog(tab)}
+                  onManage={(tab) => setDialog({ kind: 'signatures', tab })}
                   onPrefsChange={mergePrefs}
                   init={compose}
                   accounts={accounts.filter((a) => !a.locked)}
@@ -864,132 +856,19 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                   }}
                 />
               ) : open ? (
-                <article className="message">
-                  <div className="msg-head">
-                    <button className="tb icon back" title={t('Back')} onClick={closeMessage}>
-                      <Icon name="chevronRight" />
-                    </button>
-                    <h2>{open.subject || t('(no subject)')}</h2>
-                    <div className="msg-actions">
-                      <button className="tb icon" title={t('Reply (r)')} onClick={() => setCompose({ mode: 'reply', source: open })}>
-                        <Icon name="reply" />
-                      </button>
-                      <button className="tb icon" title={t('Reply all (a)')} onClick={() => setCompose({ mode: 'replyAll', source: open })}>
-                        <Icon name="replyAll" />
-                      </button>
-                      <button className="tb icon" title={t('Forward (f)')} onClick={() => setCompose({ mode: 'forward', source: open })}>
-                        <Icon name="forward" />
-                      </button>
-                      <button className="tb icon" title={inJunk ? t('Not junk (!)') : t('Mark as junk (!)')} onClick={() => void toggleJunk([open.uid])}>
-                        <Icon name={inJunk ? 'inbox' : 'junk'} />
-                      </button>
-                      <button className="tb icon" title={t('View headers')} onClick={() => setHeadersFor({ folder, uid: open.uid })}>
-                        <Icon name="code" />
-                      </button>
-                      {features?.rules && acct === 'main' && (
-                        <button
-                          className="tb icon"
-                          title={t('Create rule from this message…')}
-                          onClick={() => {
-                            const w = isSentFolder ? open.to[0] || open.from : open.from;
-                            setRuleSeed({ name: displayName(w), address: w.address, field: isSentFolder ? 'to' : 'from' });
-                            setRulesDialog(true);
-                          }}
-                        >
-                          <Icon name="folder" />
-                        </button>
-                      )}
-                      <span className="phone-only phone-actions">
-                        <button className="tb icon" title={t('Delete')} onClick={() => void doDelete()}>
-                          <Icon name="trash" />
-                        </button>
-                        <button className="tb icon" title={t('Archive')} onClick={() => void doMove('archive')}>
-                          <Icon name="archive" />
-                        </button>
-                        <button className="tb icon" title={t('Move')} onClick={() => setMoveOpen((v) => !v)}>
-                          <Icon name="move" />
-                        </button>
-                        <button className="tb icon" title={t('Flag')} onClick={toggleFlag}>
-                          <Icon name="flag" filled={open.flagged} />
-                        </button>
-                        <button className="tb icon" title={t('Mark unread')} onClick={() => { void setFlag([open.uid], '\\Seen', false); closeMessage(); }}>
-                          <Icon name="unread" />
-                        </button>
-                      </span>
-                    </div>
-                  </div>
-                  <div className="card">
-                    <div className="sender-row">
-                      <Avatar addr={open.from} size={44} />
-                      <div className="sender-info">
-                        <div className="from-line">
-                          <b>{displayName(open.from)}</b>
-                          {open.from.address && !known.has(open.from.address.toLowerCase()) && (
-                            <button
-                              className="add-contact"
-                              title={t('Add to contacts')}
-                              onClick={() => {
-                                setAddContact({ name: open.from.name, emails: [open.from.address] });
-                                setView('contacts');
-                              }}
-                            >
-                              <Icon name="plus" size={14} />
-                            </button>
-                          )}
-                          {open.from.name && <span className="muted"> &lt;{open.from.address}&gt;</span>}
-                        </div>
-                        <div className="to-line">
-                          <span className="muted">{t('To:')}</span> {open.to.map(displayName).join('; ') || '—'}
-                          {open.cc.length > 0 && (
-                            <>
-                              {'  '}
-                              <span className="muted">{t('Cc:')}</span> {open.cc.map(displayName).join('; ')}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <div className="date-col">
-                        <div className="date">{fullTime(open.date)}</div>
-                      </div>
-                    </div>
-                    {blocked && !remote && (
-                      <div className="banner">
-                        <Icon name="image" size={16} /> {t('Some external content was blocked to protect your privacy.')}
-                        <button className="link-btn" onClick={() => setShowRemoteOnce(true)}>{t('Show once')}</button>
-                        <button
-                          className="link-btn"
-                          onClick={() => {
-                            const r = { ...remoteOk, [senderKey]: true };
-                            setRemoteOk(r);
-                            save('remoteOk', r);
-                          }}
-                        >
-                          {t('Always show from {sender}', { sender: open.from.address })}
-                        </button>
-                      </div>
-                    )}
-                    {open.smime && <SmimeBadge info={open.smime} />}
-                    {open.attachments.length > 0 && (
-                      <div className="attachments">
-                        {open.attachments.map((a) => (
-                          <a key={a.part} className="att" href={api.attachmentUrl(folder, open.uid, a)} download={a.filename}>
-                            <Icon name="clip" size={16} />
-                            <span className="att-name">{a.filename}</span>
-                            <span className="muted">{humanSize(a.size)}</span>
-                          </a>
-                        ))}
-                        {open.attachments
-                          .filter((a) => a.type === 'text/calendar' || /\.ics$/i.test(a.filename))
-                          .map((a) => (
-                            <button key={`cal-${a.part}`} className="att ics" onClick={() => void addToCalendar(api.attachmentUrl(folder, open.uid, a))}>
-                              <Icon name="calendar" size={16} /> {t('Add to calendar')}
-                            </button>
-                          ))}
-                      </div>
-                    )}
-                    <MailBody html={open.html} text={open.text} remote={remote} onBlocked={setBlocked} />
-                  </div>
-                </article>
+                <MessageView
+                  key={`${acct}-${folder}-${open.uid}`}
+                  msg={open}
+                  folder={folder}
+                  known={known}
+                  acts={messageActs(open)}
+                  onBack={closeMessage}
+                  onAddContact={(name, email) => {
+                    setAddContact({ name, emails: [email] });
+                    setView('contacts');
+                  }}
+                  onAddToCalendar={(url) => void addToCalendar(url)}
+                />
               ) : (
                 <div className={`placeholder ${openLoading ? 'loading' : ''}`}>
                   {openLoading ? <span className="spinner" /> : (
@@ -1014,33 +893,18 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
           <Icon name="compose" /> {t('New mail')}
         </button>
       )}
-      {secDialog && <SecurityDialog onClose={() => setSecDialog(false)} flash={flash} features={features} />}
-      {moveOpen && (
-        <div className="phone-only sheet-back" onClick={() => setMoveOpen(false)}>
-          <div className="sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="sheet-title">{t('Move to…')}</div>
-            {flatFolders(folders)
-              .filter((f) => f.path !== folder)
-              .map((f) => (
-                <button key={f.path} onClick={() => void doMove(f.path)}>
-                  <Icon name={folderIcon(f.specialUse)} size={18} /> {pathLabel(f.path, folders)}
-                </button>
-              ))}
-          </div>
-        </div>
-      )}
-      {headersFor && <HeadersDialog folder={headersFor.folder} uid={headersFor.uid} onClose={() => setHeadersFor(null)} flash={flash} />}
-      {sigDialog && prefs && <SignaturesDialog onClose={() => setSigDialog(null)} prefs={prefs} setPrefs={setPrefs} accounts={[mainAcct, ...accounts.filter((a) => a.id !== 'main' && !a.locked)]} flash={flash} start={sigDialog} />}
-      {smimeDialog && <SmimeDialog onClose={() => setSmimeDialog(false)} flash={flash} />}
-      {rulesDialog && <RulesDialog onClose={() => { setRulesDialog(false); setRuleSeed(undefined); }} flash={flash} seed={ruleSeed} />}
-      {acctDialog && (
-        <AccountsDialog
-          accounts={accounts}
-          onClose={() => setAcctDialog(false)}
-          onChanged={() => void loadAccounts()}
-          flash={flash}
-        />
-      )}
+      {moveOpen && <MoveSheet folders={folders} current={folder} onPick={(p) => void doMove(p)} onClose={() => setMoveOpen(false)} />}
+      <Dialogs
+        dialog={dialog}
+        close={() => setDialog(null)}
+        flash={flash}
+        features={features}
+        prefs={prefs}
+        setPrefs={setPrefs}
+        accounts={accounts}
+        mainAcct={mainAcct}
+        onAccountsChanged={() => void loadAccounts()}
+      />
       {toast && <div className="toast">{toast}</div>}
     </div>
   );

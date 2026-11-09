@@ -115,7 +115,7 @@ input { font: inherit; color: inherit; }
 .app-btn.active { opacity: 1; background: rgba(255,255,255,.22); }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 0 8px 8px 8px; }
 
-.toolbar { height: 44px; flex: none; display: flex; align-items: center; gap: 2px; padding: 0 4px; overflow: hidden; }
+.toolbar { height: 44px; flex: none; display: flex; align-items: center; gap: 2px; padding: 0 4px; overflow-x: clip; overflow-y: visible; }
 .tb { height: 32px; padding: 0 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; color: var(--text); }
 .tb:hover:not(:disabled) { background: var(--surface); box-shadow: var(--shadow); }
 .tb.icon { width: 32px; padding: 0; justify-content: center; }
