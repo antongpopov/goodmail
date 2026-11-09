@@ -279,6 +279,7 @@ export const nb: Dict = {
   'View headers': 'Vis hoder',
   'Copied': 'Kopiert',
   'Copy failed': 'Kopiering mislyktes',
+  'Move to…': 'Flytt til…',
   'Create rule from this message…': 'Lag regel fra denne meldingen…',
   // S/MIME
   'Add certificate': 'Legg til sertifikat',

@@ -906,6 +906,9 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                         <button className="tb icon" title={t('Archive')} onClick={() => void doMove('archive')}>
                           <Icon name="archive" />
                         </button>
+                        <button className="tb icon" title={t('Move')} onClick={() => setMoveOpen((v) => !v)}>
+                          <Icon name="move" />
+                        </button>
                         <button className="tb icon" title={t('Flag')} onClick={toggleFlag}>
                           <Icon name="flag" filled={open.flagged} />
                         </button>
@@ -1012,6 +1015,20 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
         </button>
       )}
       {secDialog && <SecurityDialog onClose={() => setSecDialog(false)} flash={flash} features={features} />}
+      {moveOpen && (
+        <div className="phone-only sheet-back" onClick={() => setMoveOpen(false)}>
+          <div className="sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="sheet-title">{t('Move to…')}</div>
+            {flatFolders(folders)
+              .filter((f) => f.path !== folder)
+              .map((f) => (
+                <button key={f.path} onClick={() => void doMove(f.path)}>
+                  <Icon name={folderIcon(f.specialUse)} size={18} /> {pathLabel(f.path, folders)}
+                </button>
+              ))}
+          </div>
+        </div>
+      )}
       {headersFor && <HeadersDialog folder={headersFor.folder} uid={headersFor.uid} onClose={() => setHeadersFor(null)} flash={flash} />}
       {sigDialog && prefs && <SignaturesDialog onClose={() => setSigDialog(null)} prefs={prefs} setPrefs={setPrefs} accounts={[mainAcct, ...accounts.filter((a) => a.id !== 'main' && !a.locked)]} flash={flash} start={sigDialog} />}
       {smimeDialog && <SmimeDialog onClose={() => setSmimeDialog(false)} flash={flash} />}

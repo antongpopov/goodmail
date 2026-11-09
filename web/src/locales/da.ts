@@ -291,6 +291,7 @@ export const da: Dict = {
   'View headers': 'Vis hoveder',
   'Copied': 'Kopieret',
   'Copy failed': 'Kopiering mislykkedes',
+  'Move to…': 'Flyt til…',
   'Create rule from this message…': 'Opret regel ud fra denne mail…',
   // S/MIME
   'Add certificate': 'Tilføj certifikat',

@@ -279,6 +279,7 @@ export const fr: Dict = {
   'View headers': 'Afficher les en-têtes',
   'Copied': 'Copié',
   'Copy failed': 'Échec de la copie',
+  'Move to…': 'Déplacer vers…',
   'Create rule from this message…': 'Créer une règle à partir de ce message…',
   // S/MIME
   'Add certificate': 'Ajouter un certificat',

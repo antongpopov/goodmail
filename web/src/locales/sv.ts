@@ -279,6 +279,7 @@ export const sv: Dict = {
   'View headers': 'Visa rubriker',
   'Copied': 'Kopierat',
   'Copy failed': 'Det gick inte att kopiera',
+  'Move to…': 'Flytta till…',
   'Create rule from this message…': 'Skapa regel från det här meddelandet…',
   // S/MIME
   'Add certificate': 'Lägg till certifikat',
