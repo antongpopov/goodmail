@@ -275,6 +275,10 @@ export const fr: Dict = {
   'This cannot be undone.': 'Cette action est irréversible.',
   'Folder deleted': 'Dossier supprimé',
   'More': 'Plus',
+  'Message headers': 'En-têtes du message',
+  'View headers': 'Afficher les en-têtes',
+  'Copied': 'Copié',
+  'Copy failed': 'Échec de la copie',
   'Create rule from this message…': 'Créer une règle à partir de ce message…',
   // S/MIME
   'Add certificate': 'Ajouter un certificat',

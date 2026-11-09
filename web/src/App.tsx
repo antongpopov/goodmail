@@ -21,6 +21,7 @@ import { listCache, msgCache, msgKey, rememberMsg } from './cache.ts';
 import { folderLabel, buildTree, pathLabel, flatFolders } from './folders.ts';
 import type { FolderNode } from './folders.ts';
 import { Avatar } from './Avatar.tsx';
+import { HeadersDialog } from './Headers.tsx';
 import { Splitter } from './Splitter.tsx';
 import { MessageItem } from './MessageItem.tsx';
 import { FolderRow } from './FolderRow.tsx';
@@ -64,6 +65,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
   const [rulesDialog, setRulesDialog] = useState(false);
   const [smimeDialog, setSmimeDialog] = useState(false);
   const [prefs, setPrefs] = useState<Prefs | null>(null);
+  const [headersFor, setHeadersFor] = useState<{ folder: string; uid: number } | null>(null);
   const [sigDialog, setSigDialog] = useState<'signature' | 'templates' | null>(null);
   useEffect(() => {
     api.prefs().then(setPrefs).catch(() => {});
@@ -881,6 +883,9 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
                       <button className="tb icon" title={inJunk ? t('Not junk (!)') : t('Mark as junk (!)')} onClick={() => void toggleJunk([open.uid])}>
                         <Icon name={inJunk ? 'inbox' : 'junk'} />
                       </button>
+                      <button className="tb icon" title={t('View headers')} onClick={() => setHeadersFor({ folder, uid: open.uid })}>
+                        <Icon name="code" />
+                      </button>
                       {features?.rules && acct === 'main' && (
                         <button
                           className="tb icon"
@@ -1007,6 +1012,7 @@ function Mail({ me, appName, source, onLogout }: { me: Me; appName: string; sour
         </button>
       )}
       {secDialog && <SecurityDialog onClose={() => setSecDialog(false)} flash={flash} features={features} />}
+      {headersFor && <HeadersDialog folder={headersFor.folder} uid={headersFor.uid} onClose={() => setHeadersFor(null)} flash={flash} />}
       {sigDialog && prefs && <SignaturesDialog onClose={() => setSigDialog(null)} prefs={prefs} setPrefs={setPrefs} accounts={[mainAcct, ...accounts.filter((a) => a.id !== 'main' && !a.locked)]} flash={flash} start={sigDialog} />}
       {smimeDialog && <SmimeDialog onClose={() => setSmimeDialog(false)} flash={flash} />}
       {rulesDialog && <RulesDialog onClose={() => { setRulesDialog(false); setRuleSeed(undefined); }} flash={flash} seed={ruleSeed} />}

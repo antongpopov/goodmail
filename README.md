@@ -77,6 +77,8 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
   colleagues on the same install. See "S/MIME" below
 - **Spam meter** under the date: green → yellow → red from the filter's score (rspamd or SpamAssassin headers;
   only the topmost header is trusted). Fully red at the junk threshold — rspamd 6 by default, `spamthreshold=` to change
+- **View headers**: the `</>` button in the message toolbar shows the raw header block (Received chain, SPF/DKIM/DMARC
+  results, spam scores) with a Copy button
 - **Fast on slow servers**: opened messages are cached server-side (`GOODMAIL_CACHE_MB`, default 150), folder lists
   show instantly from the last visit and refresh behind, and the next messages are prefetched without marking them read
 - **Languages**: English, Dansk, Deutsch, Svenska, Norsk, Français, Español — picked from the browser,

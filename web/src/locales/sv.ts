@@ -275,6 +275,10 @@ export const sv: Dict = {
   'This cannot be undone.': 'Det går inte att ångra.',
   'Folder deleted': 'Mappen har tagits bort',
   'More': 'Mer',
+  'Message headers': 'Meddelanderubriker',
+  'View headers': 'Visa rubriker',
+  'Copied': 'Kopierat',
+  'Copy failed': 'Det gick inte att kopiera',
   'Create rule from this message…': 'Skapa regel från det här meddelandet…',
   // S/MIME
   'Add certificate': 'Lägg till certifikat',

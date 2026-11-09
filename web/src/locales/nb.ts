@@ -275,6 +275,10 @@ export const nb: Dict = {
   'This cannot be undone.': 'Dette kan ikke angres.',
   'Folder deleted': 'Mappen er slettet',
   'More': 'Mer',
+  'Message headers': 'Meldingshoder',
+  'View headers': 'Vis hoder',
+  'Copied': 'Kopiert',
+  'Copy failed': 'Kopiering mislyktes',
   'Create rule from this message…': 'Lag regel fra denne meldingen…',
   // S/MIME
   'Add certificate': 'Legg til sertifikat',

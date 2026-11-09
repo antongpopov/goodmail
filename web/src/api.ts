@@ -122,6 +122,7 @@ export const api = {
   search: (folder: string, text: string) => call<ListResult>('GET', `/api/search?${q({ folder, q: text, account: cur })}`),
   message: (folder: string, uid: number, peek = false, account = cur) =>
     call<Message>('GET', `/api/message?${q({ folder, uid, account, ...(peek ? { peek: 1 } : {}) })}`).then((m) => ({ ...m, account })),
+  headers: (folder: string, uid: number) => call<{ headers: string }>('GET', `/api/headers?${q({ folder, uid, account: cur })}`),
   flags: (folder: string, uids: number[], add: string[], remove: string[] = []) =>
     call('POST', '/api/flags', { folder, uids, add, remove, account: cur }),
   move: (folder: string, uids: number[], to: string) => call<{ to: string }>('POST', '/api/move', { folder, uids, to, account: cur }),

@@ -275,6 +275,10 @@ export const de: Dict = {
   'This cannot be undone.': 'Das kann nicht rückgängig gemacht werden.',
   'Folder deleted': 'Ordner gelöscht',
   'More': 'Mehr',
+  'Message headers': 'Nachrichtenkopf',
+  'View headers': 'Kopfzeilen anzeigen',
+  'Copied': 'Kopiert',
+  'Copy failed': 'Kopieren fehlgeschlagen',
   'Create rule from this message…': 'Regel aus dieser Nachricht erstellen…',
   // S/MIME
   'Add certificate': 'Zertifikat hinzufügen',

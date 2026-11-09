@@ -287,6 +287,10 @@ export const da: Dict = {
   'This cannot be undone.': 'Det kan ikke fortrydes.',
   'Folder deleted': 'Mappen er slettet',
   'More': 'Mere',
+  'Message headers': 'Beskedhoveder',
+  'View headers': 'Vis hoveder',
+  'Copied': 'Kopieret',
+  'Copy failed': 'Kopiering mislykkedes',
   'Create rule from this message…': 'Opret regel ud fra denne mail…',
   // S/MIME
   'Add certificate': 'Tilføj certifikat',

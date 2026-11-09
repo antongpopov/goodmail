@@ -46,6 +46,7 @@ const P: Record<string, string> = {
   clock: 'M10 3a7 7 0 1 0 .01 0 M10 6v4l2.5 2',
   pin: 'M10 17s5-4.6 5-9a5 5 0 0 0-10 0c0 4.4 5 9 5 9z M10 6.5a1.5 1.5 0 1 0 .01 0',
   pane: 'M3 4.5h14v11H3z M11 4.5v11',
+  code: 'M7.5 6L3.5 10l4 4 M12.5 6l4 4-4 4 M11 4.5l-2 11',
 };
 
 export function Icon({ name, size = 20, filled = false }: { name: keyof typeof P | string; size?: number; filled?: boolean }) {

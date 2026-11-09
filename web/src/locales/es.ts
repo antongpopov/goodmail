@@ -275,6 +275,10 @@ export const es: Dict = {
   'This cannot be undone.': 'No se puede deshacer.',
   'Folder deleted': 'Carpeta eliminada',
   'More': 'Más',
+  'Message headers': 'Encabezados del mensaje',
+  'View headers': 'Ver encabezados',
+  'Copied': 'Copiado',
+  'Copy failed': 'No se pudo copiar',
   'Create rule from this message…': 'Crear regla a partir de este mensaje…',
   // S/MIME
   'Add certificate': 'Añadir certificado',

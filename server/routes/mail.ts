@@ -197,6 +197,21 @@ r.get(
 );
 
 r.get(
+  '/api/headers',
+  auth,
+  wrap(async (req, res) => {
+    const folder = String(req.query.folder || 'INBOX');
+    const uid = String(Number(req.query.uid));
+    const text = await withFolder(conn(req), folder, async (c) => {
+      const m = await c.fetchOne(uid, { uid: true, headers: true }, { uid: true });
+      if (!m || !m.headers) throw Object.assign(new Error('message not found'), { status: 404 });
+      return m.headers.toString('utf8').replace(/\r?\n$/, '').replace(/\r?\n$/, '');
+    });
+    res.json({ headers: text });
+  }),
+);
+
+r.get(
   '/api/attachment',
   auth,
   wrap(async (req, res) => {
