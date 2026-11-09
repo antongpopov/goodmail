@@ -176,6 +176,7 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .item.unread::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--brand); }
 .item-main { flex: 1; min-width: 0; }
 .row1, .row2 { display: flex; align-items: center; gap: 8px; min-height: 20px; }
+.row1 { height: 20px; } /* fixed, so the hover buttons (taller than the text) can't make the row jump */
 .sender { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
 .item.unread .sender { font-weight: 600; }
 .subject { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -567,12 +568,12 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 @media (hover: none) { .fmenu-btn svg, .item-more svg { width: 22px; height: 22px; } .fmenu-btn { opacity: 1; width: 40px; height: 40px; margin: -8px -4px -8px 0; } .fmenu { top: 34px; } }
 
 /* per-message ⋯ menu (create rule …) */
-.item-more { display: none; width: 28px; height: 28px; place-items: center; border-radius: 4px; color: var(--text); flex: none; }
+.item-more { display: none; width: 28px; height: 28px; margin-block: -4px; place-items: center; border-radius: 4px; color: var(--text); flex: none; }
 .item:hover .item-more, .item.sel .item-more { display: grid; }
 .item-more:hover { background: var(--hover); }
 .msg-menu { z-index: 80; min-width: 240px; }
 .item.compact .item-more { margin-left: 4px; }
-@media (hover: none) { .item-more { display: grid; width: 32px; height: 32px; } }
+@media (hover: none) { .item-more { display: grid; width: 32px; height: 32px; margin-block: -6px; } }
 
 /* S/MIME */
 .smime-badges { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
