@@ -16,8 +16,12 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
 | ![An encrypted, signed and verified message](docs/screenshots/smime.png) | ![Secure mail settings](docs/screenshots/smime-settings.png) |
 | **Sign-in security** — password, 2-step, passkeys, reset address | **Address book** |
 | ![Sign-in security dialog](docs/screenshots/security.png) | ![Address book](docs/screenshots/contacts.png) |
+| **Administration** — mailboxes and aliases of a domain | **Domains** — for the main administrator |
+| ![Administration: a domain's mailboxes](docs/screenshots/admin.png) | ![Administration: domains and their administrators (main administrator)](docs/screenshots/admin-domains.png) |
+| **View headers** — the raw header block | **Settings** — date, time and reading pane as dropdowns |
+| ![Raw message headers](docs/screenshots/headers.png) | ![Settings menu with dropdowns for date format, time format and reading pane](docs/screenshots/settings-menu.png) |
 | **On a phone** | **Phone — folder drawer with ⋯ buttons** |
-| <img src="docs/screenshots/phone-list.png" alt="Message list on a phone" width="49%"> <img src="docs/screenshots/phone-message.png" alt="Reading a message on a phone" width="49%"> | <img src="docs/screenshots/phone-menu.png" alt="Folder drawer on a phone" width="60%"> |
+| <img src="docs/screenshots/phone-list.png" alt="Message list on a phone" width="32%"> <img src="docs/screenshots/phone-message.png" alt="Reading a message on a phone" width="32%"> <img src="docs/screenshots/phone-move.png" alt="Moving a message on a phone" width="32%"> | <img src="docs/screenshots/phone-menu.png" alt="Folder drawer on a phone" width="60%"> |
 
 <sub>Screenshots use invented demo data — see [scripts/screenshots](scripts/screenshots).</sub>
 

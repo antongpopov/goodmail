@@ -26,7 +26,7 @@ export interface Features { rules: boolean; password: boolean; passwordMin: numb
 export interface AdminMe { admin: boolean; superadmin: boolean; domains: string[] }
 export interface AdminMailbox { address: string; name: string; active: boolean; forwards: string[] }
 export interface AdminAlias { address: string; goto: string[]; active: boolean }
-export interface AdminDomainRow { domain: string; description: string; active: boolean; limits: { mailboxes: number; aliases: number }; counts: { mailboxes: number; aliases: number }; admins: { address: string; mailbox: boolean }[] }
+export interface AdminDomainRow { domain: string; description: string; active: boolean; limits: { mailboxes: number; aliases: number }; counts: { mailboxes: number; aliases: number }; admins: { address: string; mailbox: boolean; mfa?: boolean }[] }
 export interface AdminDomain { domain: string; description: string; active: boolean; limits: { mailboxes: number; aliases: number }; mailboxes: AdminMailbox[]; aliases: AdminAlias[] }
 export interface SmimeSignature { status: 'ok' | 'untrusted' | 'expired' | 'mismatch' | 'invalid'; signer?: { emails: string[]; name: string; issuer: string; fingerprint: string; notAfter: string } }
 export interface SmimeInfo { signed?: SmimeSignature; encrypted?: boolean; readable?: boolean; reason?: 'no-certificate' | 'not-for-you' }
@@ -120,7 +120,7 @@ export const api = {
   adminSetAdmins: (domain: string, admins: string[]) => call('POST', '/api/admin/domain/admins', { domain, admins }),
   adminCreateMailbox: (b: { address: string; name: string; password: string }) => call('POST', '/api/admin/mailbox', b),
   adminUpdateMailbox: (b: { address: string; name?: string; active?: boolean; password?: string }) => call('POST', '/api/admin/mailbox/update', b),
-  adminDeleteMailbox: (address: string) => call<{ note?: string }>('POST', '/api/admin/mailbox/delete', { address }),
+  adminDeleteMailbox: (address: string, files = false) => call<{ note?: string }>('POST', '/api/admin/mailbox/delete', { address, files }),
   adminSaveAlias: (b: { address: string; goto: string[]; active?: boolean }) => call('POST', '/api/admin/alias', b),
   adminDeleteAlias: (address: string) => call('POST', '/api/admin/alias/delete', { address }),
   rules: () => call<{ rules: MailRule[]; foreign: boolean; active: string | null }>('GET', '/api/rules'),

@@ -642,3 +642,6 @@ a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
 .admin-add { margin-top: 12px; align-self: flex-start; }
 .admin-dialog .banner code { font: 13px ui-monospace, Menlo, monospace; user-select: text; padding: 1px 6px; background: var(--hover); border-radius: 4px; }
 .admin-dialog .tag { font-size: 11px; color: var(--text-2); border: 1px solid var(--border); border-radius: 10px; padding: 0 6px; }
+.banner.warn { background: color-mix(in srgb, #f7a600 18%, var(--surface)); color: var(--text); border: 1px solid color-mix(in srgb, #f7a600 55%, var(--border)); }
+.admin-dialog .tag.warn-tag { border-color: #d98e00; color: #a86a00; }
+.primary.danger-fill { background: var(--danger, #c4314b); }

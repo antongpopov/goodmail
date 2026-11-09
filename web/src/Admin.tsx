@@ -12,7 +12,7 @@ function generate(): string {
 }
 
 /** Mailbox and alias administration for the domains this person administers (decided by the mail server, not here). */
-export function AdminDialog({ me, self, onClose, flash }: { me: AdminMe; self: string; onClose: () => void; flash: (m: string) => void }) {
+export function AdminDialog({ me, self, onClose, onSecurity, flash }: { me: AdminMe; self: string; onClose: () => void; onSecurity: () => void; flash: (m: string) => void }) {
   const [myDomains, setMyDomains] = useState(me.domains);
   const [domain, setDomain] = useState(me.domains[0] || '');
   const [data, setData] = useState<AdminDomain | null>(null);
@@ -29,6 +29,11 @@ export function AdminDialog({ me, self, onClose, flash }: { me: AdminMe; self: s
   const [edit, setEdit] = useState({ name: '', password: '' });
   const [aliasForm, setAliasForm] = useState<{ original: string | null; local: string; goto: string } | null>(null);
   const [shownPw, setShownPw] = useState('');
+  const [delBox, setDelBox] = useState<{ address: string; files: boolean } | null>(null);
+  const [twoStep, setTwoStep] = useState<boolean | null>(null); // does the signed-in administrator have two-step sign-in?
+  useEffect(() => {
+    api.mfaStatus().then((m) => setTwoStep(m.enabled)).catch(() => setTwoStep(null));
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -142,10 +147,11 @@ export function AdminDialog({ me, self, onClose, flash }: { me: AdminMe; self: s
     });
   };
   const toggleBox = (m: AdminMailbox) => void run(() => api.adminUpdateMailbox({ address: m.address, active: !m.active }), m.active ? t('Disabled {email}', { email: m.address }) : t('Enabled {email}', { email: m.address }));
-  const deleteBox = (m: AdminMailbox) => {
-    if (!confirm(t('Delete the mailbox {email}?', { email: m.address }) + '\n\n' + t('Its mail will no longer be reachable. This cannot be undone from here.'))) return;
-    void run(() => api.adminDeleteMailbox(m.address), t('Deleted {email}', { email: m.address }));
-  };
+  const deleteBox = (m: AdminMailbox, files: boolean) =>
+    void run(async () => {
+      const r = await api.adminDeleteMailbox(m.address, files);
+      if (r.note) flash(r.note);
+    }, t('Deleted {email}', { email: m.address }), () => setDelBox(null));
   const saveAlias = () => {
     if (!aliasForm) return;
     const address = `${aliasForm.local.trim().toLowerCase()}@${domain}`;
@@ -189,6 +195,12 @@ export function AdminDialog({ me, self, onClose, flash }: { me: AdminMe; self: s
           {me.superadmin && <button className={tab === 'domains' ? 'on' : ''} onClick={() => setTab('domains')}>{t('Domains')}</button>}
         </div>
         {error && <p className="error">{error}</p>}
+        {twoStep === false && (
+          <div className="banner warn">
+            <Icon name="shield" size={16} /> {t('Your own account has no two-step sign-in. As an administrator you can create and delete mailboxes, so please turn it on.')}
+            <button className="link-btn" onClick={onSecurity}>{t('Set it up')}</button>
+          </div>
+        )}
         {shownPw && (
           <div className="banner">
             {t('Password to give to the user (shown once):')} <code>{shownPw}</code>
@@ -211,8 +223,20 @@ export function AdminDialog({ me, self, onClose, flash }: { me: AdminMe; self: s
                   </div>
                   <button className="pill-btn" onClick={() => { setEditBox(editBox === m.address ? null : m.address); setEdit({ name: m.name, password: '' }); }}>{t('Edit')}</button>
                   <button className="pill-btn" disabled={busy || m.address === self} onClick={() => toggleBox(m)}>{m.active ? t('Disable') : t('Enable')}</button>
-                  <button className="pill-btn danger" disabled={busy || m.address === self} onClick={() => deleteBox(m)}>{t('Delete')}</button>
+                  <button className="pill-btn danger" disabled={busy || m.address === self} onClick={() => setDelBox(delBox?.address === m.address ? null : { address: m.address, files: false })}>{t('Delete')}</button>
                 </div>
+                {delBox?.address === m.address && (
+                  <div className="pw-form admin-form">
+                    <div>{t('Delete the mailbox {email}?', { email: m.address })} {t('Its mail will no longer be reachable. This cannot be undone from here.')}</div>
+                    <label className="menu-check">
+                      <input type="checkbox" checked={delBox.files} onChange={(e) => setDelBox({ ...delBox, files: e.target.checked })} /> {t('Also remove its mail files (moved aside on the server, so the server administrator can still recover them)')}
+                    </label>
+                    <div className="rule-row">
+                      <button className="primary danger-fill" disabled={busy} onClick={() => deleteBox(m, delBox.files)}>{t('Delete mailbox')}</button>
+                      <button className="link-btn" onClick={() => setDelBox(null)}>{t('Cancel')}</button>
+                    </div>
+                  </div>
+                )}
                 {editBox === m.address && (
                   <div className="pw-form admin-form">
                     <label>{t('Name')}<input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} maxLength={80} /></label>
@@ -313,7 +337,7 @@ export function AdminDialog({ me, self, onClose, flash }: { me: AdminMe; self: s
                     <div className="muted small">
                       {t('{n} mailboxes', { n: d.counts.mailboxes })}{d.limits.mailboxes > 0 ? `/${d.limits.mailboxes}` : ''} · {t('{n} aliases', { n: d.counts.aliases })}{d.limits.aliases > 0 ? `/${d.limits.aliases}` : ''}
                     </div>
-                    <div className="muted small">{t('Administrators')}: {d.admins.length ? d.admins.map((a) => a.address).join(', ') : '—'}</div>
+                    <div className="muted small">{t('Administrators')}: {d.admins.length ? d.admins.map((a, i) => (<span key={a.address}>{i ? ', ' : ''}{a.address}{a.mailbox && a.mfa === false && <span className="tag warn-tag" title={t('No two-step sign-in set up in goodmail')}> ⚠</span>}</span>)) : '—'}</div>
                   </div>
                   <button className="pill-btn" onClick={() => {
                     setEditDomain(editDomain === d.domain ? null : d.domain);

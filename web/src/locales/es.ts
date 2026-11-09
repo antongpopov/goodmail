@@ -325,6 +325,12 @@ export const es: Dict = {
   'Adds the domain to the mail server database. Mail for it only arrives once its MX record points to this server.': 'Añade el dominio a la base de datos del servidor de correo. El correo solo llegará cuando su registro MX apunte a este servidor.',
   'Add domain': 'Añadir dominio',
   'New domain': 'Nuevo dominio',
+  'Your own account has no two-step sign-in. As an administrator you can create and delete mailboxes, so please turn it on.': 'Tu propia cuenta no tiene inicio de sesión en dos pasos. Como administrador puedes crear y eliminar buzones, así que actívalo.',
+  'Set it up': 'Configurarlo',
+  'No two-step sign-in set up in goodmail': 'Sin inicio de sesión en dos pasos configurado en goodmail',
+  'Also remove its mail files (moved aside on the server, so the server administrator can still recover them)': 'Eliminar también sus archivos de correo (se apartan en el servidor; el administrador del servidor puede recuperarlos)',
+  'Delete mailbox': 'Eliminar buzón',
+  'Discard your changes to this rule?': '¿Descartar los cambios de esta regla?',
   'Create rule from this message…': 'Crear regla a partir de este mensaje…',
   // S/MIME
   'Add certificate': 'Añadir certificado',

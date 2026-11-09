@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api, ApiError } from './api.ts';
 import type { Folder, MailRule, RuleAction, RuleCondition } from './api.ts';
 import { Icon } from './icons.tsx';
@@ -72,8 +72,18 @@ export function RulesDialog({ onClose, flash, seed }: { onClose: () => void; fla
       .catch((e) => setError((e as Error).message));
     api.folders('main').then(setFolders).catch(() => {});
   }, []);
+  // Escape closes the whole dialog (like ×); a rule with unsaved changes asks first.
+  const editBase = useRef<string | null>(null);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && (edit ? setEdit(null) : onClose());
+    if (!edit) editBase.current = null;
+    else if (editBase.current === null) editBase.current = JSON.stringify(edit);
+  }, [edit]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (edit && editBase.current !== null && JSON.stringify(edit) !== editBase.current && !confirm(t('Discard your changes to this rule?'))) return;
+      onClose();
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose, edit]);

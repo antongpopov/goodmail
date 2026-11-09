@@ -325,6 +325,12 @@ export const sv: Dict = {
   'Adds the domain to the mail server database. Mail for it only arrives once its MX record points to this server.': 'Lägger till domänen i mailserverns databas. Post till den kommer först när dess MX-post pekar på den här servern.',
   'Add domain': 'Lägg till domän',
   'New domain': 'Ny domän',
+  'Your own account has no two-step sign-in. As an administrator you can create and delete mailboxes, so please turn it on.': 'Ditt eget konto saknar tvåstegsinloggning. Som administratör kan du skapa och ta bort brevlådor, så slå på den.',
+  'Set it up': 'Ställ in',
+  'No two-step sign-in set up in goodmail': 'Ingen tvåstegsinloggning inställd i goodmail',
+  'Also remove its mail files (moved aside on the server, so the server administrator can still recover them)': 'Ta också bort dess mailfiler (flyttas åt sidan på servern så att serveradministratören kan återställa dem)',
+  'Delete mailbox': 'Ta bort brevlåda',
+  'Discard your changes to this rule?': 'Förkasta ändringarna i den här regeln?',
   'Create rule from this message…': 'Skapa regel från det här meddelandet…',
   // S/MIME
   'Add certificate': 'Lägg till certifikat',

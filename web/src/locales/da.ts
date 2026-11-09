@@ -337,6 +337,12 @@ export const da: Dict = {
   'Adds the domain to the mail server database. Mail for it only arrives once its MX record points to this server.': 'Tilføjer domænet til mailserverens database. Mail til det ankommer først, når dets MX-record peger på denne server.',
   'Add domain': 'Tilføj domæne',
   'New domain': 'Nyt domæne',
+  'Your own account has no two-step sign-in. As an administrator you can create and delete mailboxes, so please turn it on.': 'Din egen konto har ingen totrinsbekræftelse. Som administrator kan du oprette og slette postkasser, så slå den til.',
+  'Set it up': 'Opsæt',
+  'No two-step sign-in set up in goodmail': 'Ingen totrinsbekræftelse sat op i goodmail',
+  'Also remove its mail files (moved aside on the server, so the server administrator can still recover them)': 'Fjern også dens mailfiler (flyttes til side på serveren, så serveradministratoren kan gendanne dem)',
+  'Delete mailbox': 'Slet postkasse',
+  'Discard your changes to this rule?': 'Kassér dine ændringer til denne regel?',
   'Create rule from this message…': 'Opret regel ud fra denne mail…',
   // S/MIME
   'Add certificate': 'Tilføj certifikat',

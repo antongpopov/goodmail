@@ -10,7 +10,7 @@
 # `admin` (whose username is the caller's mailbox address) and may only touch domains listed in `domain_admins`
 # (or every domain when `superadmin` = 1). goodmail only forwards the address the user signed in with.
 # Never print secrets; password hashes never leave this script.
-import json, os, re, subprocess, sys
+import json, os, re, subprocess, sys, time
 
 DB = os.environ.get("GOODMAIL_ADMIN_DB", "postfixadmin")  # only reachable by root running it by hand (sudo resets the environment)
 MIN_PW = 10
@@ -219,6 +219,27 @@ def op_mailbox_update(caller, job, sup, domains):
     return {}
 
 
+VMAIL = "/var/vmail"
+HOLD = os.path.join(VMAIL, "_deleted")
+
+
+def set_files_aside(d, local):
+    """Move a deleted mailbox's mail files to /var/vmail/_deleted/ (root-only), so a mistake can still be undone by the
+    server administrator. Returns the new path, or None when there was nothing to move."""
+    if not DOMAIN.fullmatch(d) or not LOCAL.fullmatch(local):
+        return None
+    src = os.path.join(VMAIL, d, local)
+    if os.path.islink(src) or not os.path.isdir(src):
+        return None
+    if os.path.realpath(src) != os.path.join(os.path.realpath(VMAIL), d, local):  # never follow anything out of the domain's folder
+        return None
+    os.makedirs(HOLD, mode=0o700, exist_ok=True)
+    os.chmod(HOLD, 0o700)
+    dst = os.path.join(HOLD, "%s-%s-%s" % (d, local, time.strftime("%Y%m%d%H%M%S")))
+    os.rename(src, dst)
+    return dst
+
+
 def op_mailbox_delete(caller, job, sup, domains):
     a = addr(job.get("address"))
     d = need_domain(domains, a.split("@")[1])
@@ -246,6 +267,15 @@ def op_mailbox_delete(caller, job, sup, domains):
     ]
     run(";".join(stmts))
     log(caller, d, "delete_mailbox", a)
+    if job.get("files") is True:
+        try:
+            moved = set_files_aside(d, a.split("@")[0])
+        except OSError:
+            moved = None
+        if moved:
+            log(caller, d, "delete_mailbox_files", a)
+            return {"note": "The mail files were moved aside on the server (%s); the server administrator can restore or remove them." % moved}
+        return {"note": "The mailbox is deleted, but its mail files could not be moved. They stay on disk until the server administrator removes them."}
     return {"note": "The mail files stay on disk until the server administrator removes them."}
 
 

@@ -932,6 +932,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
         mainAcct={mainAcct}
         onAccountsChanged={() => void loadAccounts()}
         adminMe={adminMe}
+        onSecurity={() => setDialog({ kind: 'security' })}
         onMainName={(name) => {
           onName(name);
           api.prefs().then(setPrefs).catch(() => {}); // the default signature uses the name

@@ -325,6 +325,12 @@ export const nb: Dict = {
   'Adds the domain to the mail server database. Mail for it only arrives once its MX record points to this server.': 'Legger domenet til i e-postserverens database. E-post til det kommer først når MX-posten peker på denne serveren.',
   'Add domain': 'Legg til domene',
   'New domain': 'Nytt domene',
+  'Your own account has no two-step sign-in. As an administrator you can create and delete mailboxes, so please turn it on.': 'Din egen konto har ingen totrinnspålogging. Som administrator kan du opprette og slette postbokser, så slå den på.',
+  'Set it up': 'Sett opp',
+  'No two-step sign-in set up in goodmail': 'Ingen totrinnspålogging satt opp i goodmail',
+  'Also remove its mail files (moved aside on the server, so the server administrator can still recover them)': 'Fjern også e-postfilene (flyttes til side på serveren, så serveradministratoren kan gjenopprette dem)',
+  'Delete mailbox': 'Slett postboks',
+  'Discard your changes to this rule?': 'Forkaste endringene i denne regelen?',
   'Create rule from this message…': 'Lag regel fra denne meldingen…',
   // S/MIME
   'Add certificate': 'Legg til sertifikat',

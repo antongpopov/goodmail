@@ -7,6 +7,7 @@ import type { Authed } from '../http.ts';
 import { serversFor } from '../config.ts';
 import { runAdminCommand } from '../admin.ts';
 import type { AdminOp } from '../admin.ts';
+import { loadMfa, mfaEnabled } from '../mfa.ts';
 
 const r = Router();
 
@@ -47,7 +48,7 @@ r.post(
 r.post(
   '/api/admin/mailbox/delete',
   auth,
-  wrap(async (req, res) => res.json(await call(req, 'mailbox.delete', { address: str((req.body || {}).address) }))),
+  wrap(async (req, res) => res.json(await call(req, 'mailbox.delete', { address: str((req.body || {}).address), files: (req.body || {}).files === true }))),
 );
 
 r.post(
@@ -68,7 +69,16 @@ r.post(
 
 // ---------- main administrator only (the command refuses anyone else) ----------
 
-r.get('/api/admin/domains', auth, wrap(async (req, res) => res.json(await call(req, 'domain.list'))));
+// For each administrator: has this person set up two-step sign-in in goodmail? (They are asked to, see the warnings.)
+r.get(
+  '/api/admin/domains',
+  auth,
+  wrap(async (req, res) => {
+    const out = (await call(req, 'domain.list')) as { domains: { admins: { address: string; mfa?: boolean }[] }[] };
+    for (const d of out.domains) for (const a of d.admins) a.mfa = mfaEnabled(await loadMfa(a.address));
+    res.json(out);
+  }),
+);
 
 r.post(
   '/api/admin/domain',

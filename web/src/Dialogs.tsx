@@ -18,7 +18,7 @@ export type Dialog =
   | { kind: 'signatures'; tab: 'signature' | 'templates' }
   | { kind: 'headers'; folder: string; uid: number };
 
-export function Dialogs({ dialog, close, flash, features, prefs, setPrefs, accounts, mainAcct, onAccountsChanged, onMainName, adminMe }: {
+export function Dialogs({ dialog, close, flash, features, prefs, setPrefs, accounts, mainAcct, onAccountsChanged, onMainName, onSecurity, adminMe }: {
   dialog: Dialog | null;
   close: () => void;
   flash: (m: string) => void;
@@ -29,6 +29,7 @@ export function Dialogs({ dialog, close, flash, features, prefs, setPrefs, accou
   mainAcct: MailAccount;
   onAccountsChanged: () => void;
   onMainName: (name: string) => void;
+  onSecurity: () => void;
   adminMe: AdminMe | null;
 }) {
   if (!dialog) return null;
@@ -44,7 +45,7 @@ export function Dialogs({ dialog, close, flash, features, prefs, setPrefs, accou
     case 'signatures':
       return prefs ? <SignaturesDialog onClose={close} prefs={prefs} setPrefs={setPrefs} accounts={[mainAcct, ...accounts.filter((a) => a.id !== 'main' && !a.locked)]} flash={flash} start={dialog.tab} /> : null;
     case 'admin':
-      return adminMe?.admin ? <AdminDialog me={adminMe} self={mainAcct.email.toLowerCase()} onClose={close} flash={flash} /> : null;
+      return adminMe?.admin ? <AdminDialog me={adminMe} self={mainAcct.email.toLowerCase()} onClose={close} onSecurity={onSecurity} flash={flash} /> : null;
     case 'headers':
       return <HeadersDialog folder={dialog.folder} uid={dialog.uid} onClose={close} flash={flash} />;
   }

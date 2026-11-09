@@ -49,6 +49,7 @@ const browser = await chromium.launch({ executablePath: CHROME, headless: true }
 async function session(opts, prefs) {
   const ctx = await browser.newContext(opts);
   const page = await ctx.newPage();
+  page.on('dialog', (d) => d.accept());
   await page.goto(URL);
   await page.evaluate((p) => { for (const [k, v] of Object.entries(p)) localStorage.setItem('gm:' + k, JSON.stringify(v)); }, prefs);
   await page.goto(URL);
@@ -113,6 +114,10 @@ const prefs = { preview: true, pane: 'right', theme: 'light', calView: 'week', f
   await page.click('text=Photos from Saturday');
   await page.waitForTimeout(1200);
   await page.screenshot({ path: `${OUT}/phone-message.png` });
+  await page.locator('.phone-actions button[title="Move"]').click();
+  await page.waitForSelector('.sheet');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${OUT}/phone-move.png` });
   await ctx.close();
 }
 
@@ -154,8 +159,7 @@ const prefs = { preview: true, pane: 'right', theme: 'light', calView: 'week', f
   await page.locator('.rule-row select.grow').selectOption({ label: 'Projects' }).catch(() => {});
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${OUT}/rule-editor.png` });
-  await page.keyboard.press('Escape');
-  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape'); // closes the whole dialog (asks first about unsaved changes; the dialog handler accepts)
   await page.waitForTimeout(300);
 
   // composer with the signature and the templates menu
@@ -167,9 +171,13 @@ const prefs = { preview: true, pane: 'right', theme: 'light', calView: 'week', f
     await api(page, 'POST', '/api/prefs/templates', { name, subject, html });
   await page.reload();
   await page.waitForSelector('.item');
+  await api(page, 'POST', '/api/smime/enable', {});
+  await page.reload();
+  await page.waitForSelector('.item');
   await page.click('.toolbar .tb.new');
   await page.waitForSelector('.editor');
   await page.fill('#gm-to', 'Priya Raman <priya.raman@example.org>');
+  await page.locator('.compose-bar .tb.toggle', { hasText: 'Sign' }).click();
   await page.locator('.compose-bar .tb', { hasText: 'Templates' }).click();
   await page.waitForTimeout(400);
   await page.screenshot({ path: `${OUT}/compose.png` });
@@ -179,7 +187,6 @@ const prefs = { preview: true, pane: 'right', theme: 'light', calView: 'week', f
   await page.waitForTimeout(300);
 
   // S/MIME: make a certificate, send ourselves a signed + encrypted message, open it
-  await api(page, 'POST', '/api/smime/enable', {});
   await api(page, 'POST', '/api/send', {
     to: 'alex@example.com',
     subject: 'Q4 figures — confidential',
@@ -197,6 +204,33 @@ const prefs = { preview: true, pane: 'right', theme: 'light', calView: 'week', f
   await page.screenshot({ path: `${OUT}/smime.png` });
   await menuItem('Secure mail');
   await page.screenshot({ path: `${OUT}/smime-settings.png` });
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+
+  // view headers + settings menu + administration
+  await page.locator('.folders .folder', { hasText: 'Inbox' }).first().click();
+  await page.click('text=Design review moved to Thursday');
+  await page.waitForTimeout(1000);
+  await page.locator('.msg-actions button[title="View headers"]').click();
+  await page.waitForSelector('.headers-text');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${OUT}/headers.png` });
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+
+  await page.click('button[title="View settings"]');
+  await page.waitForTimeout(300);
+  await page.locator('.view-menu').screenshot({ path: `${OUT}/settings-menu.png` });
+  await page.keyboard.press('Escape');
+  await page.mouse.click(700, 880);
+
+  await menuItem('Administration');
+  await page.waitForSelector('.admin-item');
+  await page.screenshot({ path: `${OUT}/admin.png` });
+  await page.locator('.admin-dialog .segment button', { hasText: 'Domains' }).click();
+  await page.waitForSelector('.admin-item');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${OUT}/admin-domains.png` });
   await page.keyboard.press('Escape');
   await page.waitForTimeout(300);
 
