@@ -19,6 +19,22 @@ const PANES: { id: PaneMode; label: string }[] = [
   { id: 'hidden', label: t('Hidden') },
 ];
 
+/** A dropdown that looks like the language picker. */
+function Choice({ label, value, options, onChange }: { label: string; value: string; options: [string, string][]; onChange: (id: string) => void }) {
+  return (
+    <label className="lang-picker wide">
+      <span className="sr-only">{label}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={label}>
+        {options.map(([id, text]) => (
+          <option key={id} value={id}>
+            {text}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, onSecurity, onRules, onSmime, onSignatures, onAdmin, source }: { pane: PaneMode; onPane: (p: PaneMode) => void; preview: boolean; onPreview: (v: boolean) => void; onAccounts: () => void; onSecurity: () => void; onRules?: () => void; onSmime?: () => void; onSignatures?: () => void; onAdmin?: () => void; source: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -38,29 +54,21 @@ export function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, onSecur
           <div className="menu-label">{t('Theme')}</div>
           <Appearance />
           <div className="menu-label">{t('Date format')}</div>
-          <div className="segment">
-            {([['auto', t('Automatic')], ['dmy', 'DD/MM/YYYY'], ['mdy', 'MM/DD/YYYY'], ['ymd', 'YYYY-MM-DD']] as [DateFmt, string][]).map(([id, label]) => (
-              <button key={id} className={id === dateFmtPref() ? 'on' : ''} onClick={() => id !== dateFmtPref() && setDateFmt(id)} style={{ fontSize: 12 }}>
-                {label}
-              </button>
-            ))}
-          </div>
+          <Choice
+            label={t('Date format')}
+            value={dateFmtPref()}
+            options={[['auto', t('Automatic')], ['dmy', 'DD/MM/YYYY'], ['mdy', 'MM/DD/YYYY'], ['ymd', 'YYYY-MM-DD']]}
+            onChange={(id) => id !== dateFmtPref() && setDateFmt(id as DateFmt)}
+          />
           <div className="menu-label">{t('Time format')}</div>
-          <div className="segment">
-            {([['auto', t('Automatic')], ['12', t('12-hour')], ['24', t('24-hour')]] as [Clock, string][]).map(([id, label]) => (
-              <button key={id} className={id === clockPref() ? 'on' : ''} onClick={() => id !== clockPref() && setClock(id)}>
-                {label}
-              </button>
-            ))}
-          </div>
+          <Choice
+            label={t('Time format')}
+            value={clockPref()}
+            options={[['auto', t('Automatic')], ['12', t('12-hour')], ['24', t('24-hour')]]}
+            onChange={(id) => id !== clockPref() && setClock(id as Clock)}
+          />
           <div className="menu-label">{t('Reading pane')}</div>
-          <div className="segment">
-            {PANES.map((p) => (
-              <button key={p.id} className={p.id === pane ? 'on' : ''} onClick={() => onPane(p.id)}>
-                {p.label}
-              </button>
-            ))}
-          </div>
+          <Choice label={t('Reading pane')} value={pane} options={PANES.map((p) => [p.id, p.label])} onChange={(id) => onPane(id as PaneMode)} />
           <div className="menu-label">{t('Message list')}</div>
           <label className="menu-check">
             <input type="checkbox" checked={preview} onChange={(e) => onPreview(e.target.checked)} /> {t('Show preview text')}
