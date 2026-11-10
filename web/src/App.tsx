@@ -940,6 +940,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
                 {loading && <span className="spinner" />}
               </div>
               <div className="list-scroll" ref={listRef} onScroll={onScroll}>
+                {loading && visible.length === 0 && <div className="empty loading" role="status"><span className="spinner" /> {t('Loading…')}</div>}
                 {!loading && visible.length === 0 && <div className="empty">{searching ? t('No results.') : t('Nothing here. Enjoy your day.')}</div>}
                 {groups.map((g) => (
                   <div key={g.label}>
