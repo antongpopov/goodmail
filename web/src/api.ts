@@ -33,7 +33,7 @@ export interface MfaStatus { enabled: boolean; totp: boolean; passkeys: { id: st
 export interface Me { email: string; name: string; imapHost: string; appName?: string; appNames?: Record<string, string> }
 export interface Features { rules: boolean; password: boolean; passwordMin: number; reset: boolean; smime: boolean; admin: boolean }
 export interface AdminMe { admin: boolean; superadmin: boolean; domains: string[] }
-export interface AdminMailbox { address: string; name: string; active: boolean; forwards: string[] }
+export interface AdminMailbox { address: string; name: string; active: boolean; forwards: string[]; keep?: boolean }
 export interface AdminAlias { address: string; goto: string[]; active: boolean }
 export interface AdminDomainRow { domain: string; description: string; active: boolean; limits: { mailboxes: number; aliases: number }; counts: { mailboxes: number; aliases: number }; admins: { address: string; mailbox: boolean; mfa?: boolean }[] }
 export interface AdminDomain { domain: string; description: string; active: boolean; limits: { mailboxes: number; aliases: number }; mailboxes: AdminMailbox[]; aliases: AdminAlias[] }
@@ -141,7 +141,7 @@ export const api = {
   adminDeleteDomain: (domain: string) => call('POST', '/api/admin/domain/delete', { domain }),
   adminSetAdmins: (domain: string, admins: string[]) => call('POST', '/api/admin/domain/admins', { domain, admins }),
   adminCreateMailbox: (b: { address: string; name: string; password: string }) => call('POST', '/api/admin/mailbox', b),
-  adminUpdateMailbox: (b: { address: string; name?: string; active?: boolean; password?: string }) => call('POST', '/api/admin/mailbox/update', b),
+  adminUpdateMailbox: (b: { address: string; name?: string; active?: boolean; password?: string; forwards?: string[]; keep?: boolean }) => call('POST', '/api/admin/mailbox/update', b),
   adminDeleteMailbox: (address: string, files = false) => call<{ note?: string }>('POST', '/api/admin/mailbox/delete', { address, files }),
   adminSaveAlias: (b: { address: string; goto: string[]; active?: boolean }) => call('POST', '/api/admin/alias', b),
   adminDeleteAlias: (address: string) => call('POST', '/api/admin/alias/delete', { address }),

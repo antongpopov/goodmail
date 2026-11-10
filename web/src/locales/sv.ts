@@ -472,4 +472,5 @@ export const sv: Dict = {
   'Next: {x}': 'Nästa: {x}',
   Attachments: 'Bilagor',
   'Sort order': 'Sortering', 'Newest first': 'Nyast först', 'Oldest first': 'Äldst först',
+  'Forward mail to': 'Vidarebefordra e-post till', 'one address per line, empty = no forwarding': 'en adress per rad, tom = ingen vidarebefordran', 'Also keep a copy in this mailbox': 'Behåll även en kopia i den här brevlådan', 'Forwards only to': 'Vidarebefordrar bara till',
 };

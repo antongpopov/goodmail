@@ -484,4 +484,5 @@ export const da: Dict = {
   'Next: {x}': 'Næste: {x}',
   Attachments: 'Vedhæftninger',
   'Sort order': 'Sortering', 'Newest first': 'Nyeste først', 'Oldest first': 'Ældste først',
+  'Forward mail to': 'Videresend mail til', 'one address per line, empty = no forwarding': 'én adresse pr. linje, tom = ingen videresendelse', 'Also keep a copy in this mailbox': 'Gem også en kopi i denne postkasse', 'Forwards only to': 'Videresender kun til',
 };

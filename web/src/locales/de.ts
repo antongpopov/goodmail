@@ -472,4 +472,5 @@ export const de: Dict = {
   'Next: {x}': 'Nächste: {x}',
   Attachments: 'Anhänge',
   'Sort order': 'Sortierung', 'Newest first': 'Neueste zuerst', 'Oldest first': 'Älteste zuerst',
+  'Forward mail to': 'E-Mails weiterleiten an', 'one address per line, empty = no forwarding': 'eine Adresse pro Zeile, leer = keine Weiterleitung', 'Also keep a copy in this mailbox': 'Auch eine Kopie in diesem Postfach behalten', 'Forwards only to': 'Leitet nur weiter an',
 };

@@ -141,10 +141,12 @@ def op_domain_get(caller, job, sup, domains):
     boxes = rows("SELECT username,name,active,quota FROM mailbox WHERE domain=%s ORDER BY username" % q(d))
     box_set = {b[0] for b in boxes}
     als = rows("SELECT address,goto,active FROM alias WHERE domain=%s ORDER BY (address LIKE '@%%'), address" % q(d))
-    fwd = {}
+    fwd, keep = {}, {}
     for a, g, _ in als:
         if a in box_set:
-            extra = [x for x in (s.strip() for s in g.split(",")) if x and x != a]
+            parts = [x for x in (s.strip() for s in g.split(",")) if x]
+            keep[a] = a in parts or not parts
+            extra = [x for x in parts if x != a]
             if extra:
                 fwd[a] = extra
     return {
@@ -153,7 +155,8 @@ def op_domain_get(caller, job, sup, domains):
         "limits": {"mailboxes": int(info[1]), "aliases": int(info[2])},
         "active": info[3] == "1",
         "mailboxes": [
-            {"address": b[0], "name": b[1], "active": b[2] == "1", "forwards": fwd.get(b[0], [])} for b in boxes
+            {"address": b[0], "name": b[1], "active": b[2] == "1", "forwards": fwd.get(b[0], []), "keep": keep.get(b[0], True)}
+            for b in boxes
         ],
         "aliases": [
             {"address": a[0], "goto": [x.strip() for x in a[1].split(",") if x.strip()], "active": a[2] == "1"}
@@ -209,9 +212,29 @@ def op_mailbox_update(caller, job, sup, domains):
     if "password" in job:
         sets.append("password=%s" % q(hash_password(check_password(job["password"]))))
         actions.append("edit_password")
-    if not sets:
+    dest = None
+    if "forwards" in job:  # forwarding = the mailbox's own alias row (address = mailbox) lists where its mail goes
+        fw = job["forwards"] if isinstance(job["forwards"], list) else re.split(r"[,\s;]+", str(job["forwards"] or ""))
+        extra = [x for x in dict.fromkeys(addr(x, "forwarding address") for x in fw if str(x).strip()) if x != a]
+        keep = job.get("keep") is not False
+        if not keep and not extra:
+            raise Refuse("Keep a copy in the mailbox, or enter an address to forward to")
+        dest = ([a] if keep else []) + extra
+        if len(dest) > MAX_GOTO:
+            raise Refuse("At most %d destinations" % MAX_GOTO)
+        actions.append("edit_alias")
+    if not sets and dest is None:
         raise Refuse("Nothing to change")
-    run("UPDATE mailbox SET %s, modified=NOW() WHERE username=%s" % (", ".join(sets), q(a)))
+    if sets:
+        run("UPDATE mailbox SET %s, modified=NOW() WHERE username=%s" % (", ".join(sets), q(a)))
+    if dest is not None:
+        if one("SELECT 1 FROM alias WHERE address=%s" % q(a)) is not None:
+            run("UPDATE alias SET goto=%s, modified=NOW() WHERE address=%s" % (q(",".join(dest)), q(a)))
+        else:
+            run(
+                "INSERT INTO alias (address,goto,domain,created,modified,active) VALUES (%s,%s,%s,NOW(),NOW(),1)"
+                % (q(a), q(",".join(dest)), q(d))
+            )
     if "active" in job:  # PostfixAdmin keeps the mailbox's own alias row in step
         run("UPDATE alias SET active=%d, modified=NOW() WHERE address=%s" % (1 if job["active"] else 0, q(a)))
     for act in dict.fromkeys(actions):

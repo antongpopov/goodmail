@@ -218,7 +218,7 @@ rename, reset the password of and delete mailboxes, and manage aliases (includin
 As with passwords, goodmail does not touch the mail database itself: it runs the command (split into arguments, never through a
 shell) and writes one JSON line to its stdin, `{"op":"mailbox.create","caller":"user@example.com",…}`, and the command answers
 with one JSON line, `{"ok":true,…}` or `{"error":"text shown to the user"}`. Operations: `whoami`, `domain.get`, `mailbox.create`,
-`mailbox.update` (name, active, password), `mailbox.delete`, `alias.save`, `alias.delete`, and for the main administrator
+`mailbox.update` (name, active, password, forwards and keep-a-copy), `mailbox.delete`, `alias.save`, `alias.delete`, and for the main administrator
 (`superadmin = 1`) `domain.list`, `domain.save`, `domain.delete` (only when empty) and `admins.set` — the Domains tab, where domains and each
 domain's administrators are managed. **The command decides who may do
 what, on every call** — goodmail only says which mailbox the user signed in with, so a bug in the web interface cannot widen

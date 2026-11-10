@@ -472,4 +472,5 @@ export const es: Dict = {
   'Next: {x}': 'Siguiente: {x}',
   Attachments: 'Adjuntos',
   'Sort order': 'Orden', 'Newest first': 'Más recientes primero', 'Oldest first': 'Más antiguos primero',
+  'Forward mail to': 'Reenviar el correo a', 'one address per line, empty = no forwarding': 'una dirección por línea, vacío = sin reenvío', 'Also keep a copy in this mailbox': 'Conservar también una copia en este buzón', 'Forwards only to': 'Reenvía solo a',
 };

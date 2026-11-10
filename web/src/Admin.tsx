@@ -26,7 +26,7 @@ export function AdminDialog({ me, self, onClose, onSecurity, flash }: { me: Admi
   const [adding, setAdding] = useState(false);
   const [box, setBox] = useState({ local: '', name: '', password: '' });
   const [editBox, setEditBox] = useState<string | null>(null);
-  const [edit, setEdit] = useState({ name: '', password: '' });
+  const [edit, setEdit] = useState({ name: '', password: '', forwards: '', keep: true });
   const [aliasForm, setAliasForm] = useState<{ original: string | null; local: string; goto: string } | null>(null);
   const [shownPw, setShownPw] = useState('');
   const [delBox, setDelBox] = useState<{ address: string; files: boolean } | null>(null);
@@ -137,10 +137,15 @@ export function AdminDialog({ me, self, onClose, onSecurity, flash }: { me: Admi
     });
   };
   const saveBox = (m: AdminMailbox) => {
-    const body: { address: string; name?: string; password?: string } = { address: m.address };
+    const body: { address: string; name?: string; password?: string; forwards?: string[]; keep?: boolean } = { address: m.address };
     if (edit.name !== m.name) body.name = edit.name;
     if (edit.password) body.password = edit.password;
-    if (!('name' in body) && !body.password) return setEditBox(null);
+    const fw = edit.forwards.split(/[,\s;]+/).filter(Boolean);
+    if (fw.join(',') !== m.forwards.join(',') || edit.keep !== (m.keep !== false)) {
+      body.forwards = fw;
+      body.keep = edit.keep;
+    }
+    if (!('name' in body) && !body.password && !body.forwards) return setEditBox(null);
     void run(() => api.adminUpdateMailbox(body), t('Saved'), () => {
       if (edit.password) setShownPw(edit.password);
       setEditBox(null);
@@ -219,9 +224,9 @@ export function AdminDialog({ me, self, onClose, onSecurity, flash }: { me: Admi
                     <b>{m.name || m.address.split('@')[0]}</b>
                     <span className="muted"> {m.address}</span>
                     {!m.active && <span className="tag"> {t('disabled')}</span>}
-                    {m.forwards.length > 0 && <div className="muted small">{t('Also forwards to')}: {m.forwards.join(', ')}</div>}
+                    {m.forwards.length > 0 && <div className="muted small">{m.keep === false ? t('Forwards only to') : t('Also forwards to')}: {m.forwards.join(', ')}</div>}
                   </div>
-                  <button className="pill-btn" onClick={() => { setEditBox(editBox === m.address ? null : m.address); setEdit({ name: m.name, password: '' }); }}>{t('Edit')}</button>
+                  <button className="pill-btn" onClick={() => { setEditBox(editBox === m.address ? null : m.address); setEdit({ name: m.name, password: '', forwards: m.forwards.join('\n'), keep: m.keep !== false }); }}>{t('Edit')}</button>
                   <button className="pill-btn" disabled={busy || m.address === self} onClick={() => toggleBox(m)}>{m.active ? t('Disable') : t('Enable')}</button>
                   <button className="pill-btn danger" disabled={busy || m.address === self} onClick={() => setDelBox(delBox?.address === m.address ? null : { address: m.address, files: false })}>{t('Delete')}</button>
                 </div>
@@ -246,6 +251,13 @@ export function AdminDialog({ me, self, onClose, onSecurity, flash }: { me: Admi
                         <input className="grow" value={edit.password} onChange={(e) => setEdit({ ...edit, password: e.target.value })} placeholder={t('leave empty to keep')} autoComplete="off" />
                         <button className="pill-btn" onClick={() => setEdit({ ...edit, password: generate() })}>{t('Generate')}</button>
                       </span>
+                    </label>
+                    <label>
+                      {t('Forward mail to')}
+                      <textarea rows={2} value={edit.forwards} onChange={(e) => setEdit({ ...edit, forwards: e.target.value })} placeholder={t('one address per line, empty = no forwarding')} autoCapitalize="none" autoCorrect="off" />
+                    </label>
+                    <label className="menu-check">
+                      <input type="checkbox" checked={edit.keep} onChange={(e) => setEdit({ ...edit, keep: e.target.checked })} /> {t('Also keep a copy in this mailbox')}
                     </label>
                     <div className="rule-row">
                       <button className="primary" disabled={busy} onClick={() => saveBox(m)}>{t('Save')}</button>

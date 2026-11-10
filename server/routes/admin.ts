@@ -41,6 +41,10 @@ r.post(
     if ('name' in b) args.name = str(b.name, 80) ?? '';
     if ('active' in b) args.active = b.active === true;
     if ('password' in b) args.password = str(b.password, 200) ?? '';
+    if ('forwards' in b) {
+      args.forwards = (Array.isArray(b.forwards) ? b.forwards : []).slice(0, 60).map((x: unknown) => str(x, 320) ?? '').filter(Boolean);
+      args.keep = b.keep !== false;
+    }
     res.json(await call(req, 'mailbox.update', args));
   }),
 );
