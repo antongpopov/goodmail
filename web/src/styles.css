@@ -170,6 +170,8 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .tabs button.on::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: -2px; height: 2px; border-radius: 1px; background: var(--brand); }
 .list-scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
 .group { font-size: 13px; color: var(--text-2); padding: 10px 14px 4px; font-weight: 600; position: sticky; top: 0; background: var(--surface); z-index: 1; }
+.group { border-bottom: 1px solid var(--border); }
+.list-scroll > div:first-child > .group { border-top: 1px solid var(--border); }
 .item { display: flex; gap: 12px; padding: 10px 12px 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border); position: relative; user-select: none; }
 .item:hover { background: var(--hover); }
 .item.flagged { background: var(--flag-bg); }
