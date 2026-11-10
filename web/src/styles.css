@@ -755,3 +755,6 @@ a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
 .side-text b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .side-text .small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 1100px) { .side-panel { display: none; } }
+
+.toolbar .tb.side-toggle { flex: none; margin-right: 4px; }
+.toolbar .tb.side-toggle.on { color: var(--brand); background: var(--sel-strong); }

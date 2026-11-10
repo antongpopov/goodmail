@@ -874,13 +874,6 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
         <div className="top-right">
           {view === 'mail' && (
             <span className="desk-only">
-              <button className={`top-btn ${sidePanel ? 'on' : ''}`} title={t('Calendar panel')} aria-label={t('Calendar panel')} aria-pressed={sidePanel} onClick={() => setSidePanel(!sidePanel)}>
-                <Icon name="sidePanel" />
-              </button>
-            </span>
-          )}
-          {view === 'mail' && (
-            <span className="desk-only">
               <button className={`top-btn ${preview ? 'on' : ''}`} title={t('Show preview text')} aria-label={t('Show preview text')} aria-pressed={preview} onClick={() => setPreview(!preview)}>
                 <Icon name="preview" />
               </button>
@@ -940,6 +933,9 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
             <span className="grow" />
             {loading && <span className="spinner" />}
             <div className="tool-tabs">{filterTabs}</div>
+            <button className={`tb icon side-toggle ${sidePanel ? 'on' : ''}`} title={t('Calendar panel')} aria-label={t('Calendar panel')} aria-pressed={sidePanel} onClick={() => setSidePanel(!sidePanel)}>
+              <Icon name="sidePanel" size={18} />
+            </button>
           </div>
 
           <div className={`panes pane-${pane}`}>
