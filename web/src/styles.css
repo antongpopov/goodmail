@@ -714,3 +714,12 @@ a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
 .menu button.menu-on { color: var(--brand); font-weight: 600; }
 .menu.menu-right button { color: var(--text); }
 .menu.menu-right button.menu-on { color: var(--brand); }
+
+.tool-tabs { display: flex; align-items: center; }
+.filter-wrap { flex: none; margin-left: 4px; }
+.filter-wrap .tb.filter-on { color: var(--brand); }
+.menu.filter-menu { min-width: 230px; top: 34px; }
+.menu.filter-menu button { color: var(--text); }
+.menu.filter-menu button.menu-on { color: var(--brand); }
+.menu-gap { width: 18px; flex: none; }
+.menu-sep { height: 1px; background: var(--border); margin: 4px 6px; }

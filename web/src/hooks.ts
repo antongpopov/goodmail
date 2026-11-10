@@ -3,6 +3,7 @@ import { api } from './api.ts';
 import type { Contact } from './api.ts';
 import { save, store } from './util.ts';
 import type { PaneMode } from './ViewMenu.tsx';
+import type { SortKey } from './unified.ts';
 
 /** Layout preferences that live in localStorage: reading pane, preview text, panel sizes, folder tree state. */
 export function useLayout() {
@@ -18,15 +19,22 @@ export function useLayout() {
     setPaneState(p);
     save('pane', p);
   };
+  const [sortKey, setSortKeyState] = useState<SortKey>(() => store('sortKey', 'date'));
   const setOldestFirst = (v: boolean) => {
     setOldestFirstState(v);
     save('oldestFirst', v);
+  };
+  /** Choosing another sort key starts from that key's natural direction (A-Z for names, newest / largest / flagged first). */
+  const setSortKey = (k: SortKey) => {
+    setSortKeyState(k);
+    save('sortKey', k);
+    setOldestFirst(k === 'from' || k === 'subject');
   };
   const setPreview = (v: boolean) => {
     setPreviewState(v);
     save('preview', v);
   };
-  return { collapsed, setCollapsed, foldersHidden, setFoldersHidden, pane, setPane, preview, setPreview, oldestFirst, setOldestFirst, listH, setListH, folderW, setFolderW, listW, setListW };
+  return { collapsed, setCollapsed, foldersHidden, setFoldersHidden, pane, setPane, preview, setPreview, oldestFirst, setOldestFirst, sortKey, setSortKey, listH, setListH, folderW, setFolderW, listW, setListW };
 }
 
 /** True on phone-width screens (re-evaluated when the window crosses the breakpoint). */

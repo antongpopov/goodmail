@@ -485,4 +485,5 @@ export const da: Dict = {
   Attachments: 'Vedhæftninger',
   'Sort order': 'Sortering', 'Newest first': 'Nyeste først', 'Oldest first': 'Ældste først',
   'Forward mail to': 'Videresend mail til', 'one address per line, empty = no forwarding': 'én adresse pr. linje, tom = ingen videresendelse', 'Also keep a copy in this mailbox': 'Gem også en kopi i denne postkasse', 'Forwards only to': 'Videresender kun til',
+  'Filter and sort': 'Filtrer og sortér', 'Filter by': 'Filtrer efter', 'Sort by': 'Sortér efter', 'To me': 'Til mig', 'Has files': 'Har filer', 'Date': 'Dato', 'Size': 'Størrelse', 'Oldest on top': 'Ældste øverst', 'Newest on top': 'Nyeste øverst', 'A to Z': 'A til Å', 'Z to A': 'Å til A', 'Smallest on top': 'Mindste øverst', 'Largest on top': 'Største øverst', 'Flagged last': 'Markerede sidst', 'Flagged on top': 'Markerede øverst',
 };

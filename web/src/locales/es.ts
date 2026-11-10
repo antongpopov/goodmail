@@ -473,4 +473,5 @@ export const es: Dict = {
   Attachments: 'Adjuntos',
   'Sort order': 'Orden', 'Newest first': 'Más recientes primero', 'Oldest first': 'Más antiguos primero',
   'Forward mail to': 'Reenviar el correo a', 'one address per line, empty = no forwarding': 'una dirección por línea, vacío = sin reenvío', 'Also keep a copy in this mailbox': 'Conservar también una copia en este buzón', 'Forwards only to': 'Reenvía solo a',
+  'Filter and sort': 'Filtrar y ordenar', 'Filter by': 'Filtrar por', 'Sort by': 'Ordenar por', 'To me': 'Para mí', 'Has files': 'Con archivos', 'Date': 'Fecha', 'Size': 'Tamaño', 'Oldest on top': 'Más antiguos arriba', 'Newest on top': 'Más recientes arriba', 'A to Z': 'A a Z', 'Z to A': 'Z a A', 'Smallest on top': 'Más pequeños arriba', 'Largest on top': 'Más grandes arriba', 'Flagged last': 'Marcados al final', 'Flagged on top': 'Marcados arriba',
 };

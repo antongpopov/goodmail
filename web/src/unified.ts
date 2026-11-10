@@ -14,3 +14,6 @@ export const UNI_USE: Record<string, string> = { inbox: '\\Inbox', sent: '\\Sent
 export const synthUid = (accountIndex: number, uid: number) => (accountIndex + 1) * 4294967296 + uid;
 export const uniLabel = (k: string) =>
   ({ inbox: t('All inboxes'), sent: t('All sent'), drafts: t('All drafts'), junk: t('All junk'), trash: t('All trash'), archive: t('All archive') } as Record<string, string>)[k] || k;
+
+/** How the message list is sorted. Anything but 'date' sorts the messages loaded so far (the server pages by date). */
+export type SortKey = 'date' | 'from' | 'subject' | 'size' | 'flagged';

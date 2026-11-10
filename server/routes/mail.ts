@@ -63,9 +63,9 @@ async function listPage(cn: Conn, folder: string, page: number, filter: string, 
         const messages = top.length ? dir(await listMessages(cn, c, folder, top, true)) : [];
         return { total: uids.length, messages, hasMore: false };
       }
-      if (filter === 'unread' || filter === 'flagged') {
+      if (filter === 'unread' || filter === 'flagged' || filter === 'tome') {
         // Ask the server for every match in the folder, not just the loaded page (big folders like Gmail's All Mail).
-        const uids = await byDate(c, (await c.search(filter === 'unread' ? { seen: false } : { flagged: true }, { uid: true })) || [], asc);
+        const uids = await byDate(c, (await c.search(filter === 'unread' ? { seen: false } : filter === 'tome' ? { to: cn.account.email } : { flagged: true }, { uid: true })) || [], asc);
         const slice = uids.slice(page * PAGE, (page + 1) * PAGE);
         const messages = slice.length ? dir(await listMessages(cn, c, folder, slice, true)) : [];
         return { total: uids.length, messages, hasMore: uids.length > (page + 1) * PAGE };

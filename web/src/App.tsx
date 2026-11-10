@@ -27,7 +27,7 @@ import { Avatar } from './Avatar.tsx';
 import { Splitter } from './Splitter.tsx';
 import { MessageItem } from './MessageItem.tsx';
 import { FolderRow } from './FolderRow.tsx';
-import { ViewMenu, PaneMenu, ThemeMenu, Appearance } from './ViewMenu.tsx';
+import { ViewMenu, PaneMenu, ThemeMenu, FilterMenu, Appearance } from './ViewMenu.tsx';
 import { useAddressBook, useLayout, usePhoneWidth, useToast } from './hooks.ts';
 
 const POLL_MS = 30_000;
@@ -99,13 +99,15 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   const [compose, setCompose] = useState<ComposeInit | null>(null);
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState('');
-  const [filter, setFilter] = useState<'all' | 'unread' | 'flagged' | 'attachments'>('all');
+  const [filter, setFilter] = useState<'all' | 'unread' | 'flagged' | 'attachments' | 'tome'>('all');
   const oldestRef = useRef(false);
   const filterRef = useRef(filter);
   filterRef.current = filter;
-  const { collapsed, setCollapsed, foldersHidden, setFoldersHidden, pane, setPane, preview, setPreview, oldestFirst, setOldestFirst, listH, setListH, folderW, setFolderW, listW, setListW } = useLayout();
-  oldestRef.current = oldestFirst;
-  setOrder(oldestFirst);
+  const { collapsed, setCollapsed, foldersHidden, setFoldersHidden, pane, setPane, preview, setPreview, oldestFirst, setOldestFirst, sortKey, setSortKey, listH, setListH, folderW, setFolderW, listW, setListW } = useLayout();
+  // The server only pages by date, so the order sent to it matters for the date sort alone.
+  const serverAsc = sortKey === 'date' && oldestFirst;
+  oldestRef.current = serverAsc;
+  setOrder(serverAsc);
   const { toast, flash } = useToast();
   const [moveOpen, setMoveOpen] = useState(false);
   const [drawer, setDrawer] = useState(false);
@@ -251,7 +253,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
     listRef.current?.scrollTo(0, 0);
     void loadList(folder, 0, searching);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [oldestFirst]);
+  }, [serverAsc]);
 
   // Unread / Flagged ask the server for every match in the folder, not just the loaded page.
   const firstFilter = useRef(true);
@@ -280,10 +282,19 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   const current = folders.find((f) => f.path === folder);
   const trees = useMemo(() => Object.fromEntries(Object.entries(allFolders).map(([id, f]) => [id, buildTree(f)])), [allFolders]);
   const visibleRef = useRef<Summary[]>([]);
-  const visible = useMemo(
-    () => list.filter((m) => (filter === 'unread' ? !m.seen : filter === 'flagged' ? m.flagged : filter === 'attachments' ? m.hasAttachments : true)),
-    [list, filter],
-  );
+  const visible = useMemo(() => {
+    const l = list.filter((m) => (filter === 'unread' ? !m.seen : filter === 'flagged' ? m.flagged : filter === 'attachments' ? m.hasAttachments : true));
+    if (sortKey === 'date') return l;
+    const name = (m: Summary) => (m.from.name || m.from.address || '').toLowerCase();
+    const cmp: Record<string, (a: Summary, b: Summary) => number> = {
+      from: (a, b) => name(a).localeCompare(name(b)),
+      subject: (a, b) => (a.subject || '').toLowerCase().localeCompare((b.subject || '').toLowerCase()),
+      size: (a, b) => a.size - b.size,
+      flagged: (a, b) => Number(a.flagged) - Number(b.flagged),
+    };
+    const sgn = oldestFirst ? 1 : -1;
+    return l.slice().sort((a, b) => sgn * cmp[sortKey](a, b) || b.date - a.date);
+  }, [list, filter, sortKey, oldestFirst]);
   visibleRef.current = visible;
   const contacts = useMemo(() => {
     const s = new Set<string>();
@@ -537,12 +548,12 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   const groups = useMemo(() => {
     const g: { label: string; items: Summary[] }[] = [];
     for (const m of visible) {
-      const label = bucket(m.date);
+      const label = sortKey === 'date' ? bucket(m.date) : '';
       if (g[g.length - 1]?.label !== label) g.push({ label, items: [] });
       g[g.length - 1].items.push(m);
     }
     return g;
-  }, [visible]);
+  }, [visible, sortKey]);
 
   const uniK = isAll ? uniKind(folder) : '';
   const isSentFolder = isAll ? uniK === 'sent' || uniK === 'drafts' : current?.specialUse === '\\Sent' || current?.specialUse === '\\Drafts';
@@ -805,6 +816,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   );
 
   const filterTabs = (
+    <>
     <div className="tabs">
       {(['all', 'unread', 'flagged', 'attachments'] as const).map((f) => {
         const label = f === 'all' ? (searching ? t('Results') : current ? folderLabel(current) : t('All')) : f === 'unread' ? t('Unread') : f === 'flagged' ? t('Flagged') : t('Attachments');
@@ -815,6 +827,8 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
         );
       })}
     </div>
+    <FilterMenu filter={filter} onFilter={setFilter} sortKey={sortKey} onSortKey={setSortKey} oldestFirst={oldestFirst} onOrder={setOldestFirst} />
+    </>
   );
 
   return (
@@ -867,7 +881,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
           {view === 'mail' && <span className="desk-only"><PaneMenu pane={pane} onPane={setPane} /></span>}
           <span className="desk-only"><ThemeMenu /></span>
           <span className="desk-only">
-            <ViewMenu preview={preview} onPreview={setPreview} oldestFirst={oldestFirst} onOrder={setOldestFirst} onAccounts={() => setDialog({ kind: 'accounts' })} onSecurity={() => setDialog({ kind: 'security' })} onRules={features?.rules ? () => setDialog({ kind: 'rules' }) : undefined} onSmime={features?.smime ? () => setDialog({ kind: 'smime' }) : undefined} onSignatures={() => setDialog({ kind: 'signatures', tab: 'signature' })} onAdmin={adminMe?.admin ? () => setDialog({ kind: 'admin' }) : undefined} source={source} />
+            <ViewMenu preview={preview} onPreview={setPreview} onAccounts={() => setDialog({ kind: 'accounts' })} onSecurity={() => setDialog({ kind: 'security' })} onRules={features?.rules ? () => setDialog({ kind: 'rules' }) : undefined} onSmime={features?.smime ? () => setDialog({ kind: 'smime' }) : undefined} onSignatures={() => setDialog({ kind: 'signatures', tab: 'signature' })} onAdmin={adminMe?.admin ? () => setDialog({ kind: 'admin' }) : undefined} source={source} />
           </span>
           <span className="who" title={`${me.email} · ${me.imapHost}`}>
             <Avatar addr={{ name: me.name, address: me.email }} size={28} />
@@ -943,7 +957,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
                 {!loading && visible.length === 0 && <div className="empty">{searching ? t('No results.') : t('Nothing here. Enjoy your day.')}</div>}
                 {groups.map((g) => (
                   <div key={g.label}>
-                    <div className="group">{g.label}</div>
+                    {g.label && <div className="group">{g.label}</div>}
                     {g.items.map((m) => (
                       <MessageItem
                         key={m.uid}
