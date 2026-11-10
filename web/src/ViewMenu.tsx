@@ -51,6 +51,38 @@ export function PaneMenu({ pane, onPane }: { pane: PaneMode; onPane: (p: PaneMod
   );
 }
 
+/** Top-bar button for light / dark / auto. */
+export function ThemeMenu() {
+  const [theme, setThemeState] = useState<Theme>(loadTheme);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+  const cur = THEMES.find((x) => x.id === theme) || THEMES[0];
+  return (
+    <div className="menu-wrap" ref={ref}>
+      <button className="top-btn" title={t('Theme')} aria-label={t('Theme')} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+        <Icon name={cur.icon} />
+      </button>
+      {open && (
+        <div className="menu menu-right" role="menu">
+          <div className="menu-label">{t('Theme')}</div>
+          {THEMES.map((th) => (
+            <button key={th.id} role="menuitemradio" aria-checked={th.id === theme} className={th.id === theme ? 'menu-on' : ''} onClick={() => { setThemeState(th.id); setTheme(th.id); setOpen(false); }}>
+              <Icon name={th.icon} size={18} /> <span className="grow">{th.label}</span>
+              {th.id === theme && <Icon name="check" size={16} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** A dropdown that looks like the language picker. */
 function Choice({ label, value, options, onChange }: { label: string; value: string; options: [string, string][]; onChange: (id: string) => void }) {
   return (
@@ -83,8 +115,8 @@ export function ViewMenu({ preview, onPreview, oldestFirst, onOrder, onAccounts,
       </button>
       {open && (
         <div className="menu view-menu">
-          <div className="menu-label">{t('Theme')}</div>
-          <Appearance />
+          <div className="menu-label">{t('Color')}</div>
+          <Appearance modes={false} />
           <div className="menu-label">{t('Date format')}</div>
           <Choice
             label={t('Date format')}
@@ -144,11 +176,11 @@ export function ViewMenu({ preview, onPreview, oldestFirst, onOrder, onAccounts,
 }
 
 /** One compact row: auto / light / dark as icon dots, then the accent color dots. */
-export function Appearance() {
+export function Appearance({ modes = true }: { modes?: boolean }) {
   const [theme, setThemeState] = useState<Theme>(loadTheme);
   return (
     <div className="swatches-row appearance">
-      {THEMES.map((th) => (
+      {modes && THEMES.map((th) => (
         <button
           key={th.id}
           className={`mode-dot ${th.id === theme ? 'on' : ''}`}
@@ -163,7 +195,7 @@ export function Appearance() {
           <Icon name={th.icon} size={15} />
         </button>
       ))}
-      <span className="dot-sep" />
+      {modes && <span className="dot-sep" />}
       <AccentPicker />
     </div>
   );
