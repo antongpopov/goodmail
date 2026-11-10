@@ -17,6 +17,7 @@ import { Compose } from './Compose.tsx';
 import type { ComposeInit } from './Compose.tsx';
 import { Contacts } from './Contacts.tsx';
 import { Calendar } from './Calendar.tsx';
+import { Tasks } from './Tasks.tsx';
 import { bucket, displayName, fullAddr, save, store } from './util.ts';
 import { t, localTitle } from './i18n.ts';
 import { listCache, msgCache, msgKey, rememberMsg } from './cache.ts';
@@ -105,7 +106,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   const { toast, flash } = useToast();
   const [moveOpen, setMoveOpen] = useState(false);
   const [drawer, setDrawer] = useState(false);
-  const [view, setView] = useState<'mail' | 'contacts' | 'calendar'>(() => (location.hash === '#calendar' ? 'calendar' : 'mail'));
+  const [view, setView] = useState<'mail' | 'contacts' | 'calendar' | 'tasks'>(() => (location.hash === '#calendar' ? 'calendar' : location.hash === '#tasks' ? 'tasks' : 'mail'));
   const { book, addContact, setAddContact, reloadBook, known } = useAddressBook(view === 'contacts');
   const phoneWidth = usePhoneWidth();
   const addToCalendar = async (url: string) => {
@@ -726,6 +727,10 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
                     <span className="twisty" />
                     <Icon name="calendar" size={18} /> <span className="fname">{t('Calendar')}</span>
                   </button>
+                  <button className="folder" onClick={() => { setView('tasks'); setDrawer(false); }}>
+                    <span className="twisty" />
+                    <Icon name="tasks" size={18} /> <span className="fname">{t('To-Do')}</span>
+                  </button>
                   <button className="folder" onClick={() => { setView('contacts'); setDrawer(false); }}>
                     <span className="twisty" />
                     <Icon name="people" size={18} /> <span className="fname">{t('Contacts')}</span>
@@ -786,6 +791,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
             [
               ['mail', 'mail', t('Mail')],
               ['calendar', 'calendar', t('Calendar')],
+              ['tasks', 'tasks', t('To-Do')],
               ['contacts', 'people', t('Contacts')],
             ] as const
           ).map(([id, icon, label]) => (
@@ -835,6 +841,8 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
           {view !== 'mail' && drawer && foldersBlock}
           {view === 'calendar' ? (
             <Calendar flash={flash} isPhone={phoneWidth} />
+          ) : view === 'tasks' ? (
+            <Tasks flash={flash} isPhone={phoneWidth} onFlagged={() => { setFilter('flagged'); setView('mail'); }} />
           ) : view === 'contacts' ? (
             <Contacts
               contacts={book}

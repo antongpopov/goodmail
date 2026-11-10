@@ -20,6 +20,13 @@ export interface CalEvent {
   id: string; uid: string; title: string; allDay: boolean; start: number | string; end: number | string;
   location: string; notes: string; color: string; rrule?: RRule; exdates?: (number | string)[]; updated: number;
 }
+export interface TaskStep { id: string; text: string; done: boolean }
+export interface Task {
+  id: string; title: string; notes: string; list: string; due: string; important: boolean; myDay: string;
+  done: boolean; doneAt: number; repeat: '' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'; steps: TaskStep[]; created: number; updated: number;
+}
+export interface TaskList { id: string; name: string }
+export interface TaskData { lists: TaskList[]; tasks: Task[] }
 export interface MailAccount { id: string; email: string; name: string; provider: string; imapHost: string; locked: boolean }
 export interface MfaChallenge { ticket: string; totp: boolean; passkey: boolean; email: string | null; recovery: boolean }
 export interface MfaStatus { enabled: boolean; totp: boolean; passkeys: { id: string; name: string; added: number; passwordless: boolean }[]; email: string | null; recoveryLeft: number; resetEmail?: string | null; recovery?: string[] }
@@ -185,6 +192,11 @@ export const api = {
       tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
     }),
   icsExportUrl: '/api/events/export',
+  tasks: () => call<TaskData>('GET', '/api/tasks'),
+  saveTask: (task: Partial<Task>, today: string) => call<{ task: Task; next?: Task }>('POST', '/api/tasks', { task, today }),
+  deleteTasks: (ids: string[]) => call('POST', '/api/tasks/delete', { ids }),
+  saveTaskList: (l: Partial<TaskList>) => call<TaskList>('POST', '/api/tasks/lists', l),
+  deleteTaskList: (id: string) => call<TaskData>('POST', '/api/tasks/lists/delete', { id }),
   attachmentUrl: (folder: string, uid: number, a: Attachment, inline = false, account = cur) =>
     `/api/attachment?${q({ folder, uid, part: a.part, name: a.filename, account, ...(inline ? { inline: 1 } : {}) })}`,
 };

@@ -52,6 +52,8 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
   mailboxes they include (per device). Paging is approximate: each mailbox contributes its newest page, merged by date
 - **Address book**: per-account contacts, vCard + CSV import/export (Apple, Google, Outlook, Thunderbird),
   duplicate merge by email, "add sender" button, To/Cc autocomplete
+- **To-Do**: an Outlook-style task list: My Day, Important, Planned, Tasks and your own lists, steps, due dates, repeating tasks
+  and notes; "Flagged email" jumps to your flagged mail. Stored per account as a small JSON file on the server, so it follows you to every device
 - **Calendar**: Outlook-style day / work week / week / month views, mini month, recurring events,
   .ics import/export, and an "Add to calendar" button on invitations (Outlook/Teams time zones understood)
 - **Two-step sign-in** (per user, ⚙ → Sign-in security): authenticator app (TOTP), passkeys (Face ID / Touch ID /
@@ -115,7 +117,7 @@ Or do it by hand:
 npm install
 cp goodmail.conf.example goodmail.conf   # edit domains
 npm run dev        # API on :3000 + Vite on :5173 (needs Node ≥ 23.6, runs the TS server directly)
-npm test           # unit tests (vault, 2FA, config, rules, passwords, S/MIME against real openssl, contacts, calendar, i18n, utils)
+npm test           # unit tests (vault, 2FA, config, rules, passwords, S/MIME against real openssl, contacts, calendar, tasks, i18n, utils)
                    # + a live-server smoke test; the S/MIME tests skip themselves when openssl with `cms` is missing
 npm run typecheck  # tsc over server, web and tests
 ```
@@ -288,7 +290,7 @@ Everything lives under `GOODMAIL_DATA` (default `./data`), one small JSON file p
 |---|---|
 | `secret.key` | the server key: seals login cookies and encrypts stored secrets. **Without it nobody can sign in and the files below are unreadable** |
 | `accounts/` | extra mail accounts users added (passwords encrypted under the server key *and* the user's own password) |
-| `contacts/`, `calendar/` | address books and calendars |
+| `contacts/`, `calendar/`, `tasks/` | address books, calendars and to-do lists |
 | `prefs/` | signatures and templates |
 | `mfa/` | two-step sign-in: authenticator seeds, passkeys, recovery-code hashes, reset address |
 | `smime/` | `ca.json` (the certificate authority; its key is encrypted under the server key), `users/` (certificates, keys encrypted under the user's password), `contacts/` (correspondents' certificates) |
