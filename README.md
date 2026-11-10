@@ -8,6 +8,8 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
 | Dark mode, remote images blocked | Calendar — week view |
 |---|---|
 | ![Dark mode with a newsletter; tracking image blocked](docs/screenshots/mail-dark.png) | ![Calendar week view](docs/screenshots/calendar.png) |
+| **To-Do** — My Day, Important, Planned, your own lists | **Calendar side panel** — month and upcoming events |
+| ![To-Do with a task open](docs/screenshots/tasks.png) | ![Mail with the calendar side panel](docs/screenshots/side-panel.png) |
 | **Folders** — ⋯ menu, subfolders, drag and drop | **Mail rules** — run on the server |
 | ![Folder menu with new subfolder, rename and delete](docs/screenshots/folders.png) | ![Mail rules list](docs/screenshots/rules.png) |
 | **Create a rule from any message** | **Composer** — signature and templates |
@@ -18,8 +20,10 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
 | ![Sign-in security dialog](docs/screenshots/security.png) | ![Address book](docs/screenshots/contacts.png) |
 | **Administration** — mailboxes and aliases of a domain | **Domains** — for the main administrator |
 | ![Administration: a domain's mailboxes](docs/screenshots/admin.png) | ![Administration: domains and their administrators (main administrator)](docs/screenshots/admin-domains.png) |
-| **View headers** — the raw header block | **Settings** — date, time and reading pane as dropdowns |
-| ![Raw message headers](docs/screenshots/headers.png) | ![Settings menu with dropdowns for date format, time format and reading pane](docs/screenshots/settings-menu.png) |
+| **View headers** — the raw header block | **Settings** — colour, date, time and language |
+| ![Raw message headers](docs/screenshots/headers.png) | ![Settings menu with the accent colours and dropdowns for date format, time format and language](docs/screenshots/settings-menu.png) |
+| **Filter and sort** — unread, flagged, to me, has files; sort by date, from, subject, size or flag | |
+| <img src="docs/screenshots/filter-menu.png" alt="Filter and sort menu" width="45%"> | |
 | **On a phone** | **Phone — folder drawer with ⋯ buttons** |
 | <img src="docs/screenshots/phone-list.png" alt="Message list on a phone" width="32%"> <img src="docs/screenshots/phone-message.png" alt="Reading a message on a phone" width="32%"> <img src="docs/screenshots/phone-move.png" alt="Moving a message on a phone" width="32%"> | <img src="docs/screenshots/phone-menu.png" alt="Folder drawer on a phone" width="60%"> |
 

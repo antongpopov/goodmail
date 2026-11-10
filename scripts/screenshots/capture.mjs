@@ -81,6 +81,36 @@ const prefs = { preview: true, pane: 'right', theme: 'light', calView: 'week', f
   await page.waitForTimeout(1200);
   await page.screenshot({ path: `${OUT}/mail-light.png` });
 
+  // filter and sort menu, calendar side panel
+  await page.click('button[aria-label="Filter and sort"]');
+  await page.waitForSelector('.filter-menu');
+  await page.waitForTimeout(300);
+  await page.locator('.filter-menu').screenshot({ path: `${OUT}/filter-menu.png` });
+  await page.keyboard.press('Escape');
+  await page.mouse.click(700, 880);
+  await page.click('button[aria-label="Calendar panel"]');
+  await page.waitForSelector('.side-ev');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${OUT}/side-panel.png` });
+  await page.click('button[aria-label="Calendar panel"]');
+
+  // to-do
+  const today = new Date().toISOString().slice(0, 10);
+  const list = await api(page, 'POST', '/api/tasks/lists', { name: 'Work' });
+  const task = (title, extra = {}) => api(page, 'POST', '/api/tasks', { today, task: { title, ...extra } });
+  await task('Send the Q4 figures to Priya', { myDay: today, important: true, due: today, steps: [{ text: 'Check the margin table', done: true }, { text: 'Export as PDF', done: false }] });
+  await task('Book the dentist', { myDay: today });
+  await task('Renew the domain', { list: list.id, due: today, repeat: 'YEARLY', important: true });
+  await task('Plan the offsite', { list: list.id, notes: 'Ideas: lake house, two nights, 12 people.' });
+  const done = await task('Reply to Jonas', { myDay: today });
+  await api(page, 'POST', '/api/tasks', { today, task: { ...done.task, done: true, doneAt: Date.now() } });
+  await page.click('button[title="To-Do"]');
+  await page.waitForSelector('.task');
+  await page.locator('.task-body', { hasText: 'Send the Q4 figures' }).click();
+  await page.waitForSelector('.task-detail');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${OUT}/tasks.png` });
+
   // calendar
   await page.click('button[title=Calendar]');
   await page.waitForSelector('.tg-ev');
