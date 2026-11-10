@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Temporarily unavailable</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f6cbd'/%3E%3Cpath d='M7 10h18v12H7z M7.5 10.5L16 17l8.5-6.5' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linejoin='round'/%3E%3C/svg%3E">
+<!-- Shown by Apache (ErrorDocument 502/503/504) while goodmail is restarting or the server is busy. Self-contained: no
+     other file of the site can be relied on at that moment. It retries by itself and opens the mailbox as soon as it answers. -->
+<style>
+ :root { --bg: #eef2f8; --card: #fff; --text: #242424; --text-2: #616161; --brand: #0f6cbd; --border: #e0e0e0; }
+ @media (prefers-color-scheme: dark) { :root { --bg: #141414; --card: #242424; --text: #f0f0f0; --text-2: #a8a8a8; --brand: #479ef5; --border: #3a3a3a; } }
+ * { box-sizing: border-box; }
+ body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; background: var(--bg); color: var(--text);
+   font-family: "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif; }
+ .card { width: 100%; max-width: 440px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 32px 28px; box-shadow: 0 8px 28px rgba(0,0,0,.12); text-align: center; }
+ .mark { width: 56px; height: 56px; margin: 0 auto 18px; border-radius: 14px; background: var(--brand); display: grid; place-items: center; }
+ .mark svg { width: 30px; height: 30px; }
+ h1 { margin: 0 0 10px; font-size: 22px; font-weight: 600; }
+ p { margin: 0 0 8px; color: var(--text-2); line-height: 1.5; font-size: 15px; }
+ .status { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 22px 0 18px; color: var(--text-2); font-size: 14px; }
+ .spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--brand); animation: s .8s linear infinite; }
+ @keyframes s { to { transform: rotate(360deg); } }
+ @media (prefers-reduced-motion: reduce) { .spin { animation: none; border-top-color: var(--border); } }
+ button { font: inherit; cursor: pointer; border: 0; border-radius: 6px; padding: 9px 22px; background: var(--brand); color: #fff; font-weight: 600; }
+ button:hover { filter: brightness(1.1); }
+ .small { font-size: 12.5px; margin-top: 18px; }
+</style>
+</head>
+<body>
+<main class="card" role="alert">
+ <div class="mark"><svg viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"><path d="M5 8h22v16H5z"/><path d="M5.5 8.5L16 17l10.5-8.5"/></svg></div>
+ <h1 id="h">We'll be right back</h1>
+ <p id="p1">The mail service is restarting or being updated. Your mail is safe.</p>
+ <p id="p2">This page tries again by itself and opens your mailbox as soon as it is ready.</p>
+ <div class="status"><span class="spin"></span><span id="st">Trying again…</span></div>
+ <button id="b" type="button">Try again now</button>
+ <p class="small" id="p3">If this keeps showing for more than a few minutes, please contact your administrator.</p>
+</main>
+<script>
+(function () {
+  var T = {
+    en: ["We'll be right back", "The mail service is restarting or being updated. Your mail is safe.", "This page tries again by itself and opens your mailbox as soon as it is ready.", "Trying again…", "Try again now", "If this keeps showing for more than a few minutes, please contact your administrator."],
+    da: ["Vi er tilbage om lidt", "Mailtjenesten genstarter eller bliver opdateret. Din mail er i sikkerhed.", "Siden prøver igen af sig selv og åbner din postkasse, så snart den er klar.", "Prøver igen…", "Prøv igen nu", "Hvis dette vises i mere end nogle få minutter, så kontakt din administrator."],
+    de: ["Gleich geht es weiter", "Der Maildienst wird neu gestartet oder aktualisiert. Ihre E-Mails sind sicher.", "Diese Seite versucht es selbst erneut und öffnet Ihr Postfach, sobald es bereit ist.", "Neuer Versuch …", "Jetzt erneut versuchen", "Wenn das länger als ein paar Minuten angezeigt wird, wenden Sie sich bitte an Ihren Administrator."],
+    sv: ["Vi är strax tillbaka", "Mejltjänsten startas om eller uppdateras. Din e-post är säker.", "Sidan försöker igen av sig själv och öppnar din brevlåda så snart den är klar.", "Försöker igen …", "Försök igen nu", "Om det här visas i mer än några minuter, kontakta din administratör."],
+    nb: ["Vi er straks tilbake", "E-posttjenesten startes på nytt eller oppdateres. E-posten din er trygg.", "Siden prøver på nytt av seg selv og åpner postboksen din så snart den er klar.", "Prøver igjen …", "Prøv igjen nå", "Hvis dette vises i mer enn noen få minutter, kontakt administratoren din."],
+    fr: ["Nous revenons tout de suite", "Le service de messagerie redémarre ou est en cours de mise à jour. Vos e-mails sont en sécurité.", "Cette page réessaie d’elle-même et ouvre votre boîte dès qu’elle est prête.", "Nouvelle tentative…", "Réessayer maintenant", "Si ce message reste affiché plus de quelques minutes, contactez votre administrateur."],
+    es: ["Volvemos enseguida", "El servicio de correo se está reiniciando o actualizando. Su correo está seguro.", "Esta página lo intenta de nuevo sola y abre su buzón en cuanto esté listo.", "Reintentando…", "Reintentar ahora", "Si esto sigue apareciendo más de unos minutos, contacte con su administrador."]
+  };
+  var code = ((navigator.language || 'en').slice(0, 2)).toLowerCase();
+  if (code === 'no') code = 'nb';
+  var t = T[code] || T.en;
+  document.documentElement.lang = T[code] ? code : 'en';
+  document.title = t[0];
+  ['h', 'p1', 'p2', 'st', 'b', 'p3'].forEach(function (id, i) { document.getElementById(id).textContent = t[i]; });
+  var busy = false;
+  function check() {
+    if (busy) return;
+    busy = true;
+    fetch('/api/config', { cache: 'no-store', credentials: 'same-origin' })
+      .then(function (r) { if (r.ok) location.reload(); })
+      .catch(function () {})
+      .then(function () { busy = false; });
+  }
+  document.getElementById('b').addEventListener('click', check);
+  setInterval(check, 5000);
+})();
+</script>
+</body>
+</html>
