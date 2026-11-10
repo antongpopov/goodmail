@@ -710,6 +710,7 @@ a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
 @media (max-width: 760px) { .list-head.phone-only { display: flex !important; } }
 
 .menu.menu-right { left: auto; right: 0; min-width: 190px; }
+.top-right .menu.menu-right { position: fixed; top: 46px; right: 8px; }
 .menu .menu-label { padding: 4px 10px; }
 .menu button.menu-on { color: var(--brand); font-weight: 600; }
 .menu.menu-right button { color: var(--text); }
