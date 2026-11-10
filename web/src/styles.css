@@ -162,8 +162,9 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .twisty { width: 16px; height: 16px; display: grid; place-items: center; flex: none; color: var(--text-2); }
 
 .list { flex: none; min-width: 0; display: flex; flex-direction: column; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
-.list-head { height: 44px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-bottom: 1px solid var(--border); }
-.tabs { display: flex; gap: 4px; }
+.list-head { position: relative; height: 44px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-bottom: 1px solid var(--border); }
+.tabs { display: flex; gap: 4px; flex: 1; }
+.tabs button { flex: 1; }
 .tabs button { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 30px; padding: 4px 8px; border-radius: 4px; color: var(--text-2); font-weight: 600; position: relative; }
 .tabs button.on { color: var(--brand); }
 .tabs button.on::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: -2px; height: 2px; border-radius: 1px; background: var(--brand); }
@@ -699,3 +700,4 @@ a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
   .tasks.detail-open .tasks-main { display: none; }
   .task-detail { width: 100%; border-radius: 0; box-shadow: none; }
 }
+.list-head .spinner { position: absolute; right: 14px; top: 14px; background: var(--surface); }
