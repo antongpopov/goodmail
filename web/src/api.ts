@@ -4,13 +4,15 @@ export interface Summary {
   uid: number; date: number; from: Addr; to: Addr[]; cc: Addr[]; subject: string; messageId: string;
   seen: boolean; flagged: boolean; answered: boolean; hasAttachments: boolean; size: number; snippet: string;
   spam?: { score: number; threshold: number; reject?: number; engine: string } | null;
+  /** Only in the combined views ("All inboxes"…): where the message really lives; `uid` is then a list-unique number and `rUid` the real UID. */
+  account?: string; folder?: string; rUid?: number;
 }
 export interface Attachment { part: string; filename: string; type: string; size: number; cid?: string; inline: boolean }
 export interface Message {
   uid: number; folder: string; subject: string; date: number; from: Addr; to: Addr[]; cc: Addr[]; replyTo: Addr[];
   messageId: string; references: string[]; html: string; text: string; flagged: boolean; listUnsubscribe: string;
   spam?: { score: number; threshold: number; reject?: number; engine: string } | null;
-  attachments: Attachment[]; account?: string; smime?: SmimeInfo;
+  attachments: Attachment[]; account?: string; smime?: SmimeInfo; realUid?: number;
 }
 export interface Contact { id: string; name: string; emails: string[]; phones: string[]; company: string; notes: string; updated: number }
 export interface RRule { freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'; interval: number; until?: number; count?: number; byday?: string[] }
@@ -69,6 +71,16 @@ async function call<T>(method: string, url: string, body?: unknown): Promise<T> 
 
 // The mailbox the mail calls below act on ("main" = the login mailbox). The UI shows one at a time.
 let cur = 'main';
+/** Run one API call for a given mailbox without changing which one the UI is showing (the call reads it synchronously). */
+export const withAcct = <T,>(id: string, fn: () => T): T => {
+  const old = cur;
+  cur = id;
+  try {
+    return fn();
+  } finally {
+    cur = old;
+  }
+};
 export const useAccount = (id: string) => {
   cur = id;
 };
@@ -135,10 +147,12 @@ export const api = {
   folders: (account = cur, fresh = false) => call<Folder[]>('GET', `/api/folders?${q({ account, ...(fresh ? { fresh: 1 } : {}) })}`),
   messages: (folder: string, page: number, filter = 'all') =>
     call<ListResult>('GET', `/api/messages?${q({ folder, page, account: cur, ...(filter !== 'all' ? { filter } : {}) })}`),
+  unified: (kind: string, page: number, filter: string, accounts: string[], text = '') =>
+    call<ListResult & { errors?: { account: string; error: string }[] }>('GET', `/api/unified?${q({ kind, page, accounts: accounts.join(','), ...(filter !== 'all' ? { filter } : {}), ...(text ? { q: text } : {}) })}`),
   search: (folder: string, text: string) => call<ListResult>('GET', `/api/search?${q({ folder, q: text, account: cur })}`),
   message: (folder: string, uid: number, peek = false, account = cur) =>
     call<Message>('GET', `/api/message?${q({ folder, uid, account, ...(peek ? { peek: 1 } : {}) })}`).then((m) => ({ ...m, account })),
-  headers: (folder: string, uid: number) => call<{ headers: string }>('GET', `/api/headers?${q({ folder, uid, account: cur })}`),
+  headers: (folder: string, uid: number, account = cur) => call<{ headers: string }>('GET', `/api/headers?${q({ folder, uid, account })}`),
   flags: (folder: string, uids: number[], add: string[], remove: string[] = []) =>
     call('POST', '/api/flags', { folder, uids, add, remove, account: cur }),
   move: (folder: string, uids: number[], to: string) => call<{ to: string }>('POST', '/api/move', { folder, uids, to, account: cur }),
@@ -171,6 +185,6 @@ export const api = {
       tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
     }),
   icsExportUrl: '/api/events/export',
-  attachmentUrl: (folder: string, uid: number, a: Attachment, inline = false) =>
-    `/api/attachment?${q({ folder, uid, part: a.part, name: a.filename, account: cur, ...(inline ? { inline: 1 } : {}) })}`,
+  attachmentUrl: (folder: string, uid: number, a: Attachment, inline = false, account = cur) =>
+    `/api/attachment?${q({ folder, uid, part: a.part, name: a.filename, account, ...(inline ? { inline: 1 } : {}) })}`,
 };

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { api, setUnauthorizedHandler, useAccount, currentAccount } from './api.ts';
+import { api, setUnauthorizedHandler, useAccount, currentAccount, withAcct } from './api.ts';
+import { UNI_ACCOUNT, UNI_DEFAULT, UNI_KINDS, UNI_USE, synthUid, uniKind, uniLabel } from './unified.ts';
+import type { UniPrefs } from './unified.ts';
 import type { MailAccount } from './api.ts';
 import { Dialogs } from './Dialogs.tsx';
 import type { Dialog } from './Dialogs.tsx';
@@ -9,7 +11,7 @@ import type { Act } from './actions.tsx';
 import { MoveDropdown, MoveSheet } from './MovePicker.tsx';
 import { LangPicker } from './LangPicker.tsx';
 import type { AdminMe, Features, Folder, Me, Message, Prefs, Summary } from './api.ts';
-import { Icon } from './icons.tsx';
+import { Icon, folderIcon } from './icons.tsx';
 import { Login } from './Login.tsx';
 import { Compose } from './Compose.tsx';
 import type { ComposeInit } from './Compose.tsx';
@@ -59,6 +61,11 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   const folders = allFolders[acct] ?? [];
   const setFolders = (fn: (f: Folder[]) => Folder[]) => setAllFolders((all) => ({ ...all, [acct]: fn(all[acct] ?? []) }));
   const [folder, setFolder] = useState(() => store('folder', 'INBOX'));
+  const [uni, setUniState] = useState<UniPrefs>(() => ({ ...UNI_DEFAULT, ...store<Partial<UniPrefs>>('unified', {}) }));
+  const setUni = (u: UniPrefs) => {
+    setUniState(u);
+    save('unified', u);
+  };
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   useEffect(() => {
@@ -119,6 +126,16 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   acctRef.current = acct;
   const accountsRef = useRef(accounts);
   accountsRef.current = accounts;
+  const usable = accounts.filter((a) => !a.locked);
+  const uniOn = usable.length > 1; // the combined views only make sense with several mailboxes
+  const uniIds = usable.filter((a) => uni.accounts == null || uni.accounts.includes(a.id)).map((a) => a.id);
+  const uniIdsRef = useRef(uniIds);
+  uniIdsRef.current = uniIds;
+  const isAll = acct === UNI_ACCOUNT;
+  useEffect(() => {
+    if (isAll && !uniOn) goto('main', 'INBOX');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAll, uniOn]);
   const loadFolders = useCallback(
     (fresh = false) =>
       Promise.all(
@@ -138,7 +155,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
       const list = await api.accounts();
       setAccounts(list);
       accountsRef.current = list;
-      if (!list.some((a) => a.id === acctRef.current && !a.locked)) goto('main', 'INBOX');
+      if (acctRef.current !== UNI_ACCOUNT && !list.some((a) => a.id === acctRef.current && !a.locked)) goto('main', 'INBOX');
       void loadFolders(true);
     } catch {
       /* keep what we have */
@@ -153,10 +170,11 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   const prefetch = useCallback(async (acctId: string, f: string, msgs: Summary[], id?: number) => {
     for (const m of msgs) {
       if (id !== undefined && id !== reqId.current) return; // user moved on
-      const k = msgKey(acctId, f, m.uid);
+      const [aid, fo, uid] = [m.account ?? acctId, m.folder ?? f, m.rUid ?? m.uid]; // combined views: where the message really is
+      const k = msgKey(aid, fo, uid);
       if (msgCache.has(k) || m.size > 600_000) continue;
       try {
-        rememberMsg(k, await api.message(f, m.uid, true, acctId));
+        rememberMsg(k, await api.message(fo, uid, true, aid));
       } catch {
         /* best effort */
       }
@@ -176,7 +194,12 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
       }
       if (!merge) setLoading(true);
       try {
-        const r = q ? await api.search(f, q) : await api.messages(f, p, flt);
+        let r;
+        if (acctId === UNI_ACCOUNT) {
+          const u = await api.unified(uniKind(f), p, flt, uniIdsRef.current, q);
+          if (u.errors?.length) flash(u.errors.map((e) => `${accountsRef.current.find((a) => a.id === e.account)?.email ?? e.account}: ${e.error}`).join('\n'));
+          r = { ...u, messages: u.messages.map((m) => ({ ...m, rUid: m.uid, uid: synthUid(accountsRef.current.findIndex((a) => a.id === m.account), m.uid) })) };
+        } else r = q ? await api.search(f, q) : await api.messages(f, p, flt);
         if (id !== reqId.current) return;
         if (p === 0) {
           listCache.set(lkey, { messages: r.messages, hasMore: r.hasMore });
@@ -262,24 +285,25 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
     async (m: Summary) => {
       setCompose(null);
       const acctId = currentAccount();
-      const k = msgKey(acctId, folder, m.uid);
+      const [aid, fo, ru] = [m.account ?? acctId, m.folder ?? folder, m.rUid ?? m.uid]; // combined views: where the message really is
+      const k = msgKey(aid, fo, ru);
       const hit = msgCache.get(k);
       const seq = ++openSeq.current;
       loadingUid.current = m.uid;
       if (!hit) setOpenLoading(true);
       try {
-        const full = hit ?? (await api.message(folder, m.uid));
+        const full = hit ?? (await api.message(fo, ru, false, aid));
         rememberMsg(k, full);
         if (seq !== openSeq.current) return; // a newer click, or the message was archived/deleted meanwhile
-        setOpen(full);
-        if (hit && !m.seen) void api.flags(folder, [m.uid], ['\\Seen']).catch(() => {});
+        setOpen(m.rUid ? { ...full, uid: m.uid, realUid: ru, folder: fo } : full);
+        if (hit && !m.seen) void withAcct(aid, () => api.flags(fo, [ru], ['\\Seen'])).catch(() => {});
         // warm up the next message in the list, the usual next click (or j)
         const idx = visibleRef.current.findIndex((x) => x.uid === m.uid);
         const next = visibleRef.current[idx + 1];
         if (next) void prefetch(acctId, folder, [next]);
         if (!m.seen) {
           patch([m.uid], { seen: true });
-          setFolders((fs) => fs.map((f) => (f.path === folder ? { ...f, unseen: Math.max(0, f.unseen - 1) } : f)));
+          setAllFolders((all) => ({ ...all, [aid]: (all[aid] ?? []).map((f) => (f.path === fo ? { ...f, unseen: Math.max(0, f.unseen - 1) } : f)) }));
         }
       } catch (err) {
         if (seq === openSeq.current) flash((err as Error).message);
@@ -362,11 +386,27 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
     }
   };
 
+  /** Which mailbox/folder the selected rows really belong to (in the combined views they come from several). */
+  const groupsOf = (uids: number[]) => {
+    const g = new Map<string, { aid: string; folder: string; uids: number[] }>();
+    for (const u of uids) {
+      const m = list.find((x) => x.uid === u);
+      const [aid, fo, ru] = [m?.account ?? acct, m?.folder ?? folder, m?.rUid ?? u];
+      const k = `${aid}\u0000${fo}`;
+      if (!g.has(k)) g.set(k, { aid, folder: fo, uids: [] });
+      g.get(k)!.uids.push(ru);
+    }
+    return [...g.values()];
+  };
+
   const doDelete = async (uids = targetUids()) => {
     if (!uids.length) return;
+    const groups = groupsOf(uids);
     removeFromList(uids);
     try {
-      const r = await api.remove(folder, uids);
+      let permanent = false;
+      for (const g of groups) permanent = (await withAcct(g.aid, () => api.remove(g.folder, g.uids))).permanent || permanent;
+      const r = { permanent };
       flash(r.permanent ? t('Deleted {n} permanently', { n: uids.length }) : t('Moved {n} to the trash', { n: uids.length }));
       void loadFolders(true);
     } catch (err) {
@@ -378,9 +418,12 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   const doMove = async (to: string, uids = targetUids()) => {
     if (!uids.length) return;
     setMoveOpen(false);
+    if (isAll && !['archive', 'junk', 'INBOX'].includes(to)) return flash(t('Open the mailbox itself to move mail to another folder'));
+    const groups = groupsOf(uids);
     removeFromList(uids);
     try {
-      const r = await api.move(folder, uids, to);
+      let r = { to };
+      for (const g of groups) r = await withAcct(g.aid, () => api.move(g.folder, g.uids, to));
       flash(t('Moved {n} to {folder}', { n: uids.length, folder: (() => { const f = folders.find((x) => x.path === r.to); return f ? folderLabel(f) : r.to; })() }));
       void loadFolders(true);
     } catch (err) {
@@ -392,10 +435,10 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   const setFlag = async (uids: number[], flag: '\\Seen' | '\\Flagged', on: boolean) => {
     if (!uids.length) return;
     patch(uids, flag === '\\Seen' ? { seen: on } : { flagged: on });
-    if (flag === '\\Flagged') for (const u of uids) { const c = msgCache.get(msgKey(currentAccount(), folder, u)); if (c) c.flagged = on; }
+    if (flag === '\\Flagged') for (const g of groupsOf(uids)) for (const u of g.uids) { const c = msgCache.get(msgKey(g.aid, g.folder, u)); if (c) c.flagged = on; }
     if (open && uids.includes(open.uid) && flag === '\\Flagged') setOpen({ ...open, flagged: on });
     try {
-      await api.flags(folder, uids, on ? [flag] : [], on ? [] : [flag]);
+      for (const g of groupsOf(uids)) await withAcct(g.aid, () => api.flags(g.folder, g.uids, on ? [flag] : [], on ? [] : [flag]));
       if (flag === '\\Seen') void loadFolders(true);
     } catch (err) {
       flash((err as Error).message);
@@ -472,10 +515,11 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
     return g;
   }, [visible]);
 
-  const isSentFolder = current?.specialUse === '\\Sent' || current?.specialUse === '\\Drafts';
+  const uniK = isAll ? uniKind(folder) : '';
+  const isSentFolder = isAll ? uniK === 'sent' || uniK === 'drafts' : current?.specialUse === '\\Sent' || current?.specialUse === '\\Drafts';
   // In the Junk folder the junk buttons turn into "Not junk" (move back to Inbox). On servers that learn from
   // Junk moves (rspamd/IMAPSieve) this is also what trains the spam filter.
-  const inJunk = current?.specialUse === '\\Junk';
+  const inJunk = isAll ? uniK === 'junk' : current?.specialUse === '\\Junk';
   const toggleJunk = (uids = targetUids()) => doMove(inJunk ? 'INBOX' : 'junk', uids);
   const has = targetUids().length > 0;
   /** Open the rule editor pre-filled from a message (who it came from, or who it went to in Sent/Drafts). */
@@ -488,7 +532,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   const act = {
     delete: { icon: 'trash', label: t('Delete'), run: () => void doDelete(), disabled: !has },
     archive: { icon: 'archive', label: t('Archive'), run: () => void doMove('archive'), disabled: !has },
-    move: { icon: 'move', label: t('Move'), run: () => setMoveOpen((v) => !v), disabled: !has },
+    move: { icon: 'move', label: t('Move'), run: () => setMoveOpen((v) => !v), disabled: !has || isAll },
     junk: {
       icon: inJunk ? 'inbox' : 'junk',
       label: inJunk ? t('Not junk') : t('Mark as junk'),
@@ -505,8 +549,8 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
     replyAll: { icon: 'replyAll', label: t('Reply all (a)'), run: () => setCompose({ mode: 'replyAll', source: m }) },
     forward: { icon: 'forward', label: t('Forward (f)'), run: () => setCompose({ mode: 'forward', source: m }) },
     junk: { ...act.junk, label: inJunk ? t('Not junk (!)') : t('Mark as junk (!)'), title: undefined },
-    headers: { icon: 'code', label: t('View headers'), run: () => setDialog({ kind: 'headers', folder, uid: m.uid }) },
-    rule: features?.rules && acct === 'main' ? { icon: 'folder', label: t('Create rule from this message…'), run: () => ruleFrom(m) } : undefined,
+    headers: { icon: 'code', label: t('View headers'), run: () => setDialog({ kind: 'headers', folder: m.realUid ? m.folder || folder : folder, uid: m.realUid ?? m.uid, account: m.account }) },
+    rule: features?.rules && (m.account ?? acct) === 'main' ? { icon: 'folder', label: t('Create rule from this message…'), run: () => ruleFrom(m) } : undefined,
     delete: act.delete,
     archive: act.archive,
     move: act.move,
@@ -610,6 +654,20 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
                   void moveFolder(src.aid, src.path, '');
                 }}
               >
+                {uniOn && (
+                  <div className="acct-tree">
+                    {UNI_KINDS.filter((k) => uni.entries.includes(k)).map((k) => {
+                      const unseen = k === 'inbox' ? uniIds.reduce((n, id) => n + ((allFolders[id] || []).find((f) => f.specialUse === '\\Inbox')?.unseen || 0), 0) : 0;
+                      return (
+                        <button key={k} className={`folder ${isAll && folder === `@${k}` ? 'active' : ''}`} onClick={() => openFolder(UNI_ACCOUNT, `@${k}`)}>
+                          <span className="twisty" />
+                          <Icon name={folderIcon(UNI_USE[k])} size={18} /> <span className="fname">{uniLabel(k)}</span>
+                          {unseen > 0 && <span className="count">{unseen}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
                 {accounts.map((a) => {
                   const k = `acct:${a.id}`;
                   const unseen = (allFolders[a.id] || []).find((f) => f.specialUse === '\\Inbox')?.unseen || 0;
@@ -853,7 +911,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
                         onFlag={setFlag}
                         onToggleJunk={toggleJunk}
                         onDelete={doDelete}
-                        onRule={features?.rules && acct === 'main' ? ruleFrom : undefined}
+                        onRule={features?.rules && (acct === 'main' || (isAll && m.account === 'main')) ? ruleFrom : undefined}
                       />
                     ))}
                   </div>
@@ -876,7 +934,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
                   onPrefsChange={mergePrefs}
                   init={compose}
                   accounts={accounts.filter((a) => !a.locked)}
-                  defaultFrom={compose.source?.account || acct}
+                  defaultFrom={compose.source?.account || (isAll ? 'main' : acct)}
                   contacts={contacts}
                   onClose={() => setCompose(null)}
                   onSent={() => {
@@ -888,9 +946,9 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
                 />
               ) : open ? (
                 <MessageView
-                  key={`${acct}-${folder}-${open.uid}`}
+                  key={`${open.account ?? acct}-${folder}-${open.uid}`}
                   msg={open}
-                  folder={folder}
+                  folder={open.realUid ? open.folder || folder : folder}
                   known={known}
                   acts={messageActs(open)}
                   onBack={closeMessage}
@@ -933,6 +991,8 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
         prefs={prefs}
         setPrefs={setPrefs}
         accounts={accounts}
+        uni={uni}
+        setUni={setUni}
         mainAcct={mainAcct}
         onAccountsChanged={() => void loadAccounts()}
         adminMe={adminMe}

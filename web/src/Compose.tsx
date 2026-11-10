@@ -193,7 +193,7 @@ export function Compose({ me, features, prefs, onManage, onPrefsChange, init, co
         text: editor.current?.innerText || '',
         inReplyTo: s && init.mode !== 'forward' ? s.messageId : undefined,
         references: s && init.mode !== 'forward' ? [...s.references, s.messageId].filter(Boolean) : undefined,
-        replyTo: s && init.mode !== 'forward' ? { folder: s.folder, uid: s.uid, account: s.account } : undefined,
+        replyTo: s && init.mode !== 'forward' ? { folder: s.folder, uid: s.realUid ?? s.uid, account: s.account } : undefined,
         attachments: atts.map(({ filename, type, content }) => ({ filename, type, content })),
         ...(smimeOn ? { sign, encrypt } : {}),
       });

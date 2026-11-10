@@ -4,13 +4,13 @@ import { Icon } from './icons.tsx';
 import { t } from './i18n.ts';
 
 /** The raw header block of a message (routing, authentication results, spam scores…). */
-export function HeadersDialog({ folder, uid, onClose, flash }: { folder: string; uid: number; onClose: () => void; flash: (m: string) => void }) {
+export function HeadersDialog({ folder, uid, account, onClose, flash }: { folder: string; uid: number; account?: string; onClose: () => void; flash: (m: string) => void }) {
   const [text, setText] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let live = true;
-    api.headers(folder, uid).then((r) => live && setText(r.headers), (e) => live && setError((e as Error).message));
+    api.headers(folder, uid, account).then((r) => live && setText(r.headers), (e) => live && setError((e as Error).message));
     return () => {
       live = false;
     };

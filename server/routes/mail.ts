@@ -10,6 +10,7 @@ import { messageCache, msgKey, dropMessages, patchFlag } from '../cache.ts';
 import { Router } from 'express';
 import { PAGE, conn, auth, wrap } from '../http.ts';
 import { withFolder, folders, NAME_FALLBACK, special, listMessages } from '../imap.ts';
+import type { Conn } from '../session.ts';
 
 const r = Router();
 
@@ -40,34 +41,41 @@ function NAMED_SPECIAL(name: string) {
   return '';
 }
 
+/** One page of a folder (or of its search / unread / flagged result), newest first. */
+async function listPage(cn: Conn, folder: string, page: number, filter: string, q = '') {
+  return withFolder(
+    cn,
+    folder,
+    async (c) => {
+      if (q) {
+        const uids = (await c.search({ or: [{ subject: q }, { from: q }, { to: q }, { body: q }] }, { uid: true })) || [];
+        const top = uids.sort((a, b) => b - a).slice(0, 200);
+        const messages = top.length ? await listMessages(cn, c, folder, top, true) : [];
+        return { total: uids.length, messages, hasMore: false };
+      }
+      if (filter === 'unread' || filter === 'flagged') {
+        // Ask the server for every match in the folder, not just the loaded page (big folders like Gmail's All Mail).
+        const uids = ((await c.search(filter === 'unread' ? { seen: false } : { flagged: true }, { uid: true })) || []).sort((a, b) => b - a);
+        const slice = uids.slice(page * PAGE, (page + 1) * PAGE);
+        const messages = slice.length ? await listMessages(cn, c, folder, slice, true) : [];
+        return { total: uids.length, messages, hasMore: uids.length > (page + 1) * PAGE };
+      }
+      const exists = c.mailbox ? c.mailbox.exists : 0;
+      const to = exists - page * PAGE;
+      if (to < 1) return { total: exists, messages: [], hasMore: false };
+      const from = Math.max(1, to - PAGE + 1);
+      const messages = await listMessages(cn, c, folder, `${from}:${to}`, false);
+      return { total: exists, messages, hasMore: from > 1 };
+    },
+    true,
+  );
+}
+
 r.get(
   '/api/messages',
   auth,
   wrap(async (req, res) => {
-    const folder = String(req.query.folder || 'INBOX');
-    const page = Math.max(0, Number(req.query.page || 0));
-    const filter = String(req.query.filter || '');
-    const out = await withFolder(
-      conn(req),
-      folder,
-      async (c) => {
-        if (filter === 'unread' || filter === 'flagged') {
-          // Ask the server for every match in the folder, not just the loaded page (big folders like Gmail's All Mail).
-          const uids = ((await c.search(filter === 'unread' ? { seen: false } : { flagged: true }, { uid: true })) || []).sort((a, b) => b - a);
-          const slice = uids.slice(page * PAGE, (page + 1) * PAGE);
-          const messages = slice.length ? await listMessages(conn(req), c, folder, slice, true) : [];
-          return { total: uids.length, messages, hasMore: uids.length > (page + 1) * PAGE };
-        }
-        const exists = c.mailbox ? c.mailbox.exists : 0;
-        const to = exists - page * PAGE;
-        if (to < 1) return { total: exists, messages: [], hasMore: false };
-        const from = Math.max(1, to - PAGE + 1);
-        const messages = await listMessages(conn(req), c, folder, `${from}:${to}`, false);
-        return { total: exists, messages, hasMore: from > 1 };
-      },
-      true,
-    );
-    res.json(out);
+    res.json(await listPage(conn(req), String(req.query.folder || 'INBOX'), Math.max(0, Number(req.query.page || 0)), String(req.query.filter || '')));
   }),
 );
 
@@ -75,21 +83,49 @@ r.get(
   '/api/search',
   auth,
   wrap(async (req, res) => {
-    const folder = String(req.query.folder || 'INBOX');
     const q = String(req.query.q || '').trim();
     if (!q) return res.json({ total: 0, messages: [], hasMore: false });
-    const out = await withFolder(
-      conn(req),
-      folder,
-      async (c) => {
-        const uids = (await c.search({ or: [{ subject: q }, { from: q }, { to: q }, { body: q }] }, { uid: true })) || [];
-        const top = uids.sort((a, b) => b - a).slice(0, 200);
-        const messages = top.length ? await listMessages(conn(req), c, folder, top, true) : [];
-        return { total: uids.length, messages, hasMore: false };
-      },
-      true,
+    res.json(await listPage(conn(req), String(req.query.folder || 'INBOX'), 0, '', q));
+  }),
+);
+
+/** "All inboxes", "All sent", …: the same kind of folder from several of the user's mailboxes, merged by date. */
+const UNIFIED: Record<string, string> = { inbox: 'INBOX', sent: '\\Sent', drafts: '\\Drafts', junk: '\\Junk', trash: '\\Trash', archive: '\\Archive' };
+const UNIFIED_TIMEOUT_MS = 20_000;
+r.get(
+  '/api/unified',
+  auth,
+  wrap(async (req, res) => {
+    const use = UNIFIED[String(req.query.kind || 'inbox')];
+    if (!use) return res.status(400).json({ error: 'unknown kind' });
+    const page = Math.max(0, Number(req.query.page || 0));
+    const filter = String(req.query.filter || '');
+    const q = String(req.query.q || '').trim();
+    const ids = [...new Set(String(req.query.accounts || 'main').split(',').filter(Boolean))].slice(0, 12);
+    const errors: { account: string; error: string }[] = [];
+    const parts = await Promise.all(
+      ids.map(async (id) => {
+        const cn = req.session.acct(id);
+        if (!cn) return null;
+        try {
+          const folder = use === 'INBOX' ? 'INBOX' : await special(cn, use);
+          if (!folder) return null;
+          const out = await Promise.race([
+            listPage(cn, folder, page, filter, q),
+            new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timed out')), UNIFIED_TIMEOUT_MS)),
+          ]);
+          return { id, folder, ...out };
+        } catch (err) {
+          errors.push({ account: id, error: (err as Error).message });
+          return null;
+        }
+      }),
     );
-    res.json(out);
+    const got = parts.filter((p): p is NonNullable<typeof p> => !!p);
+    const messages = got
+      .flatMap((p) => p.messages.map((m) => ({ ...m, account: p.id, folder: p.folder })))
+      .sort((a, b) => b.date - a.date);
+    res.json({ total: got.reduce((n, p) => n + p.total, 0), messages, hasMore: got.some((p) => p.hasMore), errors });
   }),
 );
 

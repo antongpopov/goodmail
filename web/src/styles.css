@@ -645,3 +645,7 @@ a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
 .banner.warn { background: color-mix(in srgb, #f7a600 18%, var(--surface)); color: var(--text); border: 1px solid color-mix(in srgb, #f7a600 55%, var(--border)); }
 .admin-dialog .tag.warn-tag { border-color: #d98e00; color: #a86a00; }
 .primary.danger-fill { background: var(--danger, #c4314b); }
+
+.uni-box { padding: 4px 16px 12px; }
+.uni-checks { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 6px 0 10px; }
+.uni-checks label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }

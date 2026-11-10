@@ -112,7 +112,7 @@ export function MessageView({ msg, folder, known, acts, onBack, onAddContact, on
         {msg.attachments.length > 0 && (
           <div className="attachments">
             {msg.attachments.map((a) => (
-              <a key={a.part} className="att" href={api.attachmentUrl(folder, msg.uid, a)} download={a.filename}>
+              <a key={a.part} className="att" href={api.attachmentUrl(folder, msg.realUid ?? msg.uid, a, false, msg.account)} download={a.filename}>
                 <Icon name="clip" size={16} />
                 <span className="att-name">{a.filename}</span>
                 <span className="muted">{humanSize(a.size)}</span>
@@ -121,7 +121,7 @@ export function MessageView({ msg, folder, known, acts, onBack, onAddContact, on
             {msg.attachments
               .filter((a) => a.type === 'text/calendar' || /\.ics$/i.test(a.filename))
               .map((a) => (
-                <button key={`cal-${a.part}`} className="att ics" onClick={() => onAddToCalendar(api.attachmentUrl(folder, msg.uid, a))}>
+                <button key={`cal-${a.part}`} className="att ics" onClick={() => onAddToCalendar(api.attachmentUrl(folder, msg.realUid ?? msg.uid, a, false, msg.account))}>
                   <Icon name="calendar" size={16} /> {t('Add to calendar')}
                 </button>
               ))}

@@ -3,6 +3,8 @@ import { api } from './api.ts';
 import type { MailAccount } from './api.ts';
 import { Icon } from './icons.tsx';
 import { t } from './i18n.ts';
+import { UNI_KINDS, uniLabel } from './unified.ts';
+import type { UniPrefs } from './unified.ts';
 
 interface Preset {
   id: string;
@@ -51,7 +53,7 @@ export const PRESETS: Preset[] = [
   { id: 'imap', label: t('Other (IMAP)'), imapHost: '', imapPort: 993, smtpHost: '', smtpPort: 587, help: t('Enter your provider’s IMAP and SMTP servers. Many providers require an app password.') },
 ];
 
-export function AccountsDialog({ accounts, onClose, onChanged, onMainName, flash }: { accounts: MailAccount[]; onClose: () => void; onChanged: () => void; onMainName: (name: string) => void; flash: (m: string) => void }) {
+export function AccountsDialog({ accounts, uni, setUni, onClose, onChanged, onMainName, flash }: { accounts: MailAccount[]; uni: UniPrefs; setUni: (u: UniPrefs) => void; onClose: () => void; onChanged: () => void; onMainName: (name: string) => void; flash: (m: string) => void }) {
   const [adding, setAdding] = useState<Preset | null>(null);
   const [form, setForm] = useState({ email: '', password: '', name: '', imapHost: '', imapPort: 993, smtpHost: '', smtpPort: 587, user: '' });
   const [busy, setBusy] = useState(false);
@@ -190,6 +192,45 @@ export function AccountsDialog({ accounts, onClose, onChanged, onMainName, flash
                 </div>
               ))}
             </div>
+            {accounts.filter((a) => !a.locked).length > 1 && (
+              <div className="uni-box">
+                <div className="menu-label">{t('Combined mailboxes')}</div>
+                <p className="muted small">{t('Show one list for all your mailboxes at the top of the folder list.')}</p>
+                <div className="uni-checks">
+                  {UNI_KINDS.map((k) => (
+                    <label key={k}>
+                      <input
+                        type="checkbox"
+                        checked={uni.entries.includes(k)}
+                        onChange={(e) => setUni({ ...uni, entries: e.target.checked ? [...uni.entries, k] : uni.entries.filter((x) => x !== k) })}
+                      />{' '}
+                      {uniLabel(k)}
+                    </label>
+                  ))}
+                </div>
+                <p className="muted small">{t('Include these mailboxes:')}</p>
+                <div className="uni-checks">
+                  {accounts.filter((a) => !a.locked).map((a) => {
+                    const on = uni.accounts == null || uni.accounts.includes(a.id);
+                    return (
+                      <label key={a.id}>
+                        <input
+                          type="checkbox"
+                          checked={on}
+                          onChange={(e) => {
+                            const all = accounts.filter((x) => !x.locked).map((x) => x.id);
+                            const cur = uni.accounts ?? all;
+                            const next = e.target.checked ? [...cur, a.id] : cur.filter((x) => x !== a.id);
+                            if (next.length) setUni({ ...uni, accounts: next.length === all.length ? null : next });
+                          }}
+                        />{' '}
+                        {a.email}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             {locked.length > 0 && (
               <form
                 className="unlock-box"

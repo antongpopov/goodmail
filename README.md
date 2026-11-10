@@ -45,6 +45,11 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
   mailbox (app passwords); one folder tree per account and a From picker. Passwords are stored encrypted with a
   key derived from the server key *and* the user's login password. User-entered servers must be public hosts on
   standard mail ports (no access to the server's private network).
+- **Combined mailboxes**: with two or more accounts the folder list starts with **All inboxes** and **All sent** (and, if you
+  switch them on, All drafts / junk / trash / archive): one list, newest first, from all your mailboxes. Every row knows its own
+  mailbox, so reading, replying (From is the mailbox the message came to), flagging, archiving and deleting act on the right
+  one. Unread / Flagged filters and search work across them. ⚙ → Accounts chooses which combined folders show and which
+  mailboxes they include (per device). Paging is approximate: each mailbox contributes its newest page, merged by date
 - **Address book**: per-account contacts, vCard + CSV import/export (Apple, Google, Outlook, Thunderbird),
   duplicate merge by email, "add sender" button, To/Cc autocomplete
 - **Calendar**: Outlook-style day / work week / week / month views, mini month, recurring events,
