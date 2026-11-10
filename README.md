@@ -29,6 +29,8 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
 
 <sub>Screenshots use invented demo data — see [scripts/screenshots](scripts/screenshots).</sub>
 
+More documentation: the [wiki](https://github.com/antongpopov/goodmail/wiki).
+
 - Sign in with just an e-mail address and password — a config file maps the domain to its servers
 - "Keep me signed in" for a year (a sealed cookie: no session database, and your mail password is never stored in readable form; per-user
   extras such as contacts, calendar and preferences are small JSON files — see "Data and backups")
@@ -37,7 +39,7 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
   (a deleted folder, subfolders included, goes to Trash; one already in Trash is deleted for good and the dialog says
   so). Inbox, Sent, Drafts, Trash, Junk and Archive can't be renamed, moved or deleted
 - Message list grouped Today / Yesterday / This week…, preview lines, unread/flag/attachment markers,
-  hover actions, Ctrl/Shift multi-select, infinite scroll, All / Unread / Flagged filters
+  hover actions, Ctrl/Shift multi-select, infinite scroll, a Filter and sort menu
 - Server-side search (subject, from, to, body)
 - Reading pane renders HTML mail sanitized (DOMPurify) in a script-less sandboxed iframe with its own CSP;
   **remote images and trackers are blocked** until you allow them once or per sender
