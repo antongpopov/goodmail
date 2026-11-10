@@ -138,6 +138,22 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   acctRef.current = acct;
   const accountsRef = useRef(accounts);
   accountsRef.current = accounts;
+  // The order of the accounts in the folder list (drag an account to change it); kept per device.
+  const [acctOrder, setAcctOrder] = useState<string[]>(() => store('acctOrder', []));
+  const orderedAccounts = useMemo(() => {
+    const rank = (id: string) => { const i = acctOrder.indexOf(id); return i < 0 ? acctOrder.length + accounts.findIndex((a) => a.id === id) : i; };
+    return accounts.slice().sort((a, b) => rank(a.id) - rank(b.id));
+  }, [accounts, acctOrder]);
+  const [dragAcct, setDragAcct] = useState<string | null>(null);
+  const [overAcct, setOverAcct] = useState<{ id: string; after: boolean } | null>(null);
+  const moveAccount = (id: string, target: string, after: boolean) => {
+    if (id === target) return;
+    const ids = orderedAccounts.map((a) => a.id).filter((x) => x !== id);
+    const at = ids.indexOf(target) + (after ? 1 : 0);
+    ids.splice(at, 0, id);
+    setAcctOrder(ids);
+    save('acctOrder', ids);
+  };
   const usable = accounts.filter((a) => !a.locked);
   const uniOn = usable.length > 1; // the combined views only make sense with several mailboxes
   const uniIds = usable.filter((a) => uni.accounts == null || uni.accounts.includes(a.id)).map((a) => a.id);
@@ -714,13 +730,37 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
                     })}
                   </div>
                 )}
-                {accounts.map((a) => {
+                {orderedAccounts.map((a) => {
                   const k = `acct:${a.id}`;
                   const unseen = (allFolders[a.id] || []).find((f) => f.specialUse === '\\Inbox')?.unseen || 0;
                   return (
-                    <div key={a.id} className="acct-tree">
+                    <div
+                      key={a.id}
+                      className={`acct-tree ${overAcct?.id === a.id && dragAcct !== a.id ? (overAcct.after ? 'drop-after' : 'drop-before') : ''}`}
+                      onDragOver={(e) => {
+                        if (!dragAcct || !e.dataTransfer.types.includes('application/x-gm-account')) return;
+                        e.preventDefault();
+                        const r = e.currentTarget.getBoundingClientRect();
+                        const after = e.clientY > r.top + r.height / 2;
+                        if (overAcct?.id !== a.id || overAcct.after !== after) setOverAcct({ id: a.id, after });
+                      }}
+                      onDrop={(e) => {
+                        if (!dragAcct) return;
+                        e.preventDefault();
+                        moveAccount(dragAcct, a.id, !!overAcct?.after);
+                        setDragAcct(null);
+                        setOverAcct(null);
+                      }}
+                    >
                       <button
                         className="account"
+                        draggable={accounts.length > 1}
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('application/x-gm-account', a.id);
+                          e.dataTransfer.effectAllowed = 'move';
+                          setDragAcct(a.id);
+                        }}
+                        onDragEnd={() => { setDragAcct(null); setOverAcct(null); }}
                         onClick={() => {
                           const c = { ...collapsed, [k]: !collapsed[k] };
                           setCollapsed(c);

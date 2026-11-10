@@ -28,7 +28,7 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
 - Sign in with just an e-mail address and password — a config file maps the domain to its servers
 - "Keep me signed in" for a year (a sealed cookie: no session database, and your mail password is never stored in readable form; per-user
   extras such as contacts, calendar and preferences are small JSON files — see "Data and backups")
-- Folder tree with unread counts. Drag messages onto a folder to move them; drag **folders** onto another folder (or
+- Folder tree with unread counts; drag an account header to put the accounts in the order you like (kept per device). Drag messages onto a folder to move them; drag **folders** onto another folder (or
   onto empty space for the top level) to re-arrange them. ⋯ / right-click on a folder: new subfolder, rename, delete
   (a deleted folder, subfolders included, goes to Trash; one already in Trash is deleted for good and the dialog says
   so). Inbox, Sent, Drafts, Trash, Junk and Archive can't be renamed, moved or deleted
