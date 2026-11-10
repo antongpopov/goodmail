@@ -757,7 +757,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
                     </div>
                   );
                 })}
-                <button className="folder add" onClick={() => setDialog({ kind: 'accounts' })}>
+                <button className="folder add phone-only" onClick={() => setDialog({ kind: 'accounts' })}>
                   <span className="twisty" />
                   <Icon name="people" size={16} /> <span className="fname">{t('Add account')}</span>
                 </button>
