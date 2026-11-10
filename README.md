@@ -3,29 +3,29 @@
 A webmail client that talks plain IMAP + SMTP to **any** mail server, with an Outlook-style
 three-pane UI: folder tree, date-grouped message list with previews, reading pane, inline composer.
 
-![goodmail inbox with reading pane](docs/screenshots/mail-light.png)
+![goodmail inbox with reading pane](docs/screenshots/mail-light.png?v=20261110)
 
 | Dark mode, remote images blocked | Calendar — week view |
 |---|---|
-| ![Dark mode with a newsletter; tracking image blocked](docs/screenshots/mail-dark.png) | ![Calendar week view](docs/screenshots/calendar.png) |
+| ![Dark mode with a newsletter; tracking image blocked](docs/screenshots/mail-dark.png?v=20261110) | ![Calendar week view](docs/screenshots/calendar.png?v=20261110) |
 | **To-Do** — My Day, Important, Planned, your own lists | **Calendar side panel** — month and upcoming events |
-| ![To-Do with a task open](docs/screenshots/tasks.png) | ![Mail with the calendar side panel](docs/screenshots/side-panel.png) |
+| ![To-Do with a task open](docs/screenshots/tasks.png?v=20261110) | ![Mail with the calendar side panel](docs/screenshots/side-panel.png?v=20261110) |
 | **Folders** — ⋯ menu, subfolders, drag and drop | **Mail rules** — run on the server |
-| ![Folder menu with new subfolder, rename and delete](docs/screenshots/folders.png) | ![Mail rules list](docs/screenshots/rules.png) |
+| ![Folder menu with new subfolder, rename and delete](docs/screenshots/folders.png?v=20261110) | ![Mail rules list](docs/screenshots/rules.png?v=20261110) |
 | **Create a rule from any message** | **Composer** — signature and templates |
-| ![Rule editor pre-filled from a message](docs/screenshots/rule-editor.png) | ![Composer with signature and the templates menu](docs/screenshots/compose.png) |
+| ![Rule editor pre-filled from a message](docs/screenshots/rule-editor.png?v=20261110) | ![Composer with signature and the templates menu](docs/screenshots/compose.png?v=20261110) |
 | **S/MIME** — signed and encrypted message | **S/MIME settings** — certificate, CA, correspondents |
-| ![An encrypted, signed and verified message](docs/screenshots/smime.png) | ![Secure mail settings](docs/screenshots/smime-settings.png) |
+| ![An encrypted, signed and verified message](docs/screenshots/smime.png?v=20261110) | ![Secure mail settings](docs/screenshots/smime-settings.png?v=20261110) |
 | **Sign-in security** — password, 2-step, passkeys, reset address | **Address book** |
-| ![Sign-in security dialog](docs/screenshots/security.png) | ![Address book](docs/screenshots/contacts.png) |
+| ![Sign-in security dialog](docs/screenshots/security.png?v=20261110) | ![Address book](docs/screenshots/contacts.png?v=20261110) |
 | **Administration** — mailboxes and aliases of a domain | **Domains** — for the main administrator |
-| ![Administration: a domain's mailboxes](docs/screenshots/admin.png) | ![Administration: domains and their administrators (main administrator)](docs/screenshots/admin-domains.png) |
+| ![Administration: a domain's mailboxes](docs/screenshots/admin.png?v=20261110) | ![Administration: domains and their administrators (main administrator)](docs/screenshots/admin-domains.png?v=20261110) |
 | **View headers** — the raw header block | **Settings** — colour, date, time and language |
-| ![Raw message headers](docs/screenshots/headers.png) | ![Settings menu with the accent colours and dropdowns for date format, time format and language](docs/screenshots/settings-menu.png) |
+| ![Raw message headers](docs/screenshots/headers.png?v=20261110) | ![Settings menu with the accent colours and dropdowns for date format, time format and language](docs/screenshots/settings-menu.png?v=20261110) |
 | **Filter and sort** — unread, flagged, to me, has files; sort by date, from, subject, size or flag | |
-| <img src="docs/screenshots/filter-menu.png" alt="Filter and sort menu" width="45%"> | |
+| <img src="docs/screenshots/filter-menu.png?v=20261110" alt="Filter and sort menu" width="45%"> | |
 | **On a phone** | **Phone — folder drawer with ⋯ buttons** |
-| <img src="docs/screenshots/phone-list.png" alt="Message list on a phone" width="32%"> <img src="docs/screenshots/phone-message.png" alt="Reading a message on a phone" width="32%"> <img src="docs/screenshots/phone-move.png" alt="Moving a message on a phone" width="32%"> | <img src="docs/screenshots/phone-menu.png" alt="Folder drawer on a phone" width="60%"> |
+| <img src="docs/screenshots/phone-list.png?v=20261110" alt="Message list on a phone" width="32%"> <img src="docs/screenshots/phone-message.png?v=20261110" alt="Reading a message on a phone" width="32%"> <img src="docs/screenshots/phone-move.png?v=20261110" alt="Moving a message on a phone" width="32%"> | <img src="docs/screenshots/phone-menu.png?v=20261110" alt="Folder drawer on a phone" width="60%"> |
 
 <sub>Screenshots use invented demo data — see [scripts/screenshots](scripts/screenshots).</sub>
 
