@@ -56,6 +56,9 @@ function prepare(html: string, text: string, remote: boolean) {
 <base target="_blank">
 <style>
   html,body{margin:0;padding:0;background:#fff;color:#242424}
+  /* Some senders (TikTok) set html{height:100% !important}: then <html> is as tall as the frame, our height measurement feeds back
+     on itself and the frame grows a few pixels per frame. :root outranks their plain selector, so the real content height is measured. */
+  html:root,html:root body{height:auto !important;min-height:0 !important;max-height:none !important}
   body{font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding:4px 2px 16px;overflow-wrap:break-word}
   img{max-width:100%;height:auto}
   table{max-width:100%}
