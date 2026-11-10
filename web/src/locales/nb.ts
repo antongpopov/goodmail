@@ -470,4 +470,5 @@ export const nb: Dict = {
   'Tomorrow': 'I morgen',
   'Lists': 'Lister',
   'Next: {x}': 'Neste: {x}',
+  Attachments: 'Vedlegg',
 };

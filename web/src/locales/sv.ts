@@ -470,4 +470,5 @@ export const sv: Dict = {
   'Tomorrow': 'Imorgon',
   'Lists': 'Listor',
   'Next: {x}': 'Nästa: {x}',
+  Attachments: 'Bilagor',
 };

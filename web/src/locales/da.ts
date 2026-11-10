@@ -482,4 +482,5 @@ export const da: Dict = {
   'Tomorrow': 'I morgen',
   'Lists': 'Lister',
   'Next: {x}': 'Næste: {x}',
+  Attachments: 'Vedhæftninger',
 };

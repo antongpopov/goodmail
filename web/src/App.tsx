@@ -99,7 +99,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   const [compose, setCompose] = useState<ComposeInit | null>(null);
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState('');
-  const [filter, setFilter] = useState<'all' | 'unread' | 'flagged'>('all');
+  const [filter, setFilter] = useState<'all' | 'unread' | 'flagged' | 'attachments'>('all');
   const filterRef = useRef(filter);
   filterRef.current = filter;
   const { collapsed, setCollapsed, foldersHidden, setFoldersHidden, pane, setPane, preview, setPreview, listH, setListH, folderW, setFolderW, listW, setListW } = useLayout();
@@ -265,7 +265,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   const trees = useMemo(() => Object.fromEntries(Object.entries(allFolders).map(([id, f]) => [id, buildTree(f)])), [allFolders]);
   const visibleRef = useRef<Summary[]>([]);
   const visible = useMemo(
-    () => list.filter((m) => (filter === 'unread' ? !m.seen : filter === 'flagged' ? m.flagged : true)),
+    () => list.filter((m) => (filter === 'unread' ? !m.seen : filter === 'flagged' ? m.flagged : filter === 'attachments' ? m.hasAttachments : true)),
     [list, filter],
   );
   visibleRef.current = visible;
@@ -505,6 +505,18 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
       void loadList(folder, p, '');
     }
   };
+
+  // A filtered page can come back short (e.g. Attachments): keep loading while the list is too short to scroll.
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el || loading || !hasMore || searching || view !== 'mail') return;
+    if (el.scrollHeight - 400 <= el.clientHeight) {
+      const p = page + 1;
+      setPage(p);
+      setLoading(true);
+      void loadList(folder, p, '');
+    }
+  }, [list, hasMore, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const groups = useMemo(() => {
     const g: { label: string; items: Summary[] }[] = [];
@@ -891,9 +903,9 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
             >
               <div className="list-head">
                 <div className="tabs">
-                  {(['all', 'unread', 'flagged'] as const).map((f) => (
+                  {(['all', 'unread', 'flagged', 'attachments'] as const).map((f) => (
                     <button key={f} className={filter === f ? 'on' : ''} onClick={() => setFilter(f)}>
-                      {f === 'all' ? (searching ? t('Results') : current ? folderLabel(current) : t('All')) : f === 'unread' ? t('Unread') : t('Flagged')}
+                      {f === 'all' ? (searching ? t('Results') : current ? folderLabel(current) : t('All')) : f === 'unread' ? t('Unread') : f === 'flagged' ? t('Flagged') : t('Attachments')}
                     </button>
                   ))}
                 </div>

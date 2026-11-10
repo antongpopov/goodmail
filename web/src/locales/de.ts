@@ -470,4 +470,5 @@ export const de: Dict = {
   'Tomorrow': 'Morgen',
   'Lists': 'Listen',
   'Next: {x}': 'Nächste: {x}',
+  Attachments: 'Anhänge',
 };

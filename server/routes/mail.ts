@@ -60,6 +60,15 @@ async function listPage(cn: Conn, folder: string, page: number, filter: string, 
         const messages = slice.length ? await listMessages(cn, c, folder, slice, true) : [];
         return { total: uids.length, messages, hasMore: uids.length > (page + 1) * PAGE };
       }
+      if (filter === 'attachments') {
+        // IMAP cannot search "has an attachment": take messages whose top-level type can carry one, then keep the real ones
+        // (listMessages looks at the body structure). A page may therefore come back with fewer than PAGE messages.
+        const types = ['multipart/mixed', 'multipart/signed', 'multipart/related', 'application/'];
+        const uids = ((await c.search({ or: types.map((v) => ({ header: { 'Content-Type': v } })) }, { uid: true })) || []).sort((a, b) => b - a);
+        const slice = uids.slice(page * PAGE, (page + 1) * PAGE);
+        const messages = slice.length ? (await listMessages(cn, c, folder, slice, true)).filter((m) => m.hasAttachments) : [];
+        return { total: uids.length, messages, hasMore: uids.length > (page + 1) * PAGE };
+      }
       const exists = c.mailbox ? c.mailbox.exists : 0;
       const to = exists - page * PAGE;
       if (to < 1) return { total: exists, messages: [], hasMore: false };
