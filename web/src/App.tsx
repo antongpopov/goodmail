@@ -635,26 +635,30 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
                         </button>
                       )}
                       {!collapsed[k] && (trees[a.id] || []).map((n) => renderFolder(n, a.id))}
+                      {!collapsed[k] && !a.locked && (
+                        <button
+                          className="folder add"
+                          onClick={async () => {
+                            const name = prompt(t('New folder name') + ' (' + a.email + ')');
+                            if (!name || !name.trim()) return;
+                            try {
+                              useAccount(a.id);
+                              await api.createFolder(name.trim());
+                              void loadFolders(true);
+                            } catch (err) {
+                              flash((err as Error).message);
+                            } finally {
+                              useAccount(acct);
+                            }
+                          }}
+                        >
+                          <span className="twisty" />
+                          <Icon name="plus" size={16} /> <span className="fname">{t('Create new folder')}</span>
+                        </button>
+                      )}
                     </div>
                   );
                 })}
-                <button
-                  className="folder add"
-                  onClick={async () => {
-                    const name = prompt(t('New folder name'));
-                    if (name) {
-                      try {
-                        await api.createFolder(name);
-                        void loadFolders(true);
-                      } catch (err) {
-                        flash((err as Error).message);
-                      }
-                    }
-                  }}
-                >
-                  <span className="twisty" />
-                  <Icon name="plus" size={16} /> <span className="fname">{t('Create new folder')}</span>
-                </button>
                 <button className="folder add" onClick={() => setDialog({ kind: 'accounts' })}>
                   <span className="twisty" />
                   <Icon name="people" size={16} /> <span className="fname">{t('Add account')}</span>
