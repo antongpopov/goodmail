@@ -9,6 +9,7 @@ import { MessageView } from './MessageView.tsx';
 import { TextBtn } from './actions.tsx';
 import type { Act } from './actions.tsx';
 import { MoveDropdown, MoveSheet } from './MovePicker.tsx';
+import type { MoveTargets } from './MovePicker.tsx';
 import { LangPicker } from './LangPicker.tsx';
 import type { AdminMe, Features, Folder, Me, Message, Prefs, Summary } from './api.ts';
 import { Icon, folderIcon } from './icons.tsx';
@@ -302,6 +303,12 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   }, [folder, page, searching, loadFolders, loadList]);
 
   const current = folders.find((f) => f.path === folder);
+  const moveTargets: MoveTargets = {
+    accounts: usable.map((a) => ({ id: a.id, email: a.email, folders: allFolders[a.id] || [] })).sort((x, y) => Number(y.id === acct) - Number(x.id === acct)),
+    curAccount: isAll ? '' : acct,
+    curFolder: isAll ? '' : folder,
+    onPick: (aid, path, move) => void doTransfer(aid, path, move),
+  };
   const trees = useMemo(() => Object.fromEntries(Object.entries(allFolders).map(([id, f]) => [id, buildTree(f)])), [allFolders]);
   const visibleRef = useRef<Summary[]>([]);
   const visible = useMemo(() => {
@@ -465,6 +472,32 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
     }
   };
 
+  /** Move or copy to a folder of this or another mailbox (the Move menu). */
+  const doTransfer = async (toAcct: string, to: string, move: boolean, uids = targetUids()) => {
+    if (!uids.length) return;
+    setMoveOpen(false);
+    const groups = groupsOf(uids);
+    if (move) removeFromList(uids);
+    const label = (() => {
+      const f = (allFolders[toAcct] || []).find((x) => x.path === to);
+      const name = f ? folderLabel(f) : to;
+      return usable.length > 1 ? `${name} (${accounts.find((a) => a.id === toAcct)?.email ?? toAcct})` : name;
+    })();
+    try {
+      let n = 0;
+      for (const g of groups) {
+        if (move && g.aid === toAcct) await withAcct(g.aid, () => api.move(g.folder, g.uids, to));
+        else if (g.aid === toAcct && g.folder === to) continue;
+        else await withAcct(g.aid, () => api.transfer(g.folder, g.uids, toAcct, to, move));
+        n += g.uids.length;
+      }
+      if (n) flash(t(move ? 'Moved {n} to {folder}' : 'Copied {n} to {folder}', { n, folder: label }));
+      void loadFolders(true);
+    } catch (err) {
+      flash((err as Error).message);
+      void loadList(folder, 0, searching);
+    }
+  };
   const doMove = async (to: string, uids = targetUids()) => {
     if (!uids.length) return;
     setMoveOpen(false);
@@ -594,7 +627,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   const act = {
     delete: { icon: 'trash', label: t('Delete'), run: () => void doDelete(), disabled: !has },
     archive: { icon: 'archive', label: t('Archive'), run: () => void doMove('archive'), disabled: !has },
-    move: { icon: 'move', label: t('Move'), run: () => setMoveOpen((v) => !v), disabled: !has || isAll },
+    move: { icon: 'move', label: t('Move'), run: () => setMoveOpen((v) => !v), disabled: !has },
     junk: {
       icon: inJunk ? 'inbox' : 'junk',
       label: inJunk ? t('Not junk') : t('Mark as junk'),
@@ -964,7 +997,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
             <TextBtn a={act.archive} />
             <div className="menu-wrap">
               <TextBtn a={act.move} />
-              {moveOpen && <MoveDropdown folders={folders} current={folder} onPick={(p) => void doMove(p)} onClose={() => setMoveOpen(false)} />}
+              {moveOpen && <MoveDropdown targets={moveTargets} onClose={() => setMoveOpen(false)} />}
             </div>
             <TextBtn a={act.junk} />
             <TextBtn a={act.flag} />
@@ -1087,7 +1120,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
           <Icon name="compose" /> {t('New mail')}
         </button>
       )}
-      {moveOpen && <MoveSheet folders={folders} current={folder} onPick={(p) => void doMove(p)} onClose={() => setMoveOpen(false)} />}
+      {moveOpen && <MoveSheet targets={moveTargets} onClose={() => setMoveOpen(false)} />}
       <Dialogs
         dialog={dialog}
         close={() => setDialog(null)}

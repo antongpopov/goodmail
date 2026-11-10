@@ -38,6 +38,7 @@ More documentation: the [wiki](https://github.com/antongpopov/goodmail/wiki).
   onto empty space for the top level) to re-arrange them. ⋯ / right-click on a folder: new subfolder, rename, delete
   (a deleted folder, subfolders included, goes to Trash; one already in Trash is deleted for good and the dialog says
   so). Inbox, Sent, Drafts, Trash, Junk and Archive can't be renamed, moved or deleted
+- **Move or copy between mailboxes**: the Move menu lists the folders of all your accounts with a Move / Copy switch; the message is read from one mailbox and added to the other (flags and date kept; a moved original goes to the source Trash)
 - Message list grouped Today / Yesterday / This week…, preview lines, unread/flag/attachment markers,
   hover actions, Ctrl/Shift multi-select, infinite scroll, a Filter and sort menu
 - Server-side search (subject, from, to, body)

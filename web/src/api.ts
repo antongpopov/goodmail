@@ -166,6 +166,8 @@ export const api = {
   flags: (folder: string, uids: number[], add: string[], remove: string[] = []) =>
     call('POST', '/api/flags', { folder, uids, add, remove, account: cur }),
   move: (folder: string, uids: number[], to: string) => call<{ to: string }>('POST', '/api/move', { folder, uids, to, account: cur }),
+  transfer: (folder: string, uids: number[], toAccount: string, to: string, move: boolean) =>
+    call<{ count: number }>('POST', '/api/transfer', { folder, uids, toAccount, to, move, account: cur }),
   remove: (folder: string, uids: number[]) => call<{ permanent: boolean }>('POST', '/api/delete', { folder, uids, account: cur }),
   createFolder: (name: string) => call('POST', '/api/folder', { name, account: cur }),
   renameFolder: (path: string, name: string) => call<{ path: string }>('POST', '/api/folder/rename', { path, name, account: cur }),

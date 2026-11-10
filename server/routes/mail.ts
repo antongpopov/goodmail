@@ -362,6 +362,49 @@ r.post(
   }),
 );
 
+/** Move or copy messages to a folder of the same or ANOTHER of the user's mailboxes (the full message is read and appended there). */
+const TRANSFER_MAX = 60 * 1024 * 1024;
+r.post(
+  '/api/transfer',
+  auth,
+  wrap(async (req, res) => {
+    const { folder = 'INBOX', to, toAccount = 'main', move = false } = req.body || {};
+    if (!to || typeof to !== 'string') return res.status(400).json({ error: 'destination folder required' });
+    const src = conn(req);
+    const dst = req.session.acct(String(toAccount));
+    if (!dst) return res.status(404).json({ error: 'That account is no longer available — refresh the page' });
+    const uids = uidList(req.body);
+    const nums = uids.split(',').map(Number);
+    const same = dst === src;
+    if (same && to === folder) return res.status(400).json({ error: 'The message is already in that folder' });
+    let count = 0;
+    await withFolder(src, folder, async (c) => {
+      if (same) {
+        await c.messageCopy(uids, to, { uid: true });
+        count = nums.length;
+      } else {
+        const dc = await dst.imap();
+        for (const uid of nums) {
+          const m = await c.fetchOne(String(uid), { source: true, flags: true, internalDate: true, size: true }, { uid: true });
+          if (!m || !m.source) continue;
+          if ((m.size ?? m.source.length) > TRANSFER_MAX) throw Object.assign(new Error('That message is too large to transfer'), { status: 413 });
+          const keep = [...(m.flags || [])].filter((f) => ['\\Seen', '\\Flagged', '\\Answered', '\\Draft'].includes(f));
+          await dc.append(to, m.source, keep, m.internalDate instanceof Date ? m.internalDate : undefined);
+          count++;
+        }
+      }
+      if (move && !same && count) {
+        // The copy is in place: take the originals out of the source the way "Delete" does (to Trash when there is one).
+        const trash = await special(src, '\\Trash');
+        if (trash && trash !== folder) await c.messageMove(uids, trash, { uid: true });
+        else await c.messageDelete(uids, { uid: true });
+      }
+    });
+    if (move && !same) dropMessages(src.account.email, folder, nums);
+    res.json({ ok: true, count });
+  }),
+);
+
 r.post(
   '/api/delete',
   auth,

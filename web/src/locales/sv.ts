@@ -476,4 +476,5 @@ export const sv: Dict = {
   'Filter and sort': 'Filtrera och sortera', 'Filter by': 'Filtrera efter', 'Sort by': 'Sortera efter', 'To me': 'Till mig', 'Has files': 'Har filer', 'Date': 'Datum', 'Size': 'Storlek', 'Oldest on top': 'Äldst överst', 'Newest on top': 'Nyast överst', 'A to Z': 'A till Ö', 'Z to A': 'Ö till A', 'Smallest on top': 'Minst överst', 'Largest on top': 'Störst överst', 'Flagged last': 'Flaggade sist', 'Flagged on top': 'Flaggade överst',
   'Calendar panel': 'Kalenderpanel', 'Open calendar': 'Öppna kalendern', 'No upcoming events': 'Inga kommande händelser',
   'Pick any color': 'Välj valfri färg',
+  'Copied {n} to {folder}': '{n} kopierade till {folder}', 'Move or copy': 'Flytta eller kopiera',
 };

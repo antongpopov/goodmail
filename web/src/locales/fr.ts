@@ -476,4 +476,5 @@ export const fr: Dict = {
   'Filter and sort': 'Filtrer et trier', 'Filter by': 'Filtrer par', 'Sort by': 'Trier par', 'To me': 'À moi', 'Has files': 'Avec fichiers', 'Date': 'Date', 'Size': 'Taille', 'Oldest on top': 'Plus anciens en haut', 'Newest on top': 'Plus récents en haut', 'A to Z': 'A à Z', 'Z to A': 'Z à A', 'Smallest on top': 'Plus petits en haut', 'Largest on top': 'Plus gros en haut', 'Flagged last': 'Marqués en dernier', 'Flagged on top': 'Marqués en haut',
   'Calendar panel': 'Panneau du calendrier', 'Open calendar': 'Ouvrir le calendrier', 'No upcoming events': 'Aucun événement à venir',
   'Pick any color': 'Choisir n’importe quelle couleur',
+  'Copied {n} to {folder}': '{n} copié(s) vers {folder}', 'Move or copy': 'Déplacer ou copier',
 };

@@ -767,3 +767,9 @@ a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
 .accent-dot.custom { position: relative; cursor: pointer; background: conic-gradient(#e03131, #f08c00, #f2e600, #2f9e44, #1098ad, #1c7ed6, #7048e8, #c2255c, #e03131); }
 .accent-dot.custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
 .menu .accent-dot.custom { display: block; }
+
+.menu.move-menu { min-width: 260px; max-height: 70vh; }
+.move-mode { display: flex; gap: 2px; margin: 2px 4px 6px; padding: 2px; border-radius: 6px; background: var(--hover); }
+.menu .move-mode button, .sheet .move-mode button { flex: 1; width: auto; justify-content: center; height: 28px; padding: 0; border-radius: 4px; font-size: 13px; color: var(--text-2); }
+.menu .move-mode button.on, .sheet .move-mode button.on { background: var(--surface); color: var(--brand); font-weight: 600; box-shadow: var(--shadow); }
+.move-acct { padding: 8px 10px 2px; }

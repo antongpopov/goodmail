@@ -488,4 +488,5 @@ export const da: Dict = {
   'Filter and sort': 'Filtrer og sortér', 'Filter by': 'Filtrer efter', 'Sort by': 'Sortér efter', 'To me': 'Til mig', 'Has files': 'Har filer', 'Date': 'Dato', 'Size': 'Størrelse', 'Oldest on top': 'Ældste øverst', 'Newest on top': 'Nyeste øverst', 'A to Z': 'A til Å', 'Z to A': 'Å til A', 'Smallest on top': 'Mindste øverst', 'Largest on top': 'Største øverst', 'Flagged last': 'Markerede sidst', 'Flagged on top': 'Markerede øverst',
   'Calendar panel': 'Kalenderpanel', 'Open calendar': 'Åbn kalender', 'No upcoming events': 'Ingen kommende aftaler',
   'Pick any color': 'Vælg en vilkårlig farve',
+  'Copied {n} to {folder}': '{n} kopieret til {folder}', 'Move or copy': 'Flyt eller kopiér',
 };

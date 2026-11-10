@@ -476,4 +476,5 @@ export const de: Dict = {
   'Filter and sort': 'Filtern und sortieren', 'Filter by': 'Filtern nach', 'Sort by': 'Sortieren nach', 'To me': 'An mich', 'Has files': 'Mit Dateien', 'Date': 'Datum', 'Size': 'Größe', 'Oldest on top': 'Älteste oben', 'Newest on top': 'Neueste oben', 'A to Z': 'A bis Z', 'Z to A': 'Z bis A', 'Smallest on top': 'Kleinste oben', 'Largest on top': 'Größte oben', 'Flagged last': 'Markierte zuletzt', 'Flagged on top': 'Markierte oben',
   'Calendar panel': 'Kalenderleiste', 'Open calendar': 'Kalender öffnen', 'No upcoming events': 'Keine anstehenden Termine',
   'Pick any color': 'Beliebige Farbe wählen',
+  'Copied {n} to {folder}': '{n} nach {folder} kopiert', 'Move or copy': 'Verschieben oder kopieren',
 };
