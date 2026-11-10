@@ -919,11 +919,14 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
             >
               <div className="list-head">
                 <div className="tabs">
-                  {(['all', 'unread', 'flagged', 'attachments'] as const).map((f) => (
-                    <button key={f} className={filter === f ? 'on' : ''} onClick={() => setFilter(f)}>
-                      {f === 'all' ? (searching ? t('Results') : current ? folderLabel(current) : t('All')) : f === 'unread' ? t('Unread') : f === 'flagged' ? t('Flagged') : t('Attachments')}
-                    </button>
-                  ))}
+                  {(['all', 'unread', 'flagged', 'attachments'] as const).map((f) => {
+                    const label = f === 'all' ? (searching ? t('Results') : current ? folderLabel(current) : t('All')) : f === 'unread' ? t('Unread') : f === 'flagged' ? t('Flagged') : t('Attachments');
+                    return (
+                      <button key={f} className={filter === f ? 'on' : ''} title={label} aria-label={label} aria-pressed={filter === f} onClick={() => setFilter(f)}>
+                        <Icon name={f === 'all' ? (searching ? 'search' : 'mail') : f === 'unread' ? 'unread' : f === 'flagged' ? 'flag' : 'clip'} size={18} />
+                      </button>
+                    );
+                  })}
                 </div>
                 {loading && <span className="spinner" />}
               </div>
