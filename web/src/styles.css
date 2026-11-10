@@ -724,3 +724,6 @@ a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
 .menu-gap { width: 18px; flex: none; }
 .menu-sep { height: 1px; background: var(--border); margin: 4px 6px; }
 @media (max-width: 760px) { .list-head.phone-only { justify-content: flex-end; height: 38px; } }
+
+.list-head { justify-content: flex-end; height: 38px; }
+.list-head .spinner { right: auto; left: 14px; top: 11px; }
