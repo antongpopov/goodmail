@@ -46,6 +46,8 @@ const P: Record<string, string> = {
   clock: 'M10 3a7 7 0 1 0 .01 0 M10 6v4l2.5 2',
   pin: 'M10 17s5-4.6 5-9a5 5 0 0 0-10 0c0 4.4 5 9 5 9z M10 6.5a1.5 1.5 0 1 0 .01 0',
   pane: 'M3 4.5h14v11H3z M11 4.5v11',
+  paneBelow: 'M3 4.5h14v11H3z M3 10.5h14',
+  paneHidden: 'M3 4.5h14v11H3z M3 7.5h14',
   circle: 'M10 3.5a6.5 6.5 0 1 0 .01 0',
   checkCircle: 'M10 3.5a6.5 6.5 0 1 0 .01 0 M6.8 10.2l2.2 2.2 4.2-4.6',
   tasks: 'M4 5.5l1.5 1.5L8 4.5 M10.5 5.5H17 M4 11l1.5 1.5L8 10 M10.5 11H17 M4 16.5h.5 M10.5 16.5H17',

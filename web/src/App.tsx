@@ -27,7 +27,7 @@ import { Avatar } from './Avatar.tsx';
 import { Splitter } from './Splitter.tsx';
 import { MessageItem } from './MessageItem.tsx';
 import { FolderRow } from './FolderRow.tsx';
-import { ViewMenu, Appearance } from './ViewMenu.tsx';
+import { ViewMenu, PaneMenu, Appearance } from './ViewMenu.tsx';
 import { useAddressBook, useLayout, usePhoneWidth, useToast } from './hooks.ts';
 
 const POLL_MS = 30_000;
@@ -864,8 +864,9 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
           )}
         </form>
         <div className="top-right">
+          {view === 'mail' && <span className="desk-only"><PaneMenu pane={pane} onPane={setPane} /></span>}
           <span className="desk-only">
-            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} oldestFirst={oldestFirst} onOrder={setOldestFirst} onAccounts={() => setDialog({ kind: 'accounts' })} onSecurity={() => setDialog({ kind: 'security' })} onRules={features?.rules ? () => setDialog({ kind: 'rules' }) : undefined} onSmime={features?.smime ? () => setDialog({ kind: 'smime' }) : undefined} onSignatures={() => setDialog({ kind: 'signatures', tab: 'signature' })} onAdmin={adminMe?.admin ? () => setDialog({ kind: 'admin' }) : undefined} source={source} />
+            <ViewMenu preview={preview} onPreview={setPreview} oldestFirst={oldestFirst} onOrder={setOldestFirst} onAccounts={() => setDialog({ kind: 'accounts' })} onSecurity={() => setDialog({ kind: 'security' })} onRules={features?.rules ? () => setDialog({ kind: 'rules' }) : undefined} onSmime={features?.smime ? () => setDialog({ kind: 'smime' }) : undefined} onSignatures={() => setDialog({ kind: 'signatures', tab: 'signature' })} onAdmin={adminMe?.admin ? () => setDialog({ kind: 'admin' }) : undefined} source={source} />
           </span>
           <span className="who" title={`${me.email} · ${me.imapHost}`}>
             <Avatar addr={{ name: me.name, address: me.email }} size={28} />

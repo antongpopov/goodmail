@@ -19,6 +19,38 @@ const PANES: { id: PaneMode; label: string }[] = [
   { id: 'hidden', label: t('Hidden') },
 ];
 
+const PANE_ICON: Record<PaneMode, string> = { right: 'pane', below: 'paneBelow', hidden: 'paneHidden' };
+
+/** Top-bar button for the reading pane position (right / below / hidden). */
+export function PaneMenu({ pane, onPane }: { pane: PaneMode; onPane: (p: PaneMode) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+  return (
+    <div className="menu-wrap" ref={ref}>
+      <button className="top-btn" title={t('Reading pane')} aria-label={t('Reading pane')} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+        <Icon name={PANE_ICON[pane]} />
+      </button>
+      {open && (
+        <div className="menu menu-right" role="menu">
+          <div className="menu-label">{t('Reading pane')}</div>
+          {PANES.map((p) => (
+            <button key={p.id} role="menuitemradio" aria-checked={pane === p.id} className={pane === p.id ? 'menu-on' : ''} onClick={() => { onPane(p.id); setOpen(false); }}>
+              <Icon name={PANE_ICON[p.id]} size={18} /> <span className="grow">{p.label}</span>
+              {pane === p.id && <Icon name="check" size={16} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** A dropdown that looks like the language picker. */
 function Choice({ label, value, options, onChange }: { label: string; value: string; options: [string, string][]; onChange: (id: string) => void }) {
   return (
@@ -35,7 +67,7 @@ function Choice({ label, value, options, onChange }: { label: string; value: str
   );
 }
 
-export function ViewMenu({ pane, onPane, preview, onPreview, oldestFirst, onOrder, onAccounts, onSecurity, onRules, onSmime, onSignatures, onAdmin, source }: { pane: PaneMode; onPane: (p: PaneMode) => void; preview: boolean; onPreview: (v: boolean) => void; oldestFirst: boolean; onOrder: (v: boolean) => void; onAccounts: () => void; onSecurity: () => void; onRules?: () => void; onSmime?: () => void; onSignatures?: () => void; onAdmin?: () => void; source: string }) {
+export function ViewMenu({ preview, onPreview, oldestFirst, onOrder, onAccounts, onSecurity, onRules, onSmime, onSignatures, onAdmin, source }: { preview: boolean; onPreview: (v: boolean) => void; oldestFirst: boolean; onOrder: (v: boolean) => void; onAccounts: () => void; onSecurity: () => void; onRules?: () => void; onSmime?: () => void; onSignatures?: () => void; onAdmin?: () => void; source: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -67,8 +99,6 @@ export function ViewMenu({ pane, onPane, preview, onPreview, oldestFirst, onOrde
             options={[['auto', t('Automatic')], ['12', t('12-hour')], ['24', t('24-hour')]]}
             onChange={(id) => id !== clockPref() && setClock(id as Clock)}
           />
-          <div className="menu-label">{t('Reading pane')}</div>
-          <Choice label={t('Reading pane')} value={pane} options={PANES.map((p) => [p.id, p.label])} onChange={(id) => onPane(id as PaneMode)} />
           <div className="menu-label">{t('Message list')}</div>
           <Choice label={t('Sort order')} value={oldestFirst ? 'asc' : 'desc'} options={[['desc', t('Newest first')], ['asc', t('Oldest first')]]} onChange={(id) => onOrder(id === 'asc')} />
           <label className="menu-check">
