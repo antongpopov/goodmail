@@ -22,33 +22,14 @@ const PANES: { id: PaneMode; label: string }[] = [
 
 const PANE_ICON: Record<PaneMode, string> = { right: 'pane', below: 'paneBelow', hidden: 'paneHidden' };
 
-/** Top-bar button for the reading pane position (right / below / hidden). */
+/** Top-bar button for the reading pane position: every click moves on to the next one (right, below, hidden). */
 export function PaneMenu({ pane, onPane }: { pane: PaneMode; onPane: (p: PaneMode) => void }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [open]);
+  const next = PANES[(PANES.findIndex((p) => p.id === pane) + 1) % PANES.length];
+  const label = PANES.find((p) => p.id === pane)?.label || '';
   return (
-    <div className="menu-wrap" ref={ref}>
-      <button className="top-btn" title={t('Reading pane')} aria-label={t('Reading pane')} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-        <Icon name={PANE_ICON[pane]} />
-      </button>
-      {open && (
-        <div className="menu menu-right" role="menu">
-          <div className="menu-label">{t('Reading pane')}</div>
-          {PANES.map((p) => (
-            <button key={p.id} role="menuitemradio" aria-checked={pane === p.id} className={pane === p.id ? 'menu-on' : ''} onClick={() => { onPane(p.id); setOpen(false); }}>
-              <Icon name={PANE_ICON[p.id]} size={18} /> <span className="grow">{p.label}</span>
-              {pane === p.id && <Icon name="check" size={16} />}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    <button className="top-btn" title={`${t('Reading pane')}: ${label}`} aria-label={`${t('Reading pane')}: ${label}`} onClick={() => onPane(next.id)}>
+      <Icon name={PANE_ICON[pane]} />
+    </button>
   );
 }
 
@@ -101,35 +82,24 @@ export function FilterMenu({ filter, onFilter, sortKey, onSortKey, oldestFirst, 
   );
 }
 
-/** Top-bar button for light / dark / auto. */
+/** Top-bar button for the theme: every click moves on to the next one (auto, light, dark). */
 export function ThemeMenu() {
   const [theme, setThemeState] = useState<Theme>(loadTheme);
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [open]);
-  const cur = THEMES.find((x) => x.id === theme) || THEMES[0];
+  const idx = Math.max(0, THEMES.findIndex((x) => x.id === theme));
+  const cur = THEMES[idx];
+  const next = THEMES[(idx + 1) % THEMES.length];
   return (
-    <div className="menu-wrap" ref={ref}>
-      <button className="top-btn" title={t('Theme')} aria-label={t('Theme')} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-        <Icon name={cur.icon} />
-      </button>
-      {open && (
-        <div className="menu menu-right" role="menu">
-          <div className="menu-label">{t('Theme')}</div>
-          {THEMES.map((th) => (
-            <button key={th.id} role="menuitemradio" aria-checked={th.id === theme} className={th.id === theme ? 'menu-on' : ''} onClick={() => { setThemeState(th.id); setTheme(th.id); setOpen(false); }}>
-              <Icon name={th.icon} size={18} /> <span className="grow">{th.label}</span>
-              {th.id === theme && <Icon name="check" size={16} />}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    <button
+      className="top-btn"
+      title={`${t('Theme')}: ${cur.label}`}
+      aria-label={`${t('Theme')}: ${cur.label}`}
+      onClick={() => {
+        setThemeState(next.id);
+        setTheme(next.id);
+      }}
+    >
+      <Icon name={cur.icon} />
+    </button>
   );
 }
 
