@@ -16,7 +16,7 @@ interface Props {
   selectedUids: Set<number>; // for drag: dragging a selected row drags the whole selection
   preview: boolean;
   inJunk: boolean;
-  compact?: boolean; // Gmail-style single line: sender | subject – preview | time (used for the "below" reading pane)
+  compact?: boolean; // Gmail-style single line: sender | subject – preview | time (used when the reading pane is below or hidden)
   onSelect: (m: Summary, e: React.MouseEvent) => void;
   onFlag: (uids: number[], flag: '\\Seen' | '\\Flagged', on: boolean) => void;
   onToggleJunk: (uids: number[]) => void;

@@ -960,7 +960,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
                         selected={selected.has(m.uid)}
                         selectedUids={selected}
                         preview={preview}
-                        compact={pane === 'below' && !phoneWidth}
+                        compact={pane !== 'right' && !phoneWidth}
                         inJunk={inJunk}
                         onSelect={select}
                         onFlag={setFlag}
