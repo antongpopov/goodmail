@@ -167,26 +167,32 @@ export function ViewMenu({ preview, onPreview, onAccounts, onSecurity, onRules, 
         <div className="menu view-menu">
           <div className="menu-label">{t('Color')}</div>
           <Appearance modes={false} />
-          <div className="menu-label">{t('Date format')}</div>
-          <Choice
-            label={t('Date format')}
-            value={dateFmtPref()}
-            options={[['auto', t('Automatic')], ['dmy', 'DD/MM/YYYY'], ['mdy', 'MM/DD/YYYY'], ['ymd', 'YYYY-MM-DD']]}
-            onChange={(id) => id !== dateFmtPref() && setDateFmt(id as DateFmt)}
-          />
-          <div className="menu-label">{t('Time format')}</div>
-          <Choice
-            label={t('Time format')}
-            value={clockPref()}
-            options={[['auto', t('Automatic')], ['12', t('12-hour')], ['24', t('24-hour')]]}
-            onChange={(id) => id !== clockPref() && setClock(id as Clock)}
-          />
+          <div className="menu-row">
+            <div className="menu-label">{t('Date format')}</div>
+            <Choice
+              label={t('Date format')}
+              value={dateFmtPref()}
+              options={[['auto', t('Automatic')], ['dmy', 'DD/MM/YYYY'], ['mdy', 'MM/DD/YYYY'], ['ymd', 'YYYY-MM-DD']]}
+              onChange={(id) => id !== dateFmtPref() && setDateFmt(id as DateFmt)}
+            />
+          </div>
+          <div className="menu-row">
+            <div className="menu-label">{t('Time format')}</div>
+            <Choice
+              label={t('Time format')}
+              value={clockPref()}
+              options={[['auto', t('Automatic')], ['12', t('12-hour')], ['24', t('24-hour')]]}
+              onChange={(id) => id !== clockPref() && setClock(id as Clock)}
+            />
+          </div>
           <div className="menu-label">{t('Message list')}</div>
           <label className="menu-check">
             <input type="checkbox" checked={preview} onChange={(e) => onPreview(e.target.checked)} /> {t('Show preview text')}
           </label>
-          <div className="menu-label">{t('Language')}</div>
-          <LangPicker className="wide" />
+          <div className="menu-row">
+            <div className="menu-label">{t('Language')}</div>
+            <LangPicker className="wide" />
+          </div>
           <div className="menu-label">{t('Mail accounts')}</div>
           <button className="menu-btn" onClick={() => { setOpen(false); onAccounts(); }}>
             <Icon name="people" size={16} /> {t('Manage accounts…')}
