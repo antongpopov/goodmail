@@ -193,7 +193,6 @@ export function ViewMenu({ preview, onPreview, onAccounts, onSecurity, onRules, 
             <div className="menu-label">{t('Language')}</div>
             <LangPicker className="wide" />
           </div>
-          <div className="menu-label">{t('Mail accounts')}</div>
           <button className="menu-btn" onClick={() => { setOpen(false); onAccounts(); }}>
             <Icon name="people" size={16} /> {t('Manage accounts…')}
           </button>
