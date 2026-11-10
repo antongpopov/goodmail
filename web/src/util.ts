@@ -10,7 +10,11 @@ export function avatarColor(seed: string) {
 }
 
 export function initials(a: Addr) {
-  const src = (a.name || a.address.split('@')[0] || '?').replace(/[^\p{L}\p{N} .-]/gu, '').trim();
+  // "Konstantin Zlatanov (via Google Drive)" is Konstantin Zlatanov: drop a parenthesised or "via …" tail first.
+  const named = (a.name || '').replace(/\([^)]*\)/g, ' ').replace(/\s+via\s+.*$/i, '').trim();
+  const src = (named || a.address.split('@')[0] || '?').replace(/[^\p{L}\p{N} .-]/gu, '').trim();
+  // A one-word name with a dot looks like a host name ("apopov.de"): the first two letters of its first part, not "A" + "D".
+  if (named && !/\s/.test(src) && src.includes('.')) return src.split('.')[0].slice(0, 2).toUpperCase() || '?';
   const parts = src.split(/[\s.\-_]+/).filter(Boolean);
   if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   return (parts[0] || '?').slice(0, 1).toUpperCase();

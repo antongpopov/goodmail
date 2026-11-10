@@ -41,3 +41,12 @@ test('avatarColor is stable and case-insensitive', () => {
   assert.equal(avatarColor('Bo@X.com'), avatarColor('bo@x.com'));
   assert.match(avatarColor('anything'), /^#[0-9a-f]{6}$/i);
 });
+
+test('initials: first + last word, ignoring "(via …)" tails, and host-like names', async () => {
+  const { initials } = await import('../web/src/util.ts');
+  assert.equal(initials({ name: 'Konstantin Zlatanov (via Google Drive)', address: 'x@google.com' }), 'KZ');
+  assert.equal(initials({ name: 'Anna Berg via Dropbox', address: 'x@dropbox.com' }), 'AB');
+  assert.equal(initials({ name: 'apopov.de', address: 'a@apopov.de' }), 'AP');
+  assert.equal(initials({ name: '', address: 'john.smith@example.com' }), 'JS');
+  assert.equal(initials({ name: 'GitHub', address: 'n@github.com' }), 'G');
+});
