@@ -919,8 +919,8 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
             <TextBtn a={act.read} />
             <TextBtn a={act.sync} />
             <span className="grow" />
-            {loading && pane !== 'right' && <span className="spinner" />}
-            {pane !== 'right' && <div className="tool-tabs">{filterTabs}</div>}
+            {loading && <span className="spinner" />}
+            <div className="tool-tabs">{filterTabs}</div>
           </div>
 
           <div className={`panes pane-${pane}`}>
@@ -935,7 +935,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
                 ...(pane === 'hidden' && readingActive ? { display: 'none' } : {}),
               }}
             >
-              <div className={`list-head ${pane === 'right' ? '' : 'phone-only'}`}>
+              <div className="list-head phone-only">
                 {filterTabs}
                 {loading && <span className="spinner" />}
               </div>
