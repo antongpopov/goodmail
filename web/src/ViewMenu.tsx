@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './icons.tsx';
 import { LangPicker } from './LangPicker.tsx';
-import { loadTheme, setTheme, ACCENTS, loadAccent, setAccent } from './theme.ts';
+import { loadTheme, setTheme, ACCENTS, loadAccent, setAccent, isCustomAccent } from './theme.ts';
 import type { Theme } from './theme.ts';
 import { t, clockPref, setClock, dateFmtPref, setDateFmt } from './i18n.ts';
 import type { Clock, DateFmt } from './i18n.ts';
@@ -240,6 +240,17 @@ function AccentPicker() {
           }}
         />
       ))}
+      <label className={`accent-dot custom ${isCustomAccent(accent) ? 'on' : ''}`} style={isCustomAccent(accent) ? { background: accent } : undefined} title={t('Pick any color')}>
+        <span className="sr-only">{t('Pick any color')}</span>
+        <input
+          type="color"
+          value={isCustomAccent(accent) ? accent : '#0f6cbd'}
+          onChange={(e) => {
+            set(e.target.value);
+            setAccent(e.target.value);
+          }}
+        />
+      </label>
     </div>
   );
 }

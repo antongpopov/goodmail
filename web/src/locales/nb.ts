@@ -475,4 +475,5 @@ export const nb: Dict = {
   'Forward mail to': 'Videresend e-post til', 'one address per line, empty = no forwarding': 'én adresse per linje, tom = ingen videresending', 'Also keep a copy in this mailbox': 'Behold også en kopi i denne postboksen', 'Forwards only to': 'Videresender bare til',
   'Filter and sort': 'Filtrer og sorter', 'Filter by': 'Filtrer etter', 'Sort by': 'Sorter etter', 'To me': 'Til meg', 'Has files': 'Har filer', 'Date': 'Dato', 'Size': 'Størrelse', 'Oldest on top': 'Eldste øverst', 'Newest on top': 'Nyeste øverst', 'A to Z': 'A til Å', 'Z to A': 'Å til A', 'Smallest on top': 'Minste øverst', 'Largest on top': 'Største øverst', 'Flagged last': 'Flaggede sist', 'Flagged on top': 'Flaggede øverst',
   'Calendar panel': 'Kalenderpanel', 'Open calendar': 'Åpne kalender', 'No upcoming events': 'Ingen kommende avtaler',
+  'Pick any color': 'Velg hvilken som helst farge',
 };

@@ -762,3 +762,8 @@ a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
 .acct-tree.drop-before { box-shadow: inset 0 2px 0 var(--brand); }
 .acct-tree.drop-after { box-shadow: inset 0 -2px 0 var(--brand); }
 .account[draggable="true"] { cursor: grab; }
+
+/* free colour: a rainbow dot that opens the browser's colour picker */
+.accent-dot.custom { position: relative; cursor: pointer; background: conic-gradient(#e03131, #f08c00, #f2e600, #2f9e44, #1098ad, #1c7ed6, #7048e8, #c2255c, #e03131); }
+.accent-dot.custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
+.menu .accent-dot.custom { display: block; }

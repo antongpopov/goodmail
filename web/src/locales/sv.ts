@@ -475,4 +475,5 @@ export const sv: Dict = {
   'Forward mail to': 'Vidarebefordra e-post till', 'one address per line, empty = no forwarding': 'en adress per rad, tom = ingen vidarebefordran', 'Also keep a copy in this mailbox': 'Behåll även en kopia i den här brevlådan', 'Forwards only to': 'Vidarebefordrar bara till',
   'Filter and sort': 'Filtrera och sortera', 'Filter by': 'Filtrera efter', 'Sort by': 'Sortera efter', 'To me': 'Till mig', 'Has files': 'Har filer', 'Date': 'Datum', 'Size': 'Storlek', 'Oldest on top': 'Äldst överst', 'Newest on top': 'Nyast överst', 'A to Z': 'A till Ö', 'Z to A': 'Ö till A', 'Smallest on top': 'Minst överst', 'Largest on top': 'Störst överst', 'Flagged last': 'Flaggade sist', 'Flagged on top': 'Flaggade överst',
   'Calendar panel': 'Kalenderpanel', 'Open calendar': 'Öppna kalendern', 'No upcoming events': 'Inga kommande händelser',
+  'Pick any color': 'Välj valfri färg',
 };
