@@ -185,14 +185,13 @@ export function ViewMenu({ preview, onPreview, onAccounts, onSecurity, onRules, 
               onChange={(id) => id !== clockPref() && setClock(id as Clock)}
             />
           </div>
-          <div className="menu-label">{t('Message list')}</div>
-          <label className="menu-check">
-            <input type="checkbox" checked={preview} onChange={(e) => onPreview(e.target.checked)} /> {t('Show preview text')}
-          </label>
           <div className="menu-row">
             <div className="menu-label">{t('Language')}</div>
             <LangPicker className="wide" />
           </div>
+          <label className="menu-check">
+            <input type="checkbox" checked={preview} onChange={(e) => onPreview(e.target.checked)} /> {t('Show preview text')}
+          </label>
           <button className="menu-btn" onClick={() => { setOpen(false); onAccounts(); }}>
             <Icon name="people" size={16} /> {t('Manage accounts…')}
           </button>
