@@ -169,7 +169,7 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .tabs button.on { color: var(--brand); }
 .tabs button.on::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: -2px; height: 2px; border-radius: 1px; background: var(--brand); }
 .list-scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
-.group { font-size: 13px; color: var(--text-2); padding: 10px 14px 4px; font-weight: 600; position: sticky; top: 0; background: var(--surface); z-index: 1; }
+.group { font-size: 13px; color: var(--text); padding: 10px 14px 4px; font-weight: 600; position: sticky; top: 0; background: var(--surface); z-index: 1; }
 .group { border-bottom: 1px solid var(--border); }
 .list-scroll > div:first-child > .group { border-top: 1px solid var(--border); }
 .item { display: flex; gap: 12px; padding: 10px 12px 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border); position: relative; user-select: none; }
@@ -738,3 +738,20 @@ a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
 .menu.view-menu { position: fixed; top: 46px; right: 8px; left: auto; width: max-content; min-width: 0; max-width: calc(100vw - 16px); }
 
 .top-btn.on { background: rgba(255,255,255,.22); }
+
+/* ---------- calendar side panel (mail view) ---------- */
+.side-panel { width: 300px; flex: none; margin-left: 8px; display: flex; flex-direction: column; min-height: 0; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.side-head { flex: none; padding: 8px 10px 6px; border-bottom: 1px solid var(--border); }
+.side-tools { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.side-agenda { flex: 1; min-height: 0; overflow: auto; }
+.side-agenda h3 { margin: 0; padding: 8px 14px; font-size: 13px; font-weight: 600; background: var(--surface-2); border-bottom: 1px solid var(--border); position: sticky; top: 0; }
+.side-agenda h3.today { color: var(--brand); }
+.side-empty { padding: 24px 14px; text-align: center; }
+.side-ev { display: flex; align-items: stretch; gap: 10px; width: 100%; padding: 8px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+.side-ev:hover { background: var(--hover); }
+.side-time { flex: none; width: 58px; display: flex; flex-direction: column; font-size: 13px; }
+.side-bar { flex: none; width: 4px; border-radius: 2px; }
+.side-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.side-text b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-text .small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 1100px) { .side-panel { display: none; } }

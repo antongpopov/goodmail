@@ -8,7 +8,7 @@ import { DateInput } from './DateInput.tsx';
 
 type View = 'day' | 'workweek' | 'week' | 'month';
 const HOUR = 48; // px per hour in the time grid
-const COLORS = ['#0f6cbd', '#038387', '#498205', '#ca5010', '#c239b3', '#8764b8', '#d13438', '#986f0b'];
+export const COLORS = ['#0f6cbd', '#038387', '#498205', '#ca5010', '#c239b3', '#8764b8', '#d13438', '#986f0b'];
 const DOW = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
 
 // ---------- date helpers (local time) ----------
@@ -134,9 +134,9 @@ function TimeInput({ value, onChange }: { value: string; onChange: (v: string) =
     </span>
   );
 }
-const fmtTime = (d: Date) => d.toLocaleTimeString(LT(), { hour: '2-digit', minute: '2-digit', ...timeOpts() });
+export const fmtTime = (d: Date) => d.toLocaleTimeString(LT(), { hour: '2-digit', minute: '2-digit', ...timeOpts() });
 
-interface Occ {
+export interface Occ {
   ev: CalEvent;
   start: Date;
   end: Date;
@@ -151,7 +151,7 @@ function evEnd(ev: CalEvent) {
 }
 
 /** Expand an event (and its recurrence) into the occurrences overlapping [from, to). */
-function expand(ev: CalEvent, from: Date, to: Date): Occ[] {
+export function expand(ev: CalEvent, from: Date, to: Date): Occ[] {
   const s0 = evStart(ev);
   const e0 = evEnd(ev);
   const dur = e0.valueOf() - s0.valueOf();
@@ -429,7 +429,7 @@ function EventDialog({ draft, onClose, onSaved, flash }: { draft: Draft; onClose
 
 // ---------- mini month ----------
 
-function MiniMonth({ cursor, onPick, range }: { cursor: Date; onPick: (d: Date) => void; range: [Date, Date] }) {
+export function MiniMonth({ cursor, onPick, range }: { cursor: Date; onPick: (d: Date) => void; range: [Date, Date] }) {
   const [month, setMonth] = useState(() => new Date(cursor.getFullYear(), cursor.getMonth(), 1));
   useEffect(() => setMonth(new Date(cursor.getFullYear(), cursor.getMonth(), 1)), [cursor]);
   const first = startOfWeek(month);

@@ -18,6 +18,7 @@ import type { ComposeInit } from './Compose.tsx';
 import { Contacts } from './Contacts.tsx';
 import { Calendar } from './Calendar.tsx';
 import { Tasks } from './Tasks.tsx';
+import { SidePanel } from './SidePanel.tsx';
 import { bucket, displayName, fullAddr, save, store } from './util.ts';
 import { t, localTitle } from './i18n.ts';
 import { listCache, msgCache, msgKey, rememberMsg } from './cache.ts';
@@ -110,6 +111,11 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   setOrder(serverAsc);
   const { toast, flash } = useToast();
   const [moveOpen, setMoveOpen] = useState(false);
+  const [sidePanel, setSidePanelState] = useState(() => store('sidePanel', false));
+  const setSidePanel = (v: boolean) => {
+    setSidePanelState(v);
+    save('sidePanel', v);
+  };
   const [drawer, setDrawer] = useState(false);
   const [view, setView] = useState<'mail' | 'contacts' | 'calendar' | 'tasks'>(() => (location.hash === '#calendar' ? 'calendar' : location.hash === '#tasks' ? 'tasks' : 'mail'));
   const { book, addContact, setAddContact, reloadBook, known } = useAddressBook(view === 'contacts');
@@ -868,6 +874,13 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
         <div className="top-right">
           {view === 'mail' && (
             <span className="desk-only">
+              <button className={`top-btn ${sidePanel ? 'on' : ''}`} title={t('Calendar panel')} aria-label={t('Calendar panel')} aria-pressed={sidePanel} onClick={() => setSidePanel(!sidePanel)}>
+                <Icon name="sidePanel" />
+              </button>
+            </span>
+          )}
+          {view === 'mail' && (
+            <span className="desk-only">
               <button className={`top-btn ${preview ? 'on' : ''}`} title={t('Show preview text')} aria-label={t('Show preview text')} aria-pressed={preview} onClick={() => setPreview(!preview)}>
                 <Icon name="preview" />
               </button>
@@ -1027,6 +1040,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
             </main>
             )}
             </div>
+            {sidePanel && !phoneWidth && <SidePanel onOpenCalendar={() => setView('calendar')} flash={flash} />}
           </div>
           </>
           )}

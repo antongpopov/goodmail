@@ -47,6 +47,7 @@ const P: Record<string, string> = {
   pin: 'M10 17s5-4.6 5-9a5 5 0 0 0-10 0c0 4.4 5 9 5 9z M10 6.5a1.5 1.5 0 1 0 .01 0',
   pane: 'M3 4.5h14v11H3z M11 4.5v11',
   preview: 'M4 4.5h12 M4 7.5h8 M4 12.5h12 M4 15.5h8',
+  sidePanel: 'M3 4.5h14v11H3z M12.5 4.5v11 M14 7.5h1 M14 10.5h1',
   filter: 'M3.5 5.5h13 M6 10h8 M8.5 14.5h3',
   paneBelow: 'M3 4.5h14v11H3z M3 10.5h14',
   paneHidden: 'M3 4.5h14v11H3z M3 7.5h14',

@@ -55,6 +55,7 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
 - **To-Do**: an Outlook-style task list: My Day, Important, Planned, Tasks and your own lists, steps, due dates, repeating tasks
   and notes; "Flagged email" jumps to your flagged mail. Stored per account as a small JSON file on the server, so it follows you to every device
 - **Filter and sort** menu in the message list (Unread, Flagged, To me, Has files; sort by date, from, subject, size or flag, either direction)
+- **Calendar side panel** in the mail view (toggle in the top bar): a month and your upcoming events, like Outlook
 - **Calendar**: Outlook-style day / work week / week / month views, mini month, recurring events,
   .ics import/export, and an "Add to calendar" button on invitations (Outlook/Teams time zones understood)
 - **Two-step sign-in** (per user, ⚙ → Sign-in security): authenticator app (TOTP), passkeys (Face ID / Touch ID /
