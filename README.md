@@ -66,6 +66,10 @@ three-pane UI: folder tree, date-grouped message list with previews, reading pan
   ManageSieve, so they also run while you are signed out. A script written elsewhere is never overwritten without asking.
   Every message has a ⋯ button (and a right-click menu, and a button in the reading pane) with "Create rule from this
   message…": the editor opens with the sender (or, in Sent, the recipient) already filled in
+- **Administration** (⚙ → Administration, needs `admincmdN=`): domain administrators create, rename, disable and delete
+  mailboxes, reset passwords and manage aliases (including a catch-all) for their own domains only; one main administrator also
+  manages the domains and who administers each. A warning marks administrators who have no two-step sign-in. See
+  "Administration" below
 - **Change password** (⚙ → Sign-in security, needs `passwordcmdN=`): current + new password; the mail server side is a
   command you provide, see "Changing passwords" below
 - **Forgot password** (needs `passwordcmdN=` plus `resetfrom=`/`resetsmtp=`): each user saves a **second address**
@@ -141,6 +145,7 @@ signature2=Best regards\n{name}\nExample Ltd   # default signature for these use
 sieve2=mail.example.net          # ManageSieve host[:port], default 4190 (STARTTLS) → turns on "Mail rules"
 passwordcmd2=ssh -i /etc/goodmail/pw-key pw@mail.example.net   # → turns on "Change password" (see below)
 passwordmin2=12                  # shortest accepted new password (default 10; passwordmin= for all domains)
+admincmd2=ssh -i /etc/goodmail/admin-key adm@mail.example.net   # → turns on ⚙ → Administration for domain administrators (see "Administration" below)
 
 resetfrom=goodmail@example.net   # "Forgot password": sender of the code mails …
 resetsmtp=mail.example.net:587   # … and its SMTP server (resetuser= / resetpass= are its login)
@@ -214,7 +219,9 @@ anyone's rights. `ops/goodmail-admin` does this for Postfix + Dovecot + PostfixA
 is a domain administrator when there is an active row in `admin` whose username is their *mailbox address*, linked to their
 domains in `domain_admins` (`superadmin = 1` or `ALL` = every domain). Changes are written to PostfixAdmin's `log` table, so
 both tools stay in step. Safeguards: nobody can disable or delete their own mailbox or a domain's last mailbox, domain limits
-are respected, mail files stay on disk when a mailbox is deleted, and nothing is shown to people who are not administrators.
+are respected, administrators without two-step sign-in are flagged, and nothing is shown to people who are not administrators. When a mailbox is deleted the
+administrator can choose to remove its mail files too; they are then moved aside to `/var/vmail/_deleted/` (root-only, so a mistake can be undone) rather than erased,
+and otherwise they stay where they are.
 Install it like `goodmail-setpw` (root-owned script, a forced-command SSH user with `command="sudo -n
 /usr/local/sbin/goodmail-admin",from="<web server IP>",no-pty,no-port-forwarding <public key>`, and one sudoers line); it needs
 python3 with `bcrypt` and the `mysql` client as root. Add a person with `INSERT INTO admin (username,password,superadmin,created,
