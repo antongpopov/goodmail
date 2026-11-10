@@ -824,7 +824,9 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
           <Icon name="menu" />
         </button>
         <div className="brand">
-          <img src="/favicon.svg" alt="" width={22} height={22} />
+          <span className="who" title={`${me.email} · ${me.imapHost}`}>
+            <Avatar addr={{ name: me.name, address: me.email }} size={28} />
+          </span>
           {appName}
         </div>
         <nav className="apps desk-only">
@@ -868,9 +870,6 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
           <span className="desk-only"><ThemeMenu /></span>
           <span className="desk-only">
             <ViewMenu preview={preview} onPreview={setPreview} onAccounts={() => setDialog({ kind: 'accounts' })} onSecurity={() => setDialog({ kind: 'security' })} onRules={features?.rules ? () => setDialog({ kind: 'rules' }) : undefined} onSmime={features?.smime ? () => setDialog({ kind: 'smime' }) : undefined} onSignatures={() => setDialog({ kind: 'signatures', tab: 'signature' })} onAdmin={adminMe?.admin ? () => setDialog({ kind: 'admin' }) : undefined} source={source} />
-          </span>
-          <span className="who" title={`${me.email} · ${me.imapHost}`}>
-            <Avatar addr={{ name: me.name, address: me.email }} size={28} />
           </span>
           <button className="top-btn desk-only" onClick={onLogout} title={t('Sign out')}>
             <Icon name="signout" />
