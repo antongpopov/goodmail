@@ -866,10 +866,17 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
           )}
         </form>
         <div className="top-right">
+          {view === 'mail' && (
+            <span className="desk-only">
+              <button className={`top-btn ${preview ? 'on' : ''}`} title={t('Show preview text')} aria-label={t('Show preview text')} aria-pressed={preview} onClick={() => setPreview(!preview)}>
+                <Icon name="preview" />
+              </button>
+            </span>
+          )}
           {view === 'mail' && <span className="desk-only"><PaneMenu pane={pane} onPane={setPane} /></span>}
           <span className="desk-only"><ThemeMenu /></span>
           <span className="desk-only">
-            <ViewMenu preview={preview} onPreview={setPreview} onAccounts={() => setDialog({ kind: 'accounts' })} onSecurity={() => setDialog({ kind: 'security' })} onRules={features?.rules ? () => setDialog({ kind: 'rules' }) : undefined} onSmime={features?.smime ? () => setDialog({ kind: 'smime' }) : undefined} onSignatures={() => setDialog({ kind: 'signatures', tab: 'signature' })} onAdmin={adminMe?.admin ? () => setDialog({ kind: 'admin' }) : undefined} source={source} />
+            <ViewMenu onAccounts={() => setDialog({ kind: 'accounts' })} onSecurity={() => setDialog({ kind: 'security' })} onRules={features?.rules ? () => setDialog({ kind: 'rules' }) : undefined} onSmime={features?.smime ? () => setDialog({ kind: 'smime' }) : undefined} onSignatures={() => setDialog({ kind: 'signatures', tab: 'signature' })} onAdmin={adminMe?.admin ? () => setDialog({ kind: 'admin' }) : undefined} source={source} />
           </span>
           <button className="top-btn desk-only" onClick={onLogout} title={t('Sign out')}>
             <Icon name="signout" />

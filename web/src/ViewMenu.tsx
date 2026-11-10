@@ -149,7 +149,7 @@ function Choice({ label, value, options, onChange }: { label: string; value: str
   );
 }
 
-export function ViewMenu({ preview, onPreview, onAccounts, onSecurity, onRules, onSmime, onSignatures, onAdmin, source }: { preview: boolean; onPreview: (v: boolean) => void; onAccounts: () => void; onSecurity: () => void; onRules?: () => void; onSmime?: () => void; onSignatures?: () => void; onAdmin?: () => void; source: string }) {
+export function ViewMenu({ onAccounts, onSecurity, onRules, onSmime, onSignatures, onAdmin, source }: { onAccounts: () => void; onSecurity: () => void; onRules?: () => void; onSmime?: () => void; onSignatures?: () => void; onAdmin?: () => void; source: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -189,9 +189,6 @@ export function ViewMenu({ preview, onPreview, onAccounts, onSecurity, onRules, 
             <div className="menu-label">{t('Language')}</div>
             <LangPicker className="wide" />
           </div>
-          <label className="menu-check">
-            <input type="checkbox" checked={preview} onChange={(e) => onPreview(e.target.checked)} /> {t('Show preview text')}
-          </label>
           <button className="menu-btn" onClick={() => { setOpen(false); onAccounts(); }}>
             <Icon name="people" size={16} /> {t('Manage accounts…')}
           </button>
