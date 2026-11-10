@@ -39,6 +39,16 @@ let dict: Dict = LANGUAGES.find((l) => l.id === lang)!.dict;
 document.documentElement.lang = lang;
 
 export const currentLang = () => lang;
+/** The saved choice, or 'auto' = follow the browser's language (English when it is not one we have). */
+export function langPref(): string {
+  try {
+    const saved = JSON.parse(localStorage.getItem('gm:lang') || 'null');
+    if (saved && LANGUAGES.some((l) => l.id === saved)) return saved;
+  } catch {
+    /* private mode */
+  }
+  return 'auto';
+}
 /** The app name in the user's language when the server config has a title.<lang> for it, else the default name. */
 export const localTitle = (name: string, names?: Record<string, string>) => names?.[lang] || name;
 /** Clock preference: 'auto' follows the language/browser, '12' = am/pm, '24' = 24-hour. */
@@ -108,7 +118,8 @@ export function dateOrder(): ('d' | 'm' | 'y')[] {
 
 export function setLang(id: string) {
   try {
-    localStorage.setItem('gm:lang', JSON.stringify(id));
+    if (id === 'auto') localStorage.removeItem('gm:lang');
+    else localStorage.setItem('gm:lang', JSON.stringify(id));
   } catch {
     /* ignore */
   }
