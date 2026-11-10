@@ -730,4 +730,5 @@ a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
 
 .menu-row { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
 .menu-row .menu-label { margin: 0; flex: none; width: 96px; padding: 0 2px; }
-.menu-row .lang-picker { flex: 1; min-width: 0; }
+.menu-row .lang-picker { flex: none; }
+.menu-row .lang-picker.wide select { width: auto; max-width: 100%; }
