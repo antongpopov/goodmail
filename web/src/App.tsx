@@ -804,6 +804,19 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
     </>
   );
 
+  const filterTabs = (
+    <div className="tabs">
+      {(['all', 'unread', 'flagged', 'attachments'] as const).map((f) => {
+        const label = f === 'all' ? (searching ? t('Results') : current ? folderLabel(current) : t('All')) : f === 'unread' ? t('Unread') : f === 'flagged' ? t('Flagged') : t('Attachments');
+        return (
+          <button key={f} className={filter === f ? 'on' : ''} title={label} aria-label={label} aria-pressed={filter === f} onClick={() => setFilter(f)}>
+            <Icon name={f === 'all' ? (searching ? 'search' : 'mail') : f === 'unread' ? 'unread' : f === 'flagged' ? 'flag' : 'clip'} size={18} />
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
     <div className="app">
       <header className="topbar">
@@ -903,6 +916,9 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
             <TextBtn a={act.flag} />
             <TextBtn a={act.read} />
             <TextBtn a={act.sync} />
+            <span className="grow" />
+            {loading && <span className="spinner" />}
+            <div className="tool-tabs">{filterTabs}</div>
           </div>
 
           <div className={`panes pane-${pane}`}>
@@ -917,17 +933,8 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
                 ...(pane === 'hidden' && readingActive ? { display: 'none' } : {}),
               }}
             >
-              <div className="list-head">
-                <div className="tabs">
-                  {(['all', 'unread', 'flagged', 'attachments'] as const).map((f) => {
-                    const label = f === 'all' ? (searching ? t('Results') : current ? folderLabel(current) : t('All')) : f === 'unread' ? t('Unread') : f === 'flagged' ? t('Flagged') : t('Attachments');
-                    return (
-                      <button key={f} className={filter === f ? 'on' : ''} title={label} aria-label={label} aria-pressed={filter === f} onClick={() => setFilter(f)}>
-                        <Icon name={f === 'all' ? (searching ? 'search' : 'mail') : f === 'unread' ? 'unread' : f === 'flagged' ? 'flag' : 'clip'} size={18} />
-                      </button>
-                    );
-                  })}
-                </div>
+              <div className="list-head phone-only">
+                {filterTabs}
                 {loading && <span className="spinner" />}
               </div>
               <div className="list-scroll" ref={listRef} onScroll={onScroll}>

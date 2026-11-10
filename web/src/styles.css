@@ -701,3 +701,10 @@ a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
   .task-detail { width: 100%; border-radius: 0; box-shadow: none; }
 }
 .list-head .spinner { position: absolute; right: 14px; top: 14px; background: var(--surface); }
+
+.tool-tabs { flex: none; padding-right: 8px; }
+.tool-tabs .tabs { flex: none; gap: 2px; }
+.tool-tabs .tabs button { flex: none; min-width: 40px; }
+.tool-tabs .tabs button.on::after { bottom: 0; }
+.toolbar .spinner { margin: 0 10px; flex: none; }
+@media (max-width: 760px) { .list-head.phone-only { display: flex !important; } }
