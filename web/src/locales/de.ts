@@ -471,4 +471,5 @@ export const de: Dict = {
   'Lists': 'Listen',
   'Next: {x}': 'Nächste: {x}',
   Attachments: 'Anhänge',
+  'Sort order': 'Sortierung', 'Newest first': 'Neueste zuerst', 'Oldest first': 'Älteste zuerst',
 };

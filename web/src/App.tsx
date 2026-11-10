@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { api, setUnauthorizedHandler, useAccount, currentAccount, withAcct } from './api.ts';
+import { api, setUnauthorizedHandler, useAccount, currentAccount, withAcct, setOrder } from './api.ts';
 import { UNI_ACCOUNT, UNI_DEFAULT, UNI_KINDS, UNI_USE, synthUid, uniKind, uniLabel } from './unified.ts';
 import type { UniPrefs } from './unified.ts';
 import type { MailAccount } from './api.ts';
@@ -100,9 +100,12 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState('');
   const [filter, setFilter] = useState<'all' | 'unread' | 'flagged' | 'attachments'>('all');
+  const oldestRef = useRef(false);
   const filterRef = useRef(filter);
   filterRef.current = filter;
-  const { collapsed, setCollapsed, foldersHidden, setFoldersHidden, pane, setPane, preview, setPreview, listH, setListH, folderW, setFolderW, listW, setListW } = useLayout();
+  const { collapsed, setCollapsed, foldersHidden, setFoldersHidden, pane, setPane, preview, setPreview, oldestFirst, setOldestFirst, listH, setListH, folderW, setFolderW, listW, setListW } = useLayout();
+  oldestRef.current = oldestFirst;
+  setOrder(oldestFirst);
   const { toast, flash } = useToast();
   const [moveOpen, setMoveOpen] = useState(false);
   const [drawer, setDrawer] = useState(false);
@@ -187,7 +190,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
       const id = ++reqId.current;
       const acctId = currentAccount();
       const flt = q ? 'all' : filterRef.current;
-      const lkey = `${acctId}\u0000${f}\u0000${q}\u0000${flt}`;
+      const lkey = `${acctId}\u0000${f}\u0000${q}\u0000${flt}\u0000${oldestRef.current ? 'asc' : ''}`;
       const cachedList = p === 0 ? listCache.get(lkey) : undefined;
       if (cachedList && !merge) {
         setList(cachedList.messages);
@@ -236,6 +239,19 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
     listRef.current?.scrollTo(0, 0);
     void loadList(folder, 0, searching);
   }, [folder, acct, searching, loadList]);
+
+  // Switching newest first / oldest first reloads the list from the start.
+  const firstOrder = useRef(true);
+  useEffect(() => {
+    if (firstOrder.current) {
+      firstOrder.current = false;
+      return;
+    }
+    setPage(0);
+    listRef.current?.scrollTo(0, 0);
+    void loadList(folder, 0, searching);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oldestFirst]);
 
   // Unread / Flagged ask the server for every match in the folder, not just the loaded page.
   const firstFilter = useRef(true);
@@ -836,7 +852,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
         </form>
         <div className="top-right">
           <span className="desk-only">
-            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} onAccounts={() => setDialog({ kind: 'accounts' })} onSecurity={() => setDialog({ kind: 'security' })} onRules={features?.rules ? () => setDialog({ kind: 'rules' }) : undefined} onSmime={features?.smime ? () => setDialog({ kind: 'smime' }) : undefined} onSignatures={() => setDialog({ kind: 'signatures', tab: 'signature' })} onAdmin={adminMe?.admin ? () => setDialog({ kind: 'admin' }) : undefined} source={source} />
+            <ViewMenu pane={pane} onPane={setPane} preview={preview} onPreview={setPreview} oldestFirst={oldestFirst} onOrder={setOldestFirst} onAccounts={() => setDialog({ kind: 'accounts' })} onSecurity={() => setDialog({ kind: 'security' })} onRules={features?.rules ? () => setDialog({ kind: 'rules' }) : undefined} onSmime={features?.smime ? () => setDialog({ kind: 'smime' }) : undefined} onSignatures={() => setDialog({ kind: 'signatures', tab: 'signature' })} onAdmin={adminMe?.admin ? () => setDialog({ kind: 'admin' }) : undefined} source={source} />
           </span>
           <span className="who" title={`${me.email} · ${me.imapHost}`}>
             <Avatar addr={{ name: me.name, address: me.email }} size={28} />

@@ -10,6 +10,7 @@ export function useLayout() {
   const [foldersHidden, setFoldersHidden] = useState(() => store('foldersHidden', false));
   const [pane, setPaneState] = useState<PaneMode>(() => store('pane', 'right'));
   const [preview, setPreviewState] = useState(() => store('preview', false));
+  const [oldestFirst, setOldestFirstState] = useState(() => store('oldestFirst', false));
   const [listH, setListH] = useState(() => store('listH', 300));
   const [folderW, setFolderW] = useState(() => store('folderW', 220));
   const [listW, setListW] = useState(() => store('listW', 380));
@@ -17,11 +18,15 @@ export function useLayout() {
     setPaneState(p);
     save('pane', p);
   };
+  const setOldestFirst = (v: boolean) => {
+    setOldestFirstState(v);
+    save('oldestFirst', v);
+  };
   const setPreview = (v: boolean) => {
     setPreviewState(v);
     save('preview', v);
   };
-  return { collapsed, setCollapsed, foldersHidden, setFoldersHidden, pane, setPane, preview, setPreview, listH, setListH, folderW, setFolderW, listW, setListW };
+  return { collapsed, setCollapsed, foldersHidden, setFoldersHidden, pane, setPane, preview, setPreview, oldestFirst, setOldestFirst, listH, setListH, folderW, setFolderW, listW, setListW };
 }
 
 /** True on phone-width screens (re-evaluated when the window crosses the breakpoint). */

@@ -483,4 +483,5 @@ export const da: Dict = {
   'Lists': 'Lister',
   'Next: {x}': 'Næste: {x}',
   Attachments: 'Vedhæftninger',
+  'Sort order': 'Sortering', 'Newest first': 'Nyeste først', 'Oldest first': 'Ældste først',
 };

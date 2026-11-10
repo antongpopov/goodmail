@@ -78,6 +78,9 @@ async function call<T>(method: string, url: string, body?: unknown): Promise<T> 
 
 // The mailbox the mail calls below act on ("main" = the login mailbox). The UI shows one at a time.
 let cur = 'main';
+/** Message-list order: newest first (default) or oldest first. */
+let oldestFirst = false;
+export const setOrder = (asc: boolean) => { oldestFirst = asc; };
 /** Run one API call for a given mailbox without changing which one the UI is showing (the call reads it synchronously). */
 export const withAcct = <T,>(id: string, fn: () => T): T => {
   const old = cur;
@@ -153,10 +156,10 @@ export const api = {
   logout: () => call('POST', '/api/logout', {}),
   folders: (account = cur, fresh = false) => call<Folder[]>('GET', `/api/folders?${q({ account, ...(fresh ? { fresh: 1 } : {}) })}`),
   messages: (folder: string, page: number, filter = 'all') =>
-    call<ListResult>('GET', `/api/messages?${q({ folder, page, account: cur, ...(filter !== 'all' ? { filter } : {}) })}`),
+    call<ListResult>('GET', `/api/messages?${q({ folder, page, account: cur, ...(filter !== 'all' ? { filter } : {}), ...(oldestFirst ? { order: 'asc' } : {}) })}`),
   unified: (kind: string, page: number, filter: string, accounts: string[], text = '') =>
-    call<ListResult & { errors?: { account: string; error: string }[] }>('GET', `/api/unified?${q({ kind, page, accounts: accounts.join(','), ...(filter !== 'all' ? { filter } : {}), ...(text ? { q: text } : {}) })}`),
-  search: (folder: string, text: string) => call<ListResult>('GET', `/api/search?${q({ folder, q: text, account: cur })}`),
+    call<ListResult & { errors?: { account: string; error: string }[] }>('GET', `/api/unified?${q({ kind, page, accounts: accounts.join(','), ...(filter !== 'all' ? { filter } : {}), ...(text ? { q: text } : {}), ...(oldestFirst ? { order: 'asc' } : {}) })}`),
+  search: (folder: string, text: string) => call<ListResult>('GET', `/api/search?${q({ folder, q: text, account: cur, ...(oldestFirst ? { order: 'asc' } : {}) })}`),
   message: (folder: string, uid: number, peek = false, account = cur) =>
     call<Message>('GET', `/api/message?${q({ folder, uid, account, ...(peek ? { peek: 1 } : {}) })}`).then((m) => ({ ...m, account })),
   headers: (folder: string, uid: number, account = cur) => call<{ headers: string }>('GET', `/api/headers?${q({ folder, uid, account })}`),

@@ -471,4 +471,5 @@ export const sv: Dict = {
   'Lists': 'Listor',
   'Next: {x}': 'Nästa: {x}',
   Attachments: 'Bilagor',
+  'Sort order': 'Sortering', 'Newest first': 'Nyast först', 'Oldest first': 'Äldst först',
 };

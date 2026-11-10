@@ -35,7 +35,7 @@ function Choice({ label, value, options, onChange }: { label: string; value: str
   );
 }
 
-export function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, onSecurity, onRules, onSmime, onSignatures, onAdmin, source }: { pane: PaneMode; onPane: (p: PaneMode) => void; preview: boolean; onPreview: (v: boolean) => void; onAccounts: () => void; onSecurity: () => void; onRules?: () => void; onSmime?: () => void; onSignatures?: () => void; onAdmin?: () => void; source: string }) {
+export function ViewMenu({ pane, onPane, preview, onPreview, oldestFirst, onOrder, onAccounts, onSecurity, onRules, onSmime, onSignatures, onAdmin, source }: { pane: PaneMode; onPane: (p: PaneMode) => void; preview: boolean; onPreview: (v: boolean) => void; oldestFirst: boolean; onOrder: (v: boolean) => void; onAccounts: () => void; onSecurity: () => void; onRules?: () => void; onSmime?: () => void; onSignatures?: () => void; onAdmin?: () => void; source: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -70,6 +70,7 @@ export function ViewMenu({ pane, onPane, preview, onPreview, onAccounts, onSecur
           <div className="menu-label">{t('Reading pane')}</div>
           <Choice label={t('Reading pane')} value={pane} options={PANES.map((p) => [p.id, p.label])} onChange={(id) => onPane(id as PaneMode)} />
           <div className="menu-label">{t('Message list')}</div>
+          <Choice label={t('Sort order')} value={oldestFirst ? 'asc' : 'desc'} options={[['desc', t('Newest first')], ['asc', t('Oldest first')]]} onChange={(id) => onOrder(id === 'asc')} />
           <label className="menu-check">
             <input type="checkbox" checked={preview} onChange={(e) => onPreview(e.target.checked)} /> {t('Show preview text')}
           </label>

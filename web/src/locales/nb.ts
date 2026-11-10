@@ -471,4 +471,5 @@ export const nb: Dict = {
   'Lists': 'Lister',
   'Next: {x}': 'Neste: {x}',
   Attachments: 'Vedlegg',
+  'Sort order': 'Sortering', 'Newest first': 'Nyeste først', 'Oldest first': 'Eldste først',
 };
