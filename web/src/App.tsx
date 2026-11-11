@@ -169,10 +169,10 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAll, uniOn]);
   const loadFolders = useCallback(
-    (fresh = false) =>
+    (fresh = false, only?: string[]) =>
       Promise.all(
         accountsRef.current
-          .filter((a) => !a.locked)
+          .filter((a) => !a.locked && (!only || only.includes(a.id)))
           .map((a) =>
             api
               .folders(a.id, fresh)
@@ -200,6 +200,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
 
   /** Quietly fetch a few messages (without marking them read) so opening them is instant. */
   const prefetch = useCallback(async (acctId: string, f: string, msgs: Summary[], id?: number) => {
+    if (acctId !== 'main' && acctId !== UNI_ACCOUNT) return; // extra mailboxes (Gmail throttles every command): fetch only what is opened
     for (const m of msgs) {
       if (id !== undefined && id !== reqId.current) return; // user moved on
       const [aid, fo, uid] = [m.account ?? acctId, m.folder ?? f, m.rUid ?? m.uid]; // combined views: where the message really is
@@ -310,13 +311,15 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
 
   // Background refresh: re-fetch the first page and folder counts.
   useEffect(() => {
+    let tick = 0;
     const timer = setInterval(() => {
       if (document.hidden) return;
-      void loadFolders();
+      tick++;
+      void (tick % 4 === 0 ? loadFolders() : loadFolders(false, [acct, 'main']));
       if (!searching && page === 0) void loadList(folder, 0, '', true);
     }, POLL_MS);
     return () => clearInterval(timer);
-  }, [folder, page, searching, loadFolders, loadList]);
+  }, [folder, acct, page, searching, loadFolders, loadList]);
 
   const current = folders.find((f) => f.path === folder);
   const moveTargets: MoveTargets = {
