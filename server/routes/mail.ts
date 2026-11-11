@@ -10,7 +10,7 @@ import { spamInfo } from '../spam.ts';
 import { messageCache, msgKey, dropMessages, patchFlag } from '../cache.ts';
 import { Router } from 'express';
 import { PAGE, conn, auth, wrap } from '../http.ts';
-import { withFolder, folders, NAME_FALLBACK, special, listMessages } from '../imap.ts';
+import { withFolder, folders, NAME_FALLBACK, special, listMessages, noteUnseen } from '../imap.ts';
 import type { Conn } from '../session.ts';
 
 const r = Router();
@@ -66,6 +66,7 @@ async function listPage(cn: Conn, folder: string, page: number, filter: string, 
       if (filter === 'unread' || filter === 'flagged' || filter === 'tome') {
         // Ask the server for every match in the folder, not just the loaded page (big folders like Gmail's All Mail).
         const uids = await byDate(c, (await c.search(filter === 'unread' ? { seen: false } : filter === 'tome' ? { to: cn.account.email } : { flagged: true }, { uid: true })) || [], asc);
+        if (filter === 'unread') noteUnseen(cn, folder, uids.length);
         const slice = uids.slice(page * PAGE, (page + 1) * PAGE);
         const messages = slice.length ? dir(await listMessages(cn, c, folder, slice, true)) : [];
         return { total: uids.length, messages, hasMore: uids.length > (page + 1) * PAGE };

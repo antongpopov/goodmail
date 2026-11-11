@@ -18,12 +18,38 @@ export async function withFolder<T>(s: Conn, folder: string, fn: (c: ImapFlow) =
 
 export const folderCache = new WeakMap<Conn, { list: ListResponse[]; at: number }>();
 
+/**
+ * Some servers (Gmail's Spam, for one) report an UNSEEN count in STATUS that SEARCH UNSEEN does not agree with, so a folder
+ * shows "1" while its Unread list is empty. When we run the unread search ourselves we trust it: remember what STATUS said
+ * and what the search found, and show the search result for as long as STATUS keeps saying the same thing.
+ */
+const unseenFix = new WeakMap<Conn, Map<string, { status: number; real: number }>>();
+export function noteUnseen(s: Conn, path: string, real: number) {
+  const hit = folderCache.get(s)?.list.find((f) => f.path === path);
+  if (!hit?.status || hit.status.unseen === undefined) return;
+  const fix = unseenFix.get(s) ?? new Map();
+  unseenFix.set(s, fix);
+  const known = fix.get(path);
+  const status = known && hit.status.unseen === known.real ? known.status : hit.status.unseen;
+  if (status === real) fix.delete(path);
+  else fix.set(path, { status, real });
+  hit.status.unseen = real;
+}
+
 /** maxAgeMs: reuse a list younger than this (0 = always ask the server). */
 export async function folders(s: Conn, refresh = false, maxAgeMs = 0) {
   const hit = folderCache.get(s);
   if (hit && (!refresh || Date.now() - hit.at < maxAgeMs)) return hit.list;
   const c = await s.imap();
   const list = await c.list({ statusQuery: { unseen: true, messages: true } });
+  const fix = unseenFix.get(s);
+  if (fix)
+    for (const f of list) {
+      const o = fix.get(f.path);
+      if (!o) continue;
+      if (f.status?.unseen === o.status) f.status.unseen = o.real;
+      else fix.delete(f.path); // STATUS moved on (new or read mail): trust it again
+    }
   folderCache.set(s, { list, at: Date.now() });
   return list;
 }

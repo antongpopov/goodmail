@@ -235,6 +235,8 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
           void prefetch(acctId, f, r.messages.slice(0, 4), id);
         }
         setHasMore(r.hasMore);
+        // The server reconciles a folder's unread counter with this search; pick the corrected number up now.
+        if (flt === 'unread' && p === 0 && !q && acctId !== UNI_ACCOUNT) void loadFolders();
         setList((old) => {
           if (p === 0) return r.messages;
           const seen = new Set(old.map((m) => m.uid));
@@ -246,7 +248,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
         if (id === reqId.current) setLoading(false);
       }
     },
-    [flash],
+    [flash, loadFolders],
   );
 
   useEffect(() => {
