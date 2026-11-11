@@ -19,6 +19,7 @@ export interface Account {
   ciphers?: string;
 }
 
+const TRACE = process.env.GOODMAIL_IMAP_TRACE === 'true';
 const POOL_MAX = 3; // IMAP connections per mailbox for folder work (Gmail allows 15 per account)
 const IDLE_CLOSE_MS = 10 * 60 * 1000; // drop the IMAP socket after 10 min of no requests
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // force re-login after 12 h of inactivity
@@ -179,9 +180,23 @@ export function connectImap(a: Account): Promise<ImapFlow> {
     secure: a.imapSecure,
     auth: { user: a.user, pass: a.pass },
     tls: { rejectUnauthorized: !a.insecureTls, ca: a.ca, ciphers: a.ciphers },
+    // goodmail polls, so it never needs IDLE; leaving IDLE (and COMPRESS=DEFLATE) cost Gmail seconds per command.
+    disableAutoIdle: true,
+    disableCompression: true,
     logger: false,
-    emitLogs: false,
+    emitLogs: TRACE,
   });
+  if (TRACE) {
+    // GOODMAIL_IMAP_TRACE=true: one line per IMAP command/response with the time since the previous one (never prints credentials)
+    let last = Date.now();
+    c.on('log', (e: any) => {
+      const now = Date.now();
+      const line = String(e.src ? `${e.src}` : '') + ' ' + String(e.msg || e.cmd || e.response || '').slice(0, 120);
+      if (/AUTHENTICATE|LOGIN|PASS/i.test(line) || e.hidden) return;
+      console.log(`imap ${a.imapHost} +${now - last}ms ${e.cid || ''} ${e.src || ''} ${e.msg || ''} ${e.cmd || ''}`.slice(0, 200));
+      last = now;
+    });
+  }
   return c.connect().then(() => c);
 }
 
