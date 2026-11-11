@@ -133,6 +133,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   };
   const listRef = useRef<HTMLDivElement>(null);
   const reqId = useRef(0);
+  const listFor = useRef(''); // which mailbox + folder the list on screen belongs to
   // Opening a message is async; these let a newer click, or removing that very message, cancel a load still in flight.
   const openSeq = useRef(0);
   const loadingUid = useRef<number | null>(null);
@@ -214,14 +215,23 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
 
   const loadList = useCallback(
     async (f: string, p: number, q: string, merge = false) => {
-      const id = ++reqId.current;
+      // A background refresh (merge) must not cancel a load the user just started, so it doesn't take a new number;
+      // any foreground load that starts meanwhile bumps reqId and the refresh result is dropped.
+      const id = merge ? reqId.current : ++reqId.current;
       const acctId = currentAccount();
       const flt = q ? 'all' : filterRef.current;
       const lkey = `${acctId}\u0000${f}\u0000${q}\u0000${flt}\u0000${oldestRef.current ? 'asc' : ''}`;
       const cachedList = p === 0 ? listCache.get(lkey) : undefined;
+      const where = `${acctId}\u0000${f}`;
       if (cachedList && !merge) {
         setList(cachedList.messages);
         setHasMore(cachedList.hasMore);
+        listFor.current = where;
+      } else if (!merge && p === 0 && listFor.current !== where) {
+        // Another folder or mailbox: never leave the previous one's messages on screen while this one (maybe a slow server) loads.
+        setList([]);
+        setHasMore(false);
+        listFor.current = where;
       }
       if (!merge) setLoading(true);
       try {
@@ -232,6 +242,8 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
           r = { ...u, messages: u.messages.map((m) => ({ ...m, rUid: m.uid, uid: synthUid(accountsRef.current.findIndex((a) => a.id === m.account), m.uid) })) };
         } else r = q ? await api.search(f, q) : await api.messages(f, p, flt);
         if (id !== reqId.current) return;
+        if (merge && listFor.current !== where) return; // refresh of a folder that is no longer the one on screen
+        listFor.current = where;
         if (p === 0) {
           listCache.set(lkey, { messages: r.messages, hasMore: r.hasMore });
           void prefetch(acctId, f, r.messages.slice(0, 4), id);
@@ -247,7 +259,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
       } catch (err) {
         if (id === reqId.current) flash((err as Error).message);
       } finally {
-        if (id === reqId.current) setLoading(false);
+        if (id === reqId.current && !merge) setLoading(false);
       }
     },
     [flash, loadFolders],
