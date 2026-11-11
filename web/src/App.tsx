@@ -200,10 +200,10 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
 
   /** Quietly fetch a few messages (without marking them read) so opening them is instant. */
   const prefetch = useCallback(async (acctId: string, f: string, msgs: Summary[], id?: number) => {
-    if (acctId !== 'main' && acctId !== UNI_ACCOUNT) return; // extra mailboxes (Gmail throttles every command): fetch only what is opened
     for (const m of msgs) {
       if (id !== undefined && id !== reqId.current) return; // user moved on
       const [aid, fo, uid] = [m.account ?? acctId, m.folder ?? f, m.rUid ?? m.uid]; // combined views: where the message really is
+      if (aid !== 'main') continue; // extra mailboxes (Gmail throttles every command): fetch only what is opened, also in the combined views
       const k = msgKey(aid, fo, uid);
       if (msgCache.has(k) || m.size > 600_000) continue;
       try {

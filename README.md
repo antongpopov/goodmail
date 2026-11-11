@@ -288,6 +288,7 @@ password sign-in.
 | `GOODMAIL_SOURCE_URL` | this repo | where the in-app "Source code" link points (AGPL §13 — set it for modified versions) |
 | `GOODMAIL_CACHE_MB` | `150` | memory for cached parsed messages |
 | `GOODMAIL_TRUST_PROXY` | `false` | trust `X-Forwarded-For` (set behind a proxy) |
+| `GOODMAIL_IMAP_TRACE` | `false` | log one line per IMAP command with the time since the previous one (to find what makes a slow server slow; never prints credentials) |
 | `GOODMAIL_ORIGIN` | from the request | pin the site's origin for passkeys (single host only) |
 | `GOODMAIL_OPENSSL` | `openssl` | the openssl command used for S/MIME |
 

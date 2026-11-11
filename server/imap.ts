@@ -5,6 +5,12 @@ import { spamInfo, parseHeaderLines } from './spam.ts';
 import { Conn } from './session.ts';
 import { checkValidity } from './cache.ts';
 
+/** The server says our view of the folder is out of date (messages we asked for were expunged since we last synced). */
+export function isStaleView(err: unknown): boolean {
+  const e = err as { serverResponseCode?: string; responseText?: string; message?: string } | null;
+  return /EXPUNGEISSUED|no longer exist/i.test(`${e?.serverResponseCode ?? ''} ${e?.responseText ?? ''} ${e?.message ?? ''}`);
+}
+
 export async function withFolder<T>(s: Conn, folder: string, fn: (c: ImapFlow) => Promise<T>, readOnly = false): Promise<T> {
   const t0 = Date.now();
   const c = await s.imapIdle();
@@ -20,7 +26,16 @@ export async function withFolder<T>(s: Conn, folder: string, fn: (c: ImapFlow) =
   if (waited > 2000) console.warn(`slow open ${s.account.email} ${folder}: connect ${t1 - t0} ms, select ${Date.now() - t1} ms`);
   try {
     if (c.mailbox) checkValidity(s.account.email, folder, c.mailbox.uidValidity);
-    return await fn(c);
+    try {
+      return await fn(c);
+    } catch (err) {
+      // We never sit in IDLE, so a connection does not hear about mail that was deleted elsewhere (Roundcube, a phone, another of our
+      // connections) and its sequence numbers can be out of date: the server then refuses with EXPUNGEISSUED / "no longer exist".
+      // One NOOP makes it report the expunges; then a read can simply be run again. (Never retry something that changes mail.)
+      if (!readOnly || !isStaleView(err)) throw err;
+      await c.noop();
+      return await fn(c);
+    }
   } finally {
     lock.release();
     s.releaseIdle(c);
