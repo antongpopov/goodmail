@@ -63,6 +63,8 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   const [acct, setAcctState] = useState(() => store('acct', 'main'));
   useAccount(acct); // every mail API call below acts on this mailbox
   const [allFolders, setAllFolders] = useState<Record<string, Folder[]>>({});
+  const allFoldersRef = useRef(allFolders);
+  allFoldersRef.current = allFolders;
   const folders = allFolders[acct] ?? [];
   const setFolders = (fn: (f: Folder[]) => Folder[]) => setAllFolders((all) => ({ ...all, [acct]: fn(all[acct] ?? []) }));
   const [folder, setFolder] = useState(() => store('folder', 'INBOX'));
@@ -224,7 +226,16 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
       const lkey = `${acctId}\u0000${f}\u0000${q}\u0000${flt}\u0000${oldestRef.current ? 'asc' : ''}`;
       const cachedList = p === 0 ? listCache.get(lkey) : undefined;
       const where = `${acctId}\u0000${f}`;
-      if (cachedList && !merge) {
+      // The last folder list says this folder is empty: show it at once and let the server confirm quietly. A slow IMAP server
+      // (Gmail: 2-7 s just to open a folder) would otherwise keep us on a spinner for a folder that has nothing to show.
+      const knownEmpty = !merge && p === 0 && !q && acctId !== UNI_ACCOUNT && allFoldersRef.current[acctId]?.find((x) => x.path === f)?.total === 0;
+      const quiet = merge || knownEmpty;
+      if (knownEmpty) {
+        setList([]);
+        setHasMore(false);
+        listFor.current = where;
+        setLoading(false);
+      } else if (cachedList && !merge) {
         setList(cachedList.messages);
         setHasMore(cachedList.hasMore);
         listFor.current = where;
@@ -234,7 +245,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
         setHasMore(false);
         listFor.current = where;
       }
-      if (!merge) setLoading(true);
+      if (!quiet) setLoading(true);
       try {
         let r;
         if (acctId === UNI_ACCOUNT) {
@@ -260,7 +271,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
       } catch (err) {
         if (id === reqId.current) flash((err as Error).message);
       } finally {
-        if (id === reqId.current && !merge) setLoading(false);
+        if (id === reqId.current && !quiet) setLoading(false);
       }
     },
     [flash, loadFolders],
