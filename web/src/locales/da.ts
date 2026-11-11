@@ -489,4 +489,7 @@ export const da: Dict = {
   'Calendar panel': 'Kalenderpanel', 'Open calendar': 'Åbn kalender', 'No upcoming events': 'Ingen kommende aftaler',
   'Pick any color': 'Vælg en vilkårlig farve',
   'Copied {n} to {folder}': '{n} kopieret til {folder}', 'Move or copy': 'Flyt eller kopiér',
+  // select all
+  'Select all': 'Vælg alle', 'Deselect all': 'Fravælg alle',
+  'Select all in “{label}”': 'Vælg alle i “{label}”', 'Deselect all in “{label}”': 'Fravælg alle i “{label}”',
 };

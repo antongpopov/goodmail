@@ -477,4 +477,7 @@ export const sv: Dict = {
   'Calendar panel': 'Kalenderpanel', 'Open calendar': 'Öppna kalendern', 'No upcoming events': 'Inga kommande händelser',
   'Pick any color': 'Välj valfri färg',
   'Copied {n} to {folder}': '{n} kopierade till {folder}', 'Move or copy': 'Flytta eller kopiera',
+  // select all
+  'Select all': 'Markera alla', 'Deselect all': 'Avmarkera alla',
+  'Select all in “{label}”': 'Markera alla i ”{label}”', 'Deselect all in “{label}”': 'Avmarkera alla i ”{label}”',
 };

@@ -477,4 +477,7 @@ export const es: Dict = {
   'Calendar panel': 'Panel del calendario', 'Open calendar': 'Abrir calendario', 'No upcoming events': 'No hay eventos próximos',
   'Pick any color': 'Elegir cualquier color',
   'Copied {n} to {folder}': '{n} copiado(s) a {folder}', 'Move or copy': 'Mover o copiar',
+  // select all
+  'Select all': 'Seleccionar todo', 'Deselect all': 'Deseleccionar todo',
+  'Select all in “{label}”': 'Seleccionar todo en «{label}»', 'Deselect all in “{label}”': 'Deseleccionar todo en «{label}»',
 };

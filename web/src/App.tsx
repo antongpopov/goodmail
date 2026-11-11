@@ -13,6 +13,8 @@ import type { MoveTargets } from './MovePicker.tsx';
 import { LangPicker } from './LangPicker.tsx';
 import type { AdminMe, Features, Folder, Me, Message, Prefs, Summary } from './api.ts';
 import { Icon, folderIcon } from './icons.tsx';
+import { SelectBox } from './SelectBox.tsx';
+import { allSelected, someSelected, toggleAll, toggleGroup } from './selection.ts';
 import { Login } from './Login.tsx';
 import { Compose } from './Compose.tsx';
 import type { ComposeInit } from './Compose.tsx';
@@ -552,6 +554,15 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
     const onKey = (e: KeyboardEvent) => {
       const tgt = e.target as HTMLElement;
       if (compose || tgt.closest('input,textarea,[contenteditable="true"],select')) return;
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        if (visible.length) {
+          setSelected(new Set(visible.map((m) => m.uid)));
+          setAnchor(visible[0].uid);
+          if (visible.length > 1) setOpen(null);
+        }
+        return;
+      }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const idx = visible.findIndex((m) => m.uid === (open?.uid ?? anchor));
       const go = (d: number) => {
@@ -611,6 +622,16 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
     }
     return g;
   }, [visible, sortKey]);
+
+  // Select all: the toolbar tickbox, a tickbox on each day header, and Ctrl/Cmd-A.
+  const allSel = allSelected(selected, visible);
+  const someSel = someSelected(selected, visible);
+  const toggleAllRows = () => {
+    const n = toggleAll(selected, visible);
+    setSelected(n);
+    setAnchor(visible[0]?.uid ?? null);
+    if (n.size > 1) setOpen(null);
+  };
 
   const uniK = isAll ? uniKind(folder) : '';
   const isSentFolder = isAll ? uniK === 'sent' || uniK === 'drafts' : current?.specialUse === '\\Sent' || current?.specialUse === '\\Drafts';
@@ -995,6 +1016,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
               <Icon name="compose" /> {t('New mail')}
             </button>
             <span className="sep" />
+            <SelectBox checked={allSel} indeterminate={someSel} disabled={visible.length === 0} label={allSel ? t('Deselect all') : t('Select all')} onChange={toggleAllRows} />
             <TextBtn a={act.delete} />
             <TextBtn a={act.archive} />
             <div className="menu-wrap">
@@ -1034,7 +1056,18 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
                 {!loading && visible.length === 0 && <div className="empty">{searching ? t('No results.') : t('Nothing here. Enjoy your day.')}</div>}
                 {groups.map((g) => (
                   <div key={g.label}>
-                    {g.label && <div className="group">{g.label}</div>}
+                    {g.label && (
+                      <div className="group">
+                        {g.label}
+                        <SelectBox
+                          className="grp"
+                          checked={allSelected(selected, g.items)}
+                          indeterminate={someSelected(selected, g.items)}
+                          label={t(allSelected(selected, g.items) ? 'Deselect all in “{label}”' : 'Select all in “{label}”', { label: g.label })}
+                          onChange={() => setSelected(toggleGroup(selected, g.items))}
+                        />
+                      </div>
+                    )}
                     {g.items.map((m) => (
                       <MessageItem
                         key={m.uid}

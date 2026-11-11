@@ -477,4 +477,7 @@ export const nb: Dict = {
   'Calendar panel': 'Kalenderpanel', 'Open calendar': 'Åpne kalender', 'No upcoming events': 'Ingen kommende avtaler',
   'Pick any color': 'Velg hvilken som helst farge',
   'Copied {n} to {folder}': '{n} kopiert til {folder}', 'Move or copy': 'Flytt eller kopier',
+  // select all
+  'Select all': 'Merk alle', 'Deselect all': 'Fjern merking',
+  'Select all in “{label}”': 'Merk alle i «{label}»', 'Deselect all in “{label}”': 'Fjern merking i «{label}»',
 };

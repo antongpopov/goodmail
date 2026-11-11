@@ -40,7 +40,7 @@ More documentation: the [wiki](https://github.com/antongpopov/goodmail/wiki).
   so). Inbox, Sent, Drafts, Trash, Junk and Archive can't be renamed, moved or deleted
 - **Move or copy between mailboxes**: the Move menu lists the folders of all your accounts with a Move / Copy switch; the message is read from one mailbox and added to the other (flags and date kept; a moved original goes to the source Trash)
 - Message list grouped Today / Yesterday / This week…, preview lines, unread/flag/attachment markers,
-  hover actions, Ctrl/Shift multi-select, infinite scroll, a Filter and sort menu
+  hover actions, Ctrl/Shift multi-select and Select all (Ctrl/Cmd-A, a toolbar tickbox, a tickbox on each day header), infinite scroll, a Filter and sort menu
 - Server-side search (subject, from, to, body)
 - Reading pane renders HTML mail sanitized (DOMPurify) in a script-less sandboxed iframe with its own CSP;
   **remote images and trackers are blocked** until you allow them once or per sender

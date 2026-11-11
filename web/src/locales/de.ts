@@ -477,4 +477,7 @@ export const de: Dict = {
   'Calendar panel': 'Kalenderleiste', 'Open calendar': 'Kalender öffnen', 'No upcoming events': 'Keine anstehenden Termine',
   'Pick any color': 'Beliebige Farbe wählen',
   'Copied {n} to {folder}': '{n} nach {folder} kopiert', 'Move or copy': 'Verschieben oder kopieren',
+  // select all
+  'Select all': 'Alle auswählen', 'Deselect all': 'Auswahl aufheben',
+  'Select all in “{label}”': 'Alle in „{label}“ auswählen', 'Deselect all in “{label}”': 'Auswahl in „{label}“ aufheben',
 };

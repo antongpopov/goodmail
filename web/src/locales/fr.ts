@@ -477,4 +477,7 @@ export const fr: Dict = {
   'Calendar panel': 'Panneau du calendrier', 'Open calendar': 'Ouvrir le calendrier', 'No upcoming events': 'Aucun événement à venir',
   'Pick any color': 'Choisir n’importe quelle couleur',
   'Copied {n} to {folder}': '{n} copié(s) vers {folder}', 'Move or copy': 'Déplacer ou copier',
+  // select all
+  'Select all': 'Tout sélectionner', 'Deselect all': 'Tout désélectionner',
+  'Select all in “{label}”': 'Tout sélectionner dans « {label} »', 'Deselect all in “{label}”': 'Tout désélectionner dans « {label} »',
 };

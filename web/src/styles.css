@@ -773,3 +773,12 @@ a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
 .menu .move-mode button, .sheet .move-mode button { flex: 1; width: auto; justify-content: center; height: 28px; padding: 0; border-radius: 4px; font-size: 13px; color: var(--text-2); }
 .menu .move-mode button.on, .sheet .move-mode button.on { background: var(--surface); color: var(--brand); font-weight: 600; box-shadow: var(--shadow); }
 .move-acct { padding: 8px 10px 2px; }
+
+/* Select all: toolbar tickbox + a tickbox right of each day header (shown on hover, or when part of the group is selected) */
+.selbox { width: 16px; height: 16px; margin: 0 8px; flex: none; accent-color: var(--brand); cursor: pointer; }
+.toolbar .selbox { margin: 0 10px 0 6px; }
+.toolbar .selbox:disabled { opacity: .4; cursor: default; }
+.group { display: flex; align-items: center; gap: 4px; }
+.group .selbox { margin: 0 0 0 4px; opacity: 0; transition: opacity .12s; }
+.group:hover .selbox, .group .selbox:focus-visible, .group .selbox:checked, .group .selbox:indeterminate { opacity: 1; }
+@media (hover: none) { .group .selbox { opacity: 1; } }
