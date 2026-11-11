@@ -7,9 +7,15 @@ import { checkValidity } from './cache.ts';
 
 export async function withFolder<T>(s: Conn, folder: string, fn: (c: ImapFlow) => Promise<T>, readOnly = false): Promise<T> {
   const t0 = Date.now();
-  const c = await s.imap();
+  const c = await s.imapIdle();
   const t1 = Date.now();
-  const lock = await c.getMailboxLock(folder, { readOnly });
+  let lock;
+  try {
+    lock = await c.getMailboxLock(folder, { readOnly });
+  } catch (err) {
+    s.releaseIdle(c);
+    throw err;
+  }
   const waited = Date.now() - t0;
   if (waited > 2000) console.warn(`slow open ${s.account.email} ${folder}: connect ${t1 - t0} ms, select ${Date.now() - t1} ms`);
   try {
@@ -17,6 +23,7 @@ export async function withFolder<T>(s: Conn, folder: string, fn: (c: ImapFlow) =
     return await fn(c);
   } finally {
     lock.release();
+    s.releaseIdle(c);
   }
 }
 

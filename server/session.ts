@@ -19,6 +19,7 @@ export interface Account {
   ciphers?: string;
 }
 
+const POOL_MAX = 3; // IMAP connections per mailbox for folder work (Gmail allows 15 per account)
 const IDLE_CLOSE_MS = 10 * 60 * 1000; // drop the IMAP socket after 10 min of no requests
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // force re-login after 12 h of inactivity
 
@@ -48,6 +49,43 @@ export class Conn {
         this.connecting = null;
       });
     return this.connecting;
+  }
+
+  /**
+   * Folder work (list a page, open a message) holds the connection's mailbox lock for seconds on a slow server, so with a single
+   * connection every click, refresh and prefetch queues behind the previous one (Gmail: select waits of 2-17 s). Hand out an idle
+   * connection instead; when all are busy, grow the pool in the background (up to POOL_MAX) and queue on the least busy one.
+   */
+  private pool: ImapFlow[] = [];
+  private growing = 0;
+  private busy = new Map<ImapFlow, number>();
+  async imapIdle(): Promise<ImapFlow> {
+    const first = await this.imap();
+    this.pool = this.pool.filter((c) => c.usable);
+    const all = [first, ...this.pool];
+    const load = (c: ImapFlow) => this.busy.get(c) ?? 0;
+    const pick = all.reduce((a, b) => (load(b) < load(a) ? b : a));
+    if (load(pick) > 0 && all.length + this.growing < POOL_MAX) {
+      this.growing++;
+      void connectImap(this.account)
+        .then((c) => {
+          c.on('error', () => {});
+          c.on('close', () => {
+            this.pool = this.pool.filter((x) => x !== c);
+            this.busy.delete(c);
+          });
+          this.pool.push(c);
+        })
+        .catch(() => {})
+        .finally(() => this.growing--);
+    }
+    this.busy.set(pick, load(pick) + 1);
+    return pick;
+  }
+  releaseIdle(c: ImapFlow) {
+    const n = (this.busy.get(c) ?? 1) - 1;
+    if (n > 0) this.busy.set(c, n);
+    else this.busy.delete(c);
   }
 
   /**
@@ -91,7 +129,10 @@ export class Conn {
     this.client = null;
     const l = this.listClient;
     this.listClient = null;
-    await Promise.all([c, l].map((x) => x && x.logout().catch(() => x.close())));
+    const extra = this.pool;
+    this.pool = [];
+    this.busy.clear();
+    await Promise.all([c, l, ...extra].map((x) => x && x.logout().catch(() => x.close())));
   }
 }
 
