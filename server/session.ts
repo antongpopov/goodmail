@@ -50,6 +50,30 @@ export class Conn {
     return this.connecting;
   }
 
+  /**
+   * A second connection used only for the folder list with its per-folder STATUS counts. On Gmail those STATUS calls on big
+   * folders (All Mail, Spam) take seconds each; on the shared connection they made opening any folder wait behind them.
+   */
+  private listClient: ImapFlow | null = null;
+  private listConnecting: Promise<ImapFlow> | null = null;
+  async imapList(): Promise<ImapFlow> {
+    if (this.listClient?.usable) return this.listClient;
+    if (this.listConnecting) return this.listConnecting;
+    this.listConnecting = connectImap(this.account)
+      .then((c) => {
+        this.listClient = c;
+        c.on('close', () => {
+          if (this.listClient === c) this.listClient = null;
+        });
+        c.on('error', () => {});
+        return c;
+      })
+      .finally(() => {
+        this.listConnecting = null;
+      });
+    return this.listConnecting;
+  }
+
   smtp() {
     const a = this.account;
     return nodemailer.createTransport({
@@ -65,7 +89,9 @@ export class Conn {
   async closeImap() {
     const c = this.client;
     this.client = null;
-    if (c) await c.logout().catch(() => c.close());
+    const l = this.listClient;
+    this.listClient = null;
+    await Promise.all([c, l].map((x) => x && x.logout().catch(() => x.close())));
   }
 }
 

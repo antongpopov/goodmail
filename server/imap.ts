@@ -6,8 +6,12 @@ import { Conn } from './session.ts';
 import { checkValidity } from './cache.ts';
 
 export async function withFolder<T>(s: Conn, folder: string, fn: (c: ImapFlow) => Promise<T>, readOnly = false): Promise<T> {
+  const t0 = Date.now();
   const c = await s.imap();
+  const t1 = Date.now();
   const lock = await c.getMailboxLock(folder, { readOnly });
+  const waited = Date.now() - t0;
+  if (waited > 2000) console.warn(`slow open ${s.account.email} ${folder}: connect ${t1 - t0} ms, select ${Date.now() - t1} ms`);
   try {
     if (c.mailbox) checkValidity(s.account.email, folder, c.mailbox.uidValidity);
     return await fn(c);
@@ -40,8 +44,10 @@ export function noteUnseen(s: Conn, path: string, real: number) {
 export async function folders(s: Conn, refresh = false, maxAgeMs = 0) {
   const hit = folderCache.get(s);
   if (hit && (!refresh || Date.now() - hit.at < maxAgeMs)) return hit.list;
-  const c = await s.imap();
+  const t0 = Date.now();
+  const c = await s.imapList();
   const list = await c.list({ statusQuery: { unseen: true, messages: true } });
+  if (Date.now() - t0 > 2000) console.warn(`slow folder list ${s.account.email}: ${Date.now() - t0} ms (${list.length} folders)`);
   const fix = unseenFix.get(s);
   if (fix)
     for (const f of list) {

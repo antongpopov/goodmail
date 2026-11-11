@@ -9,7 +9,7 @@ function fake(status: { unseen: number }) {
     { path: 'INBOX', name: 'INBOX', delimiter: '/', flags: new Set(), status: { unseen: 3, messages: 10 } },
     { path: '[Gmail]/Spam', name: 'Spam', delimiter: '/', flags: new Set(), status: { unseen: status.unseen, messages: 4 } },
   ];
-  return { account: { email: 'x@example.com' }, imap: async () => ({ list: async () => mk() }) } as unknown as Conn;
+  return { account: { email: 'x@example.com' }, imapList: async () => ({ list: async () => mk() }), imap: async () => ({ list: async () => mk() }) } as unknown as Conn;
 }
 const unseen = async (c: Conn, p: string) => (await folders(c, true)).find((f) => f.path === p)?.status?.unseen;
 

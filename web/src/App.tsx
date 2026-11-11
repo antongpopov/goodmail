@@ -351,8 +351,12 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
     return [...s].slice(0, 5000);
   }, [list, book]);
 
-  const patch = (uids: number[], p: Partial<Summary>) =>
+  const patch = (uids: number[], p: Partial<Summary>) => {
     setList((l) => l.map((m) => (uids.includes(m.uid) ? { ...m, ...p } : m)));
+    // Keep the cached copies of this folder's list in step too, or going away and back shows the old (bold/unflagged) state until the server answers.
+    const prefix = `${currentAccount()}\u0000${folder}\u0000`;
+    for (const [k, v] of listCache) if (k.startsWith(prefix)) v.messages = v.messages.map((m) => (uids.includes(m.uid) ? { ...m, ...p } : m));
+  };
 
   const openMessage = useCallback(
     async (m: Summary) => {
@@ -441,6 +445,8 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
     const idx = visible.findIndex((m) => uids.includes(m.uid));
     const remaining = visible.filter((m) => !uids.includes(m.uid));
     setList((l) => l.filter((m) => !uids.includes(m.uid)));
+    const prefix = `${currentAccount()}\u0000${folder}\u0000`;
+    for (const [k, v] of listCache) if (k.startsWith(prefix)) v.messages = v.messages.filter((m) => !uids.includes(m.uid));
     const next = remaining[Math.min(idx, remaining.length - 1)];
     // Is the message on screen, or still loading into the reading pane, one of those going away?
     const loadingGone = loadingUid.current !== null && uids.includes(loadingUid.current);
@@ -481,6 +487,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
       for (const g of groups) permanent = (await withAcct(g.aid, () => api.remove(g.folder, g.uids))).permanent || permanent;
       const r = { permanent };
       flash(r.permanent ? t('Deleted {n} permanently', { n: uids.length }) : t('Moved {n} to the trash', { n: uids.length }));
+      listCache.clear(); // the target folders' cached lists (Trash, the move target…) are out of date now
       void loadFolders(true);
     } catch (err) {
       flash((err as Error).message);
@@ -508,6 +515,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
         n += g.uids.length;
       }
       if (n) flash(t(move ? 'Moved {n} to {folder}' : 'Copied {n} to {folder}', { n, folder: label }));
+      listCache.clear(); // the target folders' cached lists (Trash, the move target…) are out of date now
       void loadFolders(true);
     } catch (err) {
       flash((err as Error).message);
@@ -524,6 +532,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
       let r = { to };
       for (const g of groups) r = await withAcct(g.aid, () => api.move(g.folder, g.uids, to));
       flash(t('Moved {n} to {folder}', { n: uids.length, folder: (() => { const f = folders.find((x) => x.path === r.to); return f ? folderLabel(f) : r.to; })() }));
+      listCache.clear(); // the target folders' cached lists (Trash, the move target…) are out of date now
       void loadFolders(true);
     } catch (err) {
       flash((err as Error).message);
