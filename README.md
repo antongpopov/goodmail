@@ -3,29 +3,31 @@
 A webmail client that talks plain IMAP + SMTP to **any** mail server, with an Outlook-style
 three-pane UI: folder tree, date-grouped message list with previews, reading pane, inline composer.
 
-![goodmail inbox with reading pane](docs/screenshots/mail-light.png?v=20261110)
+![goodmail inbox with reading pane](docs/screenshots/mail-light.png?v=20261112)
 
 | Dark mode, remote images blocked | Calendar — week view |
 |---|---|
-| ![Dark mode with a newsletter; tracking image blocked](docs/screenshots/mail-dark.png?v=20261110) | ![Calendar week view](docs/screenshots/calendar.png?v=20261110) |
+| ![Dark mode with a newsletter; tracking image blocked](docs/screenshots/mail-dark.png?v=20261112) | ![Calendar week view](docs/screenshots/calendar.png?v=20261112) |
 | **To-Do** — My Day, Important, Planned, your own lists | **Calendar side panel** — month and upcoming events |
-| ![To-Do with a task open](docs/screenshots/tasks.png?v=20261110) | ![Mail with the calendar side panel](docs/screenshots/side-panel.png?v=20261110) |
+| ![To-Do with a task open](docs/screenshots/tasks.png?v=20261112) | ![Mail with the calendar side panel](docs/screenshots/side-panel.png?v=20261112) |
 | **Folders** — ⋯ menu, subfolders, drag and drop | **Mail rules** — run on the server |
-| ![Folder menu with new subfolder, rename and delete](docs/screenshots/folders.png?v=20261110) | ![Mail rules list](docs/screenshots/rules.png?v=20261110) |
+| ![Folder menu with new subfolder, rename and delete](docs/screenshots/folders.png?v=20261112) | ![Mail rules list](docs/screenshots/rules.png?v=20261112) |
 | **Create a rule from any message** | **Composer** — signature and templates |
-| ![Rule editor pre-filled from a message](docs/screenshots/rule-editor.png?v=20261110) | ![Composer with signature and the templates menu](docs/screenshots/compose.png?v=20261110) |
+| ![Rule editor pre-filled from a message](docs/screenshots/rule-editor.png?v=20261112) | ![Composer with signature and the templates menu](docs/screenshots/compose.png?v=20261112) |
 | **S/MIME** — signed and encrypted message | **S/MIME settings** — certificate, CA, correspondents |
-| ![An encrypted, signed and verified message](docs/screenshots/smime.png?v=20261110) | ![Secure mail settings](docs/screenshots/smime-settings.png?v=20261110) |
+| ![An encrypted, signed and verified message](docs/screenshots/smime.png?v=20261112) | ![Secure mail settings](docs/screenshots/smime-settings.png?v=20261112) |
 | **Sign-in security** — password, 2-step, passkeys, reset address | **Address book** |
-| ![Sign-in security dialog](docs/screenshots/security.png?v=20261110) | ![Address book](docs/screenshots/contacts.png?v=20261110) |
+| ![Sign-in security dialog](docs/screenshots/security.png?v=20261112) | ![Address book](docs/screenshots/contacts.png?v=20261112) |
 | **Administration** — mailboxes and aliases of a domain | **Domains** — for the main administrator |
-| ![Administration: a domain's mailboxes](docs/screenshots/admin.png?v=20261110) | ![Administration: domains and their administrators (main administrator)](docs/screenshots/admin-domains.png?v=20261110) |
+| ![Administration: a domain's mailboxes](docs/screenshots/admin.png?v=20261112) | ![Administration: domains and their administrators (main administrator)](docs/screenshots/admin-domains.png?v=20261112) |
 | **View headers** — the raw header block | **Settings** — colour, date, time and language |
-| ![Raw message headers](docs/screenshots/headers.png?v=20261110) | ![Settings menu with the accent colours and dropdowns for date format, time format and language](docs/screenshots/settings-menu.png?v=20261110) |
+| ![Raw message headers](docs/screenshots/headers.png?v=20261112) | ![Settings menu with the accent colours and dropdowns for date format, time format and language](docs/screenshots/settings-menu.png?v=20261112) |
 | **Filter and sort** — unread, flagged, to me, has files; sort by date, from, subject, size or flag | |
-| <img src="docs/screenshots/filter-menu.png?v=20261110" alt="Filter and sort menu" width="45%"> | |
+| <img src="docs/screenshots/filter-menu.png?v=20261112" alt="Filter and sort menu" width="45%"> | |
+| **Select all** — toolbar tickbox, day-header tickboxes | **Debug window** — admin-only, what goodmail does in the background |
+| ![Select all: every message in the list selected, tickboxes on the toolbar and the day headers](docs/screenshots/select-all.png?v=20261112) | ![Debug window with browser calls, server calls and IMAP commands with timings](docs/screenshots/debug.png?v=20261112) |
 | **On a phone** | **Phone — folder drawer with ⋯ buttons** |
-| <img src="docs/screenshots/phone-list.png?v=20261110" alt="Message list on a phone" width="32%"> <img src="docs/screenshots/phone-message.png?v=20261110" alt="Reading a message on a phone" width="32%"> <img src="docs/screenshots/phone-move.png?v=20261110" alt="Moving a message on a phone" width="32%"> | <img src="docs/screenshots/phone-menu.png?v=20261110" alt="Folder drawer on a phone" width="60%"> |
+| <img src="docs/screenshots/phone-list.png?v=20261112" alt="Message list on a phone" width="32%"> <img src="docs/screenshots/phone-message.png?v=20261112" alt="Reading a message on a phone" width="32%"> <img src="docs/screenshots/phone-move.png?v=20261112" alt="Moving a message on a phone" width="32%"> | <img src="docs/screenshots/phone-menu.png?v=20261112" alt="Folder drawer on a phone" width="60%"> |
 
 <sub>Screenshots use invented demo data — see [scripts/screenshots](scripts/screenshots).</sub>
 

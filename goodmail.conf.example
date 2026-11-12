@@ -41,3 +41,8 @@ autodiscover=false
 # smimecaname=Example Mail CA
 # smimedays=730
 # smimetrust=/etc/goodmail/extra-roots.pem
+
+# Debug window (bug icon in the top bar, administrators only): what goodmail does in the background — browser calls,
+# server calls, IMAP commands with timings, and a warning when a server throttles (Gmail answers [THROTTLED]).
+# Kept in memory only, never logs credentials. Same as GOODMAIL_DEBUG=true.
+# debug=true

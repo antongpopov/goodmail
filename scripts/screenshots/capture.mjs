@@ -254,6 +254,17 @@ const prefs = { preview: true, pane: 'right', theme: 'light', calView: 'week', f
   await page.keyboard.press('Escape');
   await page.mouse.click(700, 880);
 
+  // select all (toolbar tickbox) and the admin-only Debug window
+  await page.locator('.selbox').first().click();
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${OUT}/select-all.png` });
+  await page.locator('.selbox').first().click();
+  await page.click('button[aria-label="Debug"]');
+  await page.click('text=Inbox');
+  await page.waitForTimeout(1500);
+  await page.screenshot({ path: `${OUT}/debug.png` });
+  await page.click('button[aria-label="Close debug window"]');
+
   await menuItem('Administration');
   await page.waitForSelector('.admin-item');
   await page.screenshot({ path: `${OUT}/admin.png` });
