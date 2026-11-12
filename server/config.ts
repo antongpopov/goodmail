@@ -26,6 +26,7 @@
 //   smimeca=auto                   # who issues certificates: auto = a CA goodmail creates itself, off = users import their own
 //   smimecaname=Example Mail CA    # name of that CA   ·   smimedays=730  certificate lifetime   ·   smimetrust=/etc/goodmail/roots.pem extra trusted roots
 //   autodiscover=false             # true = guess servers for domains not listed (ISPDB / imap.<domain>)
+//   debug=true                     # optional: a Debug window (bug icon in the top bar) with what goodmail does in the background — IMAP commands, timings
 //   spamthreshold=6                # optional: spam score shown as fully red (default: rspamd 6 / SpamAssassin required=)
 //   title=goodmail                 # optional app name (sign-in page, and domains without their own titleN)
 //   title.da=goodmail              # optional: per-language variants of title (language codes as in the language picker)
@@ -57,6 +58,7 @@ export interface ServerSettings {
 interface Config {
   domains: Map<string, ServerSettings>;
   autodiscover: boolean;
+  debug?: boolean;
   title: string;
   titles: Record<string, string>; // per-language variants of title (title.<lang>)
   defaultDomain: string;
@@ -171,6 +173,7 @@ export function parseConfig(text: string): Config {
     reset,
     smime,
     autodiscover: kv.get('autodiscover') === 'true',
+    debug: kv.get('debug') === 'true',
     title: kv.get('title') || 'goodmail',
     titles: localized(kv, 'title'),
     defaultDomain: (kv.get('defaultdomain') || '').toLowerCase(),
@@ -200,6 +203,8 @@ fs.watchFile(CONFIG_PATH, { interval: 5000 }, () => {
 }).unref?.();
 
 export const appTitle = () => config.title;
+/** The in-app Debug window: `debug=true` in goodmail.conf, or GOODMAIL_DEBUG=true. */
+export const debugEnabled = () => process.env.GOODMAIL_DEBUG === 'true' || !!config.debug;
 export const resetSender = () => config.reset;
 export const smimeConfig = () => config.smime;
 /** Per-language variants of the global title, for the sign-in page. */

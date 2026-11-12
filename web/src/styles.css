@@ -782,3 +782,24 @@ a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
 .group .selbox { margin: 0 0 0 4px; opacity: 0; transition: opacity .12s; }
 .group:hover .selbox, .group .selbox:focus-visible, .group .selbox:checked, .group .selbox:indeterminate { opacity: 1; }
 @media (hover: none) { .group .selbox { opacity: 1; } }
+
+/* Debug window (goodmail.conf: debug=true) */
+.debug-panel { position: fixed; left: 0; right: 0; bottom: 0; height: 300px; z-index: 60; display: flex; flex-direction: column; background: var(--surface); border-top: 2px solid var(--brand); box-shadow: 0 -4px 16px rgba(0,0,0,.18); font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.debug-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--border); font-family: system-ui, sans-serif; font-size: 13px; }
+.debug-head .debug-note { color: var(--muted, #777); font-size: 12px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.debug-head input { width: 160px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg, transparent); color: var(--text); }
+.debug-head button { padding: 3px 9px; border: 1px solid var(--border); border-radius: 4px; color: var(--text); }
+.debug-head button:hover { background: var(--hover, rgba(0,0,0,.06)); }
+.debug-warn { padding: 5px 10px; background: #fff4ce; color: #5c4400; border-bottom: 1px solid #e8d48a; font-family: system-ui, sans-serif; font-size: 12.5px; }
+.debug-rows { flex: 1; overflow: auto; padding: 2px 0; }
+.debug-empty { padding: 14px; color: var(--muted, #777); font-family: system-ui, sans-serif; }
+.debug-row { display: grid; grid-template-columns: 92px 52px 82px 1fr 72px; gap: 8px; padding: 1px 10px; white-space: nowrap; }
+.debug-row:hover { background: var(--hover, rgba(0,0,0,.05)); }
+.debug-row .t { color: var(--muted, #777); }
+.debug-row .src { font-weight: 600; }
+.debug-row .src.imap { color: #8764b8; } .debug-row .src.http { color: #0f6cbd; } .debug-row .src.ui { color: #038387; } .debug-row .src.server { color: #ca5010; }
+.debug-row .acct { color: var(--muted, #777); overflow: hidden; text-overflow: ellipsis; }
+.debug-row .txt { overflow: hidden; text-overflow: ellipsis; }
+.debug-row .txt em { color: #b45309; font-style: normal; font-weight: 600; }
+.debug-row .ms { text-align: right; } .debug-row .ms.mid { color: #b45309; } .debug-row .ms.slow { color: #c4262e; font-weight: 700; }
+.debug-row.error .txt { color: #c4262e; }

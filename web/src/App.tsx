@@ -14,6 +14,7 @@ import { LangPicker } from './LangPicker.tsx';
 import type { AdminMe, Features, Folder, Me, Message, Prefs, Summary } from './api.ts';
 import { Icon, folderIcon } from './icons.tsx';
 import { SelectBox } from './SelectBox.tsx';
+import { DebugPanel } from './DebugPanel.tsx';
 import { allSelected, someSelected, toggleAll, toggleGroup } from './selection.ts';
 import { Login } from './Login.tsx';
 import { Compose } from './Compose.tsx';
@@ -63,6 +64,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   const [acct, setAcctState] = useState(() => store('acct', 'main'));
   useAccount(acct); // every mail API call below acts on this mailbox
   const [allFolders, setAllFolders] = useState<Record<string, Folder[]>>({});
+  const [debugOpen, setDebugOpen] = useState(false);
   const allFoldersRef = useRef(allFolders);
   allFoldersRef.current = allFolders;
   const folders = allFolders[acct] ?? [];
@@ -326,8 +328,10 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
     const timer = setInterval(() => {
       if (document.hidden) return;
       tick++;
-      void (tick % 4 === 0 ? loadFolders() : loadFolders(false, [acct, 'main']));
-      if (!searching && page === 0) void loadList(folder, 0, '', true);
+      // Other mailboxes (Gmail throttles every single command) are refreshed every 2 minutes; the login mailbox every 30 s.
+      const other = acct !== 'main' && acct !== UNI_ACCOUNT;
+      void (tick % 4 === 0 ? loadFolders() : loadFolders(false, other ? ['main'] : [acct, 'main']));
+      if (!searching && page === 0 && (!other || tick % 4 === 0)) void loadList(folder, 0, '', true);
     }, POLL_MS);
     return () => clearInterval(timer);
   }, [folder, acct, page, searching, loadFolders, loadList]);
@@ -956,6 +960,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
 
   return (
     <div className="app">
+      {debugOpen && features?.debug && <DebugPanel onClose={() => setDebugOpen(false)} />}
       <header className="topbar">
         <button className="top-btn phone-only" onClick={() => setDrawer(true)} title={t('Folders')}>
           <Icon name="menu" />
@@ -1011,6 +1016,13 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
             </span>
           )}
           {view === 'mail' && <span className="desk-only"><PaneMenu pane={pane} onPane={setPane} /></span>}
+          {features?.debug && (
+            <span className="desk-only">
+              <button className={`top-btn ${debugOpen ? 'on' : ''}`} title="Debug: what goodmail is doing in the background" aria-label="Debug" aria-pressed={debugOpen} onClick={() => setDebugOpen(!debugOpen)}>
+                <Icon name="bug" />
+              </button>
+            </span>
+          )}
           <span className="desk-only"><ThemeMenu /></span>
           <span className="desk-only">
             <ViewMenu onAccounts={() => setDialog({ kind: 'accounts' })} onSecurity={() => setDialog({ kind: 'security' })} onRules={features?.rules ? () => setDialog({ kind: 'rules' }) : undefined} onSmime={features?.smime ? () => setDialog({ kind: 'smime' }) : undefined} onSignatures={() => setDialog({ kind: 'signatures', tab: 'signature' })} onAdmin={adminMe?.admin ? () => setDialog({ kind: 'admin' }) : undefined} source={source} />

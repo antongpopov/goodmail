@@ -4,6 +4,7 @@ import { previewPart, attachments, makeSnippet } from './mime.ts';
 import { spamInfo, parseHeaderLines } from './spam.ts';
 import { Conn } from './session.ts';
 import { checkValidity } from './cache.ts';
+import { debugLog } from './debug.ts';
 
 /** The server says our view of the folder is out of date (messages we asked for were expunged since we last synced). */
 export function isStaleView(err: unknown): boolean {
@@ -24,6 +25,7 @@ export async function withFolder<T>(s: Conn, folder: string, fn: (c: ImapFlow) =
   }
   const waited = Date.now() - t0;
   if (waited > 2000) console.warn(`slow open ${s.account.email} ${folder}: connect ${t1 - t0} ms, select ${Date.now() - t1} ms`);
+  debugLog({ src: 'server', account: s.account.email, sid: '', text: `open ${folder}: ${t1 - t0} ms to get a connection, ${Date.now() - t1} ms to select`, ms: waited, level: waited > 2000 ? 'slow' : undefined });
   try {
     if (c.mailbox) checkValidity(s.account.email, folder, c.mailbox.uidValidity);
     try {

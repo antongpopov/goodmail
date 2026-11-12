@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { ImapFlow } from 'imapflow';
 import nodemailer from 'nodemailer';
+import { debugOn, imapTracer } from './debug.ts';
 
 export interface Account {
   email: string;
@@ -184,8 +185,11 @@ export function connectImap(a: Account): Promise<ImapFlow> {
     disableAutoIdle: true,
     disableCompression: true,
     logger: false,
-    emitLogs: TRACE,
+    emitLogs: TRACE || debugOn(),
+    // a socket that went silent (Gmail drops idle connections without telling us) must not leave a click waiting for minutes
+    socketTimeout: 60_000,
   });
+  if (debugOn()) c.on('log', imapTracer(a.email));
   if (TRACE) {
     // GOODMAIL_IMAP_TRACE=true: one line per IMAP command/response with the time since the previous one (never prints credentials)
     let last = Date.now();

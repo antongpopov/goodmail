@@ -31,7 +31,7 @@ export interface MailAccount { id: string; email: string; name: string; provider
 export interface MfaChallenge { ticket: string; totp: boolean; passkey: boolean; email: string | null; recovery: boolean }
 export interface MfaStatus { enabled: boolean; totp: boolean; passkeys: { id: string; name: string; added: number; passwordless: boolean }[]; email: string | null; recoveryLeft: number; resetEmail?: string | null; recovery?: string[] }
 export interface Me { email: string; name: string; imapHost: string; appName?: string; appNames?: Record<string, string> }
-export interface Features { rules: boolean; password: boolean; passwordMin: number; reset: boolean; smime: boolean; admin: boolean }
+export interface Features { debug?: boolean; rules: boolean; password: boolean; passwordMin: number; reset: boolean; smime: boolean; admin: boolean }
 export interface AdminMe { admin: boolean; superadmin: boolean; domains: string[] }
 export interface AdminMailbox { address: string; name: string; active: boolean; forwards: string[]; keep?: boolean }
 export interface AdminAlias { address: string; goto: string[]; active: boolean }
@@ -61,13 +61,37 @@ import { tErr } from './i18n.ts';
 let onUnauthorized = () => {};
 export const setUnauthorizedHandler = (fn: () => void) => { onUnauthorized = fn; };
 
+/** What the Debug window shows: events from the server plus the browser's own view of each call. */
+export interface DebugEvent { n: number; t: number; src: 'http' | 'imap' | 'server' | 'ui'; account: string; text: string; ms?: number; level?: 'slow' | 'error'; throttled?: boolean }
+let uiLogOn = false;
+let uiSeq = 0;
+export const uiBuf: DebugEvent[] = [];
+export const setUiLog = (on: boolean) => { uiLogOn = on; if (!on) uiBuf.length = 0; };
+const uiLog = (method: string, url: string, t0: number, status: number | string) => {
+  if (!uiLogOn || url.startsWith('/api/debug')) return;
+  const u = new URL(url, location.origin);
+  const bits = ['folder', 'page', 'filter'].filter((k) => u.searchParams.get(k)).map((k) => `${k}=${u.searchParams.get(k)}`).join(' ');
+  const ms = Math.round(performance.now() - t0);
+  const bad = typeof status === 'string' || status >= 400;
+  uiBuf.push({ n: ++uiSeq, t: Date.now(), src: 'ui', account: u.searchParams.get('account') || '', text: `${method} ${u.pathname}${bits ? ' ' + bits : ''} → ${status}`, ms, level: bad ? 'error' : ms >= 2000 ? 'slow' : undefined });
+  if (uiBuf.length > 500) uiBuf.shift();
+};
+
 async function call<T>(method: string, url: string, body?: unknown): Promise<T> {
-  const r = await fetch(url, {
-    method,
-    credentials: 'same-origin',
-    headers: { 'x-goodmail': '1', ...(body ? { 'content-type': 'application/json' } : {}) },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const t0 = performance.now();
+  let r: Response;
+  try {
+    r = await fetch(url, {
+      method,
+      credentials: 'same-origin',
+      headers: { 'x-goodmail': '1', ...(body ? { 'content-type': 'application/json' } : {}) },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (err) {
+    uiLog(method, url, t0, 'network error');
+    throw err;
+  }
+  uiLog(method, url, t0, r.status);
   const data = await r.json().catch(() => ({}));
   if (!r.ok) {
     if (r.status === 401 && !url.startsWith('/api/login')) onUnauthorized();
@@ -134,6 +158,7 @@ export const api = {
     return r.blob();
   },
   features: () => call<Features>('GET', '/api/features'),
+  debug: (since: number) => call<{ events: DebugEvent[] }>('GET', `/api/debug?since=${since}`),
   adminMe: () => call<AdminMe>('GET', '/api/admin/me'),
   adminDomain: (domain: string) => call<AdminDomain>('GET', `/api/admin/domain?${q({ domain })}`),
   adminDomains: () => call<{ domains: AdminDomainRow[] }>('GET', '/api/admin/domains'),

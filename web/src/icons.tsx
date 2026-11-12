@@ -1,6 +1,7 @@
 // Small outline icon set in the spirit of Fluent UI (drawn here, 20×20, stroke = currentColor).
 const P: Record<string, string> = {
   mail: 'M3 5.5h14v9H3z M3.5 6l6.5 5 6.5-5',
+  bug: 'M7.5 5.5a2.5 2.5 0 0 1 5 0 M6.5 8h7v4.5a3.5 3.5 0 0 1-7 0z M3.5 8.5l3 1 M3.5 14l3-1 M16.5 8.5l-3 1 M16.5 14l-3-1 M10 8v8',
   compose: 'M4 16h3l8.5-8.5-3-3L4 13z M11 6l3 3 M4 16h12',
   trash: 'M4 5.5h12 M8 5.5V4h4v1.5 M5.5 5.5l.8 10.5h7.4l.8-10.5 M8.5 8.5v5 M11.5 8.5v5',
   archive: 'M3.5 4.5h13v3h-13z M4.5 7.5v8h11v-8 M8 10.5h4',

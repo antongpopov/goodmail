@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { PORT, requireCsrfHeader } from './http.ts';
+import { debugLog, debugOn } from './debug.ts';
 import routesAuth from './routes/auth.ts';
 import routesTwofactor from './routes/twofactor.ts';
 import routesMail from './routes/mail.ts';
@@ -33,6 +34,18 @@ app.use((_req, res, next) => {
   next();
 });
 app.use('/api', requireCsrfHeader);
+// Debug window: one event per API call with how long it took (never the search text, never a body)
+app.use('/api', (req, res, next) => {
+  if (!debugOn() || req.path === '/debug') return next();
+  const t0 = Date.now();
+  const path = req.originalUrl.split('?')[0];
+  res.on('finish', () => {
+    const q = req.query;
+    const bits = ['folder', 'page', 'filter'].filter((k) => q[k] !== undefined && q[k] !== '').map((k) => `${k}=${String(q[k]).slice(0, 40)}`).join(' ');
+    debugLog({ src: 'http', account: String(q.account || ''), sid: (req as any).session?.id || '', text: `${req.method} ${path}${bits ? ' ' + bits : ''} → ${res.statusCode}`, ms: Date.now() - t0, level: res.statusCode >= 400 ? 'error' : Date.now() - t0 >= 2000 ? 'slow' : undefined });
+  });
+  next();
+});
 
 app.use(routesAuth);
 app.use(routesTwofactor);

@@ -289,6 +289,7 @@ password sign-in.
 | `GOODMAIL_CACHE_MB` | `150` | memory for cached parsed messages |
 | `GOODMAIL_TRUST_PROXY` | `false` | trust `X-Forwarded-For` (set behind a proxy) |
 | `GOODMAIL_IMAP_TRACE` | `false` | log one line per IMAP command with the time since the previous one (to find what makes a slow server slow; never prints credentials) |
+| `GOODMAIL_DEBUG` | `false` | same as `debug=true` in `goodmail.conf`: a Debug window (bug icon in the top bar) showing the last minutes of what goodmail does in the background — browser calls, server calls, IMAP commands with their timings, and a warning when a server throttles the connection (Gmail answers `[THROTTLED]`). Kept in memory only; each user sees only their own; credentials are never logged |
 | `GOODMAIL_ORIGIN` | from the request | pin the site's origin for passkeys (single host only) |
 | `GOODMAIL_OPENSSL` | `openssl` | the openssl command used for S/MIME |
 
