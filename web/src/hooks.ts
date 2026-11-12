@@ -70,3 +70,28 @@ export function useAddressBook(contactsViewOpen: boolean) {
   const known = useMemo(() => new Set(book.flatMap((c) => c.emails)), [book]);
   return { book, addContact, setAddContact, reloadBook, known };
 }
+
+/** New-mail notifications (see notify.ts): a sound, a desktop notification, the unread count on the tab. Kept per browser. */
+export function useNotifyPrefs() {
+  const [sound, setSoundState] = useState<boolean>(() => store('notifySound', true));
+  const [desktop, setDesktopState] = useState<boolean>(() => store('notifyDesktop', false));
+  const [badge, setBadgeState] = useState<boolean>(() => store('notifyBadge', true));
+  const setSound = (v: boolean) => {
+    setSoundState(v);
+    save('notifySound', v);
+  };
+  const setBadge = (v: boolean) => {
+    setBadgeState(v);
+    save('notifyBadge', v);
+  };
+  /** Desktop notifications need the browser's permission: ask when the box is ticked, and stay off if it is refused. */
+  const setDesktop = async (v: boolean) => {
+    let ok = v;
+    if (v) {
+      ok = typeof Notification !== 'undefined' && (Notification.permission === 'granted' || (await Notification.requestPermission()) === 'granted');
+    }
+    setDesktopState(ok);
+    save('notifyDesktop', ok);
+  };
+  return { sound, setSound, desktop, setDesktop, badge, setBadge };
+}

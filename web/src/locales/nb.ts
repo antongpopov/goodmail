@@ -480,4 +480,7 @@ export const nb: Dict = {
   // select all
   'Select all': 'Merk alle', 'Deselect all': 'Fjern merking',
   'Select all in “{label}”': 'Merk alle i «{label}»', 'Deselect all in “{label}”': 'Fjern merking i «{label}»',
+  // new-mail notifications
+  'Play a sound': 'Spill av en lyd', 'Show a desktop notification': 'Vis et skrivebordsvarsel', 'Unread count on the tab icon': 'Antall uleste på fanens ikon', Test: 'Test',
+  'One new message': 'Én ny melding', '{n} new messages': '{n} nye meldinger',
 };

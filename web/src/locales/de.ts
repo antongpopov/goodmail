@@ -480,4 +480,7 @@ export const de: Dict = {
   // select all
   'Select all': 'Alle auswählen', 'Deselect all': 'Auswahl aufheben',
   'Select all in “{label}”': 'Alle in „{label}“ auswählen', 'Deselect all in “{label}”': 'Auswahl in „{label}“ aufheben',
+  // new-mail notifications
+  'Play a sound': 'Ton abspielen', 'Show a desktop notification': 'Desktop-Benachrichtigung anzeigen', 'Unread count on the tab icon': 'Anzahl ungelesener Mails im Tab-Symbol', Test: 'Testen',
+  'One new message': 'Eine neue Nachricht', '{n} new messages': '{n} neue Nachrichten',
 };

@@ -15,6 +15,7 @@ import type { AdminMe, Features, Folder, Me, Message, Prefs, Summary } from './a
 import { Icon, folderIcon } from './icons.tsx';
 import { SelectBox } from './SelectBox.tsx';
 import { DebugPanel } from './DebugPanel.tsx';
+import { inboxCounts, totalUnseen, newMail, playChime, unlockAudio, setTabCount, showDesktop, type InboxCount } from './notify.ts';
 import { allSelected, someSelected, toggleAll, toggleGroup } from './selection.ts';
 import { Login } from './Login.tsx';
 import { Compose } from './Compose.tsx';
@@ -33,7 +34,7 @@ import { Splitter } from './Splitter.tsx';
 import { MessageItem } from './MessageItem.tsx';
 import { FolderRow } from './FolderRow.tsx';
 import { ViewMenu, PaneMenu, ThemeMenu, FilterMenu, Appearance } from './ViewMenu.tsx';
-import { useAddressBook, useLayout, usePhoneWidth, useToast } from './hooks.ts';
+import { useAddressBook, useLayout, useNotifyPrefs, usePhoneWidth, useToast } from './hooks.ts';
 
 const POLL_MS = 30_000;
 
@@ -126,6 +127,28 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   const { collapsed, setCollapsed, foldersHidden, setFoldersHidden, pane, setPane, preview, setPreview, oldestFirst, setOldestFirst, sortKey, setSortKey, listH, setListH, folderW, setFolderW, listW, setListW } = useLayout();
   const previewRef = useRef(preview);
   previewRef.current = preview;
+  const notify = useNotifyPrefs();
+  const lastCounts = useRef<Record<string, InboxCount> | null>(null);
+  // New mail: compare the Inbox counts with the previous look (they are polled anyway) and chime / badge / notify.
+  useEffect(() => {
+    const now = inboxCounts(allFolders);
+    const { n, ids } = newMail(lastCounts.current, now);
+    lastCounts.current = { ...(lastCounts.current ?? {}), ...now };
+    if (n > 0) {
+      if (notify.sound) playChime();
+      if (notify.desktop) {
+        const who = ids.map((id) => (id === 'main' ? me.email : accountsRef.current.find((a) => a.id === id)?.email ?? id)).join(', ');
+        showDesktop(appName, `${n === 1 ? t('One new message') : t('{n} new messages', { n })} · ${who}`);
+      }
+    }
+    setTabCount(notify.badge ? totalUnseen(now) : 0, appName);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allFolders, notify.badge, appName]);
+  useEffect(() => {
+    // browsers allow sound only after the page was used: the first click or key press unlocks it
+    window.addEventListener('pointerdown', unlockAudio, { once: true });
+    window.addEventListener('keydown', unlockAudio, { once: true });
+  }, []);
   // The server only pages by date, so the order sent to it matters for the date sort alone.
   const serverAsc = sortKey === 'date' && oldestFirst;
   oldestRef.current = serverAsc;
@@ -1055,7 +1078,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
           )}
           <span className="desk-only"><ThemeMenu /></span>
           <span className="desk-only">
-            <ViewMenu onAccounts={() => setDialog({ kind: 'accounts' })} onSecurity={() => setDialog({ kind: 'security' })} onRules={features?.rules ? () => setDialog({ kind: 'rules' }) : undefined} onSmime={features?.smime ? () => setDialog({ kind: 'smime' }) : undefined} onSignatures={() => setDialog({ kind: 'signatures', tab: 'signature' })} onAdmin={adminMe?.admin ? () => setDialog({ kind: 'admin' }) : undefined} source={source} />
+            <ViewMenu notify={{ ...notify, test: playChime }} onAccounts={() => setDialog({ kind: 'accounts' })} onSecurity={() => setDialog({ kind: 'security' })} onRules={features?.rules ? () => setDialog({ kind: 'rules' }) : undefined} onSmime={features?.smime ? () => setDialog({ kind: 'smime' }) : undefined} onSignatures={() => setDialog({ kind: 'signatures', tab: 'signature' })} onAdmin={adminMe?.admin ? () => setDialog({ kind: 'admin' }) : undefined} source={source} />
           </span>
           <button className="top-btn desk-only" onClick={onLogout} title={t('Sign out')}>
             <Icon name="signout" />

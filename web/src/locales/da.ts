@@ -492,4 +492,7 @@ export const da: Dict = {
   // select all
   'Select all': 'Vælg alle', 'Deselect all': 'Fravælg alle',
   'Select all in “{label}”': 'Vælg alle i “{label}”', 'Deselect all in “{label}”': 'Fravælg alle i “{label}”',
+  // new-mail notifications
+  'Play a sound': 'Afspil en lyd', 'Show a desktop notification': 'Vis en skrivebordsnotifikation', 'Unread count on the tab icon': 'Antal ulæste på fanens ikon', Test: 'Test',
+  'One new message': 'Én ny besked', '{n} new messages': '{n} nye beskeder',
 };

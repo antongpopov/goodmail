@@ -119,7 +119,9 @@ function Choice({ label, value, options, onChange }: { label: string; value: str
   );
 }
 
-export function ViewMenu({ onAccounts, onSecurity, onRules, onSmime, onSignatures, onAdmin, source }: { onAccounts: () => void; onSecurity: () => void; onRules?: () => void; onSmime?: () => void; onSignatures?: () => void; onAdmin?: () => void; source: string }) {
+export type NotifyPrefs = { sound: boolean; setSound: (v: boolean) => void; desktop: boolean; setDesktop: (v: boolean) => void; badge: boolean; setBadge: (v: boolean) => void; test: () => void };
+
+export function ViewMenu({ onAccounts, onSecurity, onRules, onSmime, onSignatures, onAdmin, source, notify }: { notify?: NotifyPrefs; onAccounts: () => void; onSecurity: () => void; onRules?: () => void; onSmime?: () => void; onSignatures?: () => void; onAdmin?: () => void; source: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -159,6 +161,23 @@ export function ViewMenu({ onAccounts, onSecurity, onRules, onSmime, onSignature
             <div className="menu-label">{t('Language')}</div>
             <LangPicker className="wide" />
           </div>
+          {notify && (
+            <>
+              <div className="menu-label">{t('New mail')}</div>
+              <label className="menu-check">
+                <input type="checkbox" checked={notify.sound} onChange={(e) => notify.setSound(e.target.checked)} /> {t('Play a sound')}
+                <button type="button" className="link-btn" onClick={notify.test}>{t('Test')}</button>
+              </label>
+              {typeof Notification !== 'undefined' && (
+                <label className="menu-check">
+                  <input type="checkbox" checked={notify.desktop} onChange={(e) => notify.setDesktop(e.target.checked)} /> {t('Show a desktop notification')}
+                </label>
+              )}
+              <label className="menu-check">
+                <input type="checkbox" checked={notify.badge} onChange={(e) => notify.setBadge(e.target.checked)} /> {t('Unread count on the tab icon')}
+              </label>
+            </>
+          )}
           <button className="menu-btn" onClick={() => { setOpen(false); onAccounts(); }}>
             <Icon name="people" size={16} /> {t('Manage accounts…')}
           </button>

@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { PORT, requireCsrfHeader } from './http.ts';
 import { debugLog, debugOn } from './debug.ts';
+import { manifestFor } from './manifest.ts';
+import { appTitle } from './config.ts';
 import routesAuth from './routes/auth.ts';
 import routesTwofactor from './routes/twofactor.ts';
 import routesMail from './routes/mail.ts';
@@ -32,6 +34,10 @@ app.use((_req, res, next) => {
       "script-src 'self'; frame-src 'self' blob: about:; connect-src 'self'; object-src 'none'; base-uri 'self'",
   );
   next();
+});
+app.get('/manifest.webmanifest', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
+  res.type('application/manifest+json').send(JSON.stringify(manifestFor(appTitle())));
 });
 app.use('/api', requireCsrfHeader);
 // Debug window: one event per API call with how long it took (never the search text, never a body)

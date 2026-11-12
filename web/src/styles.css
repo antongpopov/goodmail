@@ -803,3 +803,8 @@ a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
 .debug-row .txt em { color: #b45309; font-style: normal; font-weight: 600; }
 .debug-row .ms { text-align: right; } .debug-row .ms.mid { color: #b45309; } .debug-row .ms.slow { color: #c4262e; font-weight: 700; }
 .debug-row.error .txt { color: #c4262e; }
+
+/* New-mail notification settings (settings menu) */
+.menu-check { display: flex; align-items: center; gap: 8px; padding: 4px 4px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.menu-check input { accent-color: var(--brand); }
+.link-btn { margin-left: auto; color: var(--brand); font-size: 12px; text-decoration: underline; }

@@ -480,4 +480,7 @@ export const sv: Dict = {
   // select all
   'Select all': 'Markera alla', 'Deselect all': 'Avmarkera alla',
   'Select all in “{label}”': 'Markera alla i ”{label}”', 'Deselect all in “{label}”': 'Avmarkera alla i ”{label}”',
+  // new-mail notifications
+  'Play a sound': 'Spela upp ett ljud', 'Show a desktop notification': 'Visa en skrivbordsavisering', 'Unread count on the tab icon': 'Antal olästa på flikens ikon', Test: 'Testa',
+  'One new message': 'Ett nytt meddelande', '{n} new messages': '{n} nya meddelanden',
 };
