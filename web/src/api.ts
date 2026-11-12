@@ -2,7 +2,7 @@ export interface Addr { name: string; address: string }
 export interface Folder { path: string; name: string; delimiter: string; specialUse: string; unseen: number; total: number }
 export interface Summary {
   uid: number; date: number; from: Addr; to: Addr[]; cc: Addr[]; subject: string; messageId: string;
-  seen: boolean; flagged: boolean; answered: boolean; hasAttachments: boolean; size: number; snippet: string;
+  seen: boolean; flagged: boolean; answered: boolean; hasAttachments: boolean; size: number; snippet: string; snippetPending?: boolean;
   spam?: { score: number; threshold: number; reject?: number; engine: string } | null;
   /** Only in the combined views ("All inboxes"…): where the message really lives; `uid` is then a list-unique number and `rUid` the real UID. */
   account?: string; folder?: string; rUid?: number;
@@ -158,6 +158,7 @@ export const api = {
     return r.blob();
   },
   features: () => call<Features>('GET', '/api/features'),
+  snippets: (folder: string, uids: number[]) => call<{ snippets: Record<number, string> }>('POST', '/api/snippets', { account: cur, folder, uids }),
   debug: (since: number) => call<{ events: DebugEvent[] }>('GET', `/api/debug?since=${since}`),
   adminMe: () => call<AdminMe>('GET', '/api/admin/me'),
   adminDomain: (domain: string) => call<AdminDomain>('GET', `/api/admin/domain?${q({ domain })}`),

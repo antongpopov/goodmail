@@ -10,8 +10,8 @@ import { spamInfo } from '../spam.ts';
 import { messageCache, msgKey, dropMessages, patchFlag } from '../cache.ts';
 import { Router } from 'express';
 import { PAGE, conn, auth, wrap } from '../http.ts';
-import { withFolder, folders, NAME_FALLBACK, special, listMessages, noteUnseen } from '../imap.ts';
-import type { Conn } from '../session.ts';
+import { withFolder, folders, NAME_FALLBACK, special, listMessages, fillSnippets, noteUnseen } from '../imap.ts';
+import { throttledHost, type Conn } from '../session.ts';
 
 const r = Router();
 
@@ -53,6 +53,7 @@ async function byDate(c: ImapFlow, uids: number[], asc: boolean) {
 
 async function listPage(cn: Conn, folder: string, page: number, filter: string, q = '', asc = false) {
   const dir = <T extends { date: number; uid: number }>(l: T[]) => (asc ? l.slice().sort((a, b) => a.date - b.date || a.uid - b.uid) : l);
+  const lazy = throttledHost(cn.account); // previews come in a second step on a throttled server (Gmail)
   return withFolder(
     cn,
     folder,
@@ -60,7 +61,7 @@ async function listPage(cn: Conn, folder: string, page: number, filter: string, 
       if (q) {
         const uids = (await c.search({ or: [{ subject: q }, { from: q }, { to: q }, { body: q }] }, { uid: true })) || [];
         const top = (await byDate(c, uids, asc)).slice(0, 200);
-        const messages = top.length ? dir(await listMessages(cn, c, folder, top, true)) : [];
+        const messages = top.length ? dir(await listMessages(cn, c, folder, top, true, lazy)) : [];
         return { total: uids.length, messages, hasMore: false };
       }
       if (filter === 'unread' || filter === 'flagged' || filter === 'tome') {
@@ -68,7 +69,7 @@ async function listPage(cn: Conn, folder: string, page: number, filter: string, 
         const uids = await byDate(c, (await c.search(filter === 'unread' ? { seen: false } : filter === 'tome' ? { to: cn.account.email } : { flagged: true }, { uid: true })) || [], asc);
         if (filter === 'unread') noteUnseen(cn, folder, uids.length);
         const slice = uids.slice(page * PAGE, (page + 1) * PAGE);
-        const messages = slice.length ? dir(await listMessages(cn, c, folder, slice, true)) : [];
+        const messages = slice.length ? dir(await listMessages(cn, c, folder, slice, true, lazy)) : [];
         return { total: uids.length, messages, hasMore: uids.length > (page + 1) * PAGE };
       }
       if (filter === 'attachments') {
@@ -77,7 +78,7 @@ async function listPage(cn: Conn, folder: string, page: number, filter: string, 
         const types = ['multipart/mixed', 'multipart/signed', 'multipart/related', 'application/'];
         const uids = await byDate(c, (await c.search({ or: types.map((v) => ({ header: { 'Content-Type': v } })) }, { uid: true })) || [], asc);
         const slice = uids.slice(page * PAGE, (page + 1) * PAGE);
-        const messages = slice.length ? dir((await listMessages(cn, c, folder, slice, true)).filter((m) => m.hasAttachments)) : [];
+        const messages = slice.length ? dir((await listMessages(cn, c, folder, slice, true, lazy)).filter((m) => m.hasAttachments)) : [];
         return { total: uids.length, messages, hasMore: uids.length > (page + 1) * PAGE };
       }
       const exists = c.mailbox ? c.mailbox.exists : 0;
@@ -85,17 +86,30 @@ async function listPage(cn: Conn, folder: string, page: number, filter: string, 
         const first = 1 + page * PAGE;
         if (first > exists) return { total: exists, messages: [], hasMore: false };
         const last = Math.min(exists, first + PAGE - 1);
-        return { total: exists, messages: dir(await listMessages(cn, c, folder, `${first}:${last}`, false)), hasMore: last < exists };
+        return { total: exists, messages: dir(await listMessages(cn, c, folder, `${first}:${last}`, false, lazy)), hasMore: last < exists };
       }
       const to = exists - page * PAGE;
       if (to < 1) return { total: exists, messages: [], hasMore: false };
       const from = Math.max(1, to - PAGE + 1);
-      const messages = await listMessages(cn, c, folder, `${from}:${to}`, false);
+      const messages = await listMessages(cn, c, folder, `${from}:${to}`, false, lazy);
       return { total: exists, messages, hasMore: from > 1 };
     },
     true,
   );
 }
+
+// Preview lines for messages a list returned with snippetPending (throttled servers: Gmail)
+r.post(
+  '/api/snippets',
+  auth,
+  wrap(async (req, res) => {
+    const cn = conn(req);
+    const folder = String(req.body?.folder || '');
+    const uids = (Array.isArray(req.body?.uids) ? req.body.uids : []).map(Number).filter(Number.isFinite).slice(0, 100);
+    if (!folder || !uids.length) return res.json({ snippets: {} });
+    res.json({ snippets: await withFolder(cn, folder, (c) => fillSnippets(cn, c, folder, uids), true) });
+  }),
+);
 
 r.get(
   '/api/messages',

@@ -112,6 +112,8 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   const filterRef = useRef(filter);
   filterRef.current = filter;
   const { collapsed, setCollapsed, foldersHidden, setFoldersHidden, pane, setPane, preview, setPreview, oldestFirst, setOldestFirst, sortKey, setSortKey, listH, setListH, folderW, setFolderW, listW, setListW } = useLayout();
+  const previewRef = useRef(preview);
+  previewRef.current = preview;
   // The server only pages by date, so the order sent to it matters for the date sort alone.
   const serverAsc = sortKey === 'date' && oldestFirst;
   oldestRef.current = serverAsc;
@@ -263,6 +265,21 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
           void prefetch(acctId, f, r.messages.slice(0, 4), id);
         }
         setHasMore(r.hasMore);
+        // A throttled server (Gmail) sends the list first and the preview lines afterwards, so the list shows up sooner.
+        const pend = r.messages.filter((m) => m.snippetPending).map((m) => m.uid);
+        if (pend.length && acctId !== UNI_ACCOUNT && previewRef.current) {
+          void (async () => {
+            try {
+              const { snippets } = await withAcct(acctId, () => api.snippets(f, pend));
+              const fill = (l: Summary[]) => l.map((m) => (String(m.uid) in snippets ? { ...m, snippet: snippets[m.uid], snippetPending: false } : m));
+              const cached = listCache.get(lkey);
+              if (cached) cached.messages = fill(cached.messages);
+              if (listFor.current === where) setList(fill);
+            } catch {
+              /* the previews are optional */
+            }
+          })();
+        }
         // The server reconciles a folder's unread counter with this search; pick the corrected number up now.
         if (flt === 'unread' && p === 0 && !q && acctId !== UNI_ACCOUNT) void loadFolders();
         setList((old) => {

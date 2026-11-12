@@ -22,6 +22,14 @@ export interface Account {
 
 const TRACE = process.env.GOODMAIL_IMAP_TRACE === 'true';
 const POOL_MAX = 3; // IMAP connections per mailbox for folder work (Gmail allows 15 per account)
+/**
+ * Gmail throttles every IMAP command of an account (the reply says [THROTTLED], ~0.8-1 s per command) and the delay is per
+ * account, not per connection. Extra connections therefore buy nothing and each new one costs more commands (NAMESPACE, ENABLE),
+ * so for Gmail goodmail keeps ONE connection and sends as few commands as it can (see the Debug window).
+ */
+export const throttledHost = (a: { imapHost: string }) =>
+  /(^|\.)(gmail|googlemail)\.com$/i.test(a.imapHost) ||
+  (process.env.GOODMAIL_THROTTLED_HOSTS || '').toLowerCase().split(',').map((x) => x.trim()).includes(a.imapHost.toLowerCase()); // other servers that throttle: GOODMAIL_THROTTLED_HOSTS=imap.example.com
 const IDLE_CLOSE_MS = 10 * 60 * 1000; // drop the IMAP socket after 10 min of no requests
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // force re-login after 12 h of inactivity
 
@@ -67,7 +75,7 @@ export class Conn {
     const all = [first, ...this.pool];
     const load = (c: ImapFlow) => this.busy.get(c) ?? 0;
     const pick = all.reduce((a, b) => (load(b) < load(a) ? b : a));
-    if (load(pick) > 0 && all.length + this.growing < POOL_MAX) {
+    if (load(pick) > 0 && all.length + this.growing < (throttledHost(this.account) ? 1 : POOL_MAX)) {
       this.growing++;
       void connectImap(this.account)
         .then((c) => {
@@ -97,6 +105,7 @@ export class Conn {
   private listClient: ImapFlow | null = null;
   private listConnecting: Promise<ImapFlow> | null = null;
   async imapList(): Promise<ImapFlow> {
+    if (throttledHost(this.account)) return this.imap(); // one connection only: a second one would be throttled together with the first
     if (this.listClient?.usable) return this.listClient;
     if (this.listConnecting) return this.listConnecting;
     this.listConnecting = connectImap(this.account)

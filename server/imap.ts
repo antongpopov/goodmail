@@ -130,8 +130,20 @@ export function summarize(m: FetchMessageObject, snippet: string) {
   };
 }
 
-/** Fetch envelopes for a uid/seq range, then preview text grouped by part key (one FETCH per distinct key). */
-export async function listMessages(s: Conn, c: ImapFlow, folder: string, range: string | number[], byUid: boolean) {
+/** Where a message's preview text lives, remembered from the list fetch so it can be filled in afterwards (lazy previews). */
+const partInfo = new Map<string, NonNullable<ReturnType<typeof previewPart>>>();
+function rememberPart(k: string, p: NonNullable<ReturnType<typeof previewPart>>) {
+  partInfo.set(k, p);
+  if (partInfo.size > 50_000) partInfo.delete(partInfo.keys().next().value!);
+}
+const snipKey = (s: Conn, folder: string, c: ImapFlow, uid: number) => `${s.account.email}\u0000${folder}\u0000${String((c.mailbox && c.mailbox.uidValidity) || 0)}\u0000${uid}`;
+
+/**
+ * Fetch envelopes for a uid/seq range, then preview text grouped by part key (one FETCH per distinct key).
+ * lazy: leave the previews out (every extra command costs ~1 s on a throttled server such as Gmail): the messages come back
+ * with snippetPending, and fillSnippets() fetches the previews afterwards while the list is already on screen.
+ */
+export async function listMessages(s: Conn, c: ImapFlow, folder: string, range: string | number[], byUid: boolean, lazy = false) {
   const msgs: FetchMessageObject[] = [];
   for await (const m of c.fetch(
     range,
@@ -151,6 +163,10 @@ export async function listMessages(s: Conn, c: ImapFlow, folder: string, range: 
       cacheSnippet(key(m.uid), '');
       continue;
     }
+    if (lazy) {
+      rememberPart(key(m.uid), p);
+      continue;
+    }
     info.set(m.uid, p);
     needed.set(p.key, [...(needed.get(p.key) || []), m.uid]);
   }
@@ -166,5 +182,40 @@ export async function listMessages(s: Conn, c: ImapFlow, folder: string, range: 
       console.warn('snippet fetch failed', part, (err as Error).message);
     }
   }
-  return msgs.map((m) => summarize(m, snippetCache.get(key(m.uid)) ?? '')).sort((a, b) => b.date - a.date || b.uid - a.uid);
+  return msgs
+    .map((m) => {
+      const snip = snippetCache.get(key(m.uid));
+      const o = summarize(m, snip ?? '');
+      return lazy && snip === undefined ? { ...o, snippetPending: true as const } : o;
+    })
+    .sort((a, b) => b.date - a.date || b.uid - a.uid);
+}
+
+/** The previews listMessages(…, lazy) left out: one FETCH per distinct part key, answers { uid: text }. */
+export async function fillSnippets(s: Conn, c: ImapFlow, folder: string, uids: number[]): Promise<Record<number, string>> {
+  const out: Record<number, string> = {};
+  const need = new Map<string, number[]>();
+  for (const uid of uids) {
+    const k = snipKey(s, folder, c, uid);
+    const have = snippetCache.get(k);
+    if (have !== undefined) out[uid] = have;
+    else if (partInfo.has(k)) need.set(partInfo.get(k)!.key, [...(need.get(partInfo.get(k)!.key) || []), uid]);
+  }
+  for (const [part, list] of need) {
+    try {
+      for await (const m of c.fetch(list, { uid: true, bodyParts: [{ key: part, start: 0, maxLength: 2048 }] }, { uid: true })) {
+        const k = snipKey(s, folder, c, m.uid);
+        const p = partInfo.get(k);
+        const buf = m.bodyParts?.get(part) ?? m.bodyParts?.values().next().value;
+        if (!p || !buf) continue;
+        const text = makeSnippet(buf, p.node, p.isHtml, !!m.binaryParts?.has(part));
+        cacheSnippet(k, text);
+        out[m.uid] = text;
+      }
+    } catch (err) {
+      console.warn('snippet fetch failed', part, (err as Error).message);
+    }
+  }
+  for (const uid of uids) if (!(uid in out)) out[uid] = ''; // nothing to show for it
+  return out;
 }
