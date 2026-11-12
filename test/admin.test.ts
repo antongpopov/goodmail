@@ -44,3 +44,23 @@ test('admincmdN in the config file turns the feature on for that entry', async (
   const none = parseConfig(['domain1=example.com', 'imap1=mail.example.com'].join('\n'));
   assert.equal(none.domains.get('example.com')?.adminCmd, undefined);
 });
+
+import { isAdmin } from '../server/admin.ts';
+
+test('isAdmin: the admin command decides; no command, an error answer or a crash all mean "not an administrator"', async () => {
+  const boss = script(`const l = JSON.parse(require('node:fs').readFileSync(0,'utf8')); console.log(JSON.stringify({ ok: true, admin: l.caller === 'boss@a.dk' }));`.replace("require('node:fs')", 'process.getBuiltinModule("node:fs")'));
+  assert.equal(await isAdmin(boss, 'boss@a.dk', 0), true);
+  assert.equal(await isAdmin(boss, 'BOSS@a.dk', 0), true, 'case does not matter');
+  assert.equal(await isAdmin(boss, 'user@a.dk', 0), false);
+  assert.equal(await isAdmin(undefined, 'boss@a.dk'), false);
+  assert.equal(await isAdmin(script(`console.log(JSON.stringify({ error: 'not an administrator' }));`), 'boss@a.dk', 0), false);
+  assert.equal(await isAdmin(script(`process.exit(3);`), 'boss@a.dk', 0), false);
+});
+
+test('isAdmin remembers the answer, so a polling window does not start the command every time', async () => {
+  const counter = path.join(os.tmpdir(), `gm-adm-count-${process.pid}`);
+  fs.writeFileSync(counter, '');
+  const argv = script(`const fs = process.getBuiltinModule('node:fs'); fs.appendFileSync(${JSON.stringify(counter)}, 'x'); console.log(JSON.stringify({ ok: true, admin: true }));`);
+  for (let i = 0; i < 5; i++) assert.equal(await isAdmin(argv, 'cached@a.dk', 60_000), true);
+  assert.equal(fs.readFileSync(counter, 'utf8').length, 1, 'the command ran once for five asks');
+});

@@ -45,3 +45,24 @@ export function runAdminCommand(argv: string[], op: AdminOp, caller: string, arg
     p.stdin.end(JSON.stringify({ ...args, op, caller }) + '\n');
   });
 }
+
+const adminCache = new Map<string, { at: number; admin: boolean }>();
+/**
+ * Is this user an administrator of any domain? Asks the admin command (`whoami`) — the command alone decides — and remembers the
+ * answer for a minute, because things like the Debug window poll. No admin command configured = nobody is an administrator.
+ */
+export async function isAdmin(argv: string[] | undefined, email: string, ttlMs = 60_000): Promise<boolean> {
+  if (!argv?.length) return false;
+  const key = `${argv.join(' ')}\u0000${email.toLowerCase()}`;
+  const hit = adminCache.get(key);
+  if (hit && Date.now() - hit.at < ttlMs) return hit.admin;
+  let admin = false;
+  try {
+    admin = !!(await runAdminCommand(argv, 'whoami', email.toLowerCase(), {}, 10_000)).admin;
+  } catch {
+    admin = false; // an error answer means "not an administrator" (or the service is down: then no debug window either)
+  }
+  adminCache.set(key, { at: Date.now(), admin });
+  if (adminCache.size > 500) adminCache.delete(adminCache.keys().next().value!);
+  return admin;
+}

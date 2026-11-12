@@ -1,6 +1,7 @@
 // Mail rules (ManageSieve) and password change — both only when the domain's config turns them on.
 import crypto from 'node:crypto';
 import { debugEventsFor, debugOn } from '../debug.ts';
+import { isAdmin } from '../admin.ts';
 import { Router } from 'express';
 import { auth, wrap, cookie, COOKIE } from '../http.ts';
 import type { Authed } from '../http.ts';
@@ -44,17 +45,17 @@ r.get(
   auth,
   wrap(async (req, res) => {
     const srv = await srvFor(req);
-    res.json({ rules: !!srv.sieveHost, password: !!srv.passwordCmd, passwordMin: srv.passwordMin || 10, reset: !!resetSender() && !!srv.passwordCmd, smime: !!smimeConfig(), admin: !!srv.adminCmd, debug: debugOn() });
+    res.json({ rules: !!srv.sieveHost, password: !!srv.passwordCmd, passwordMin: srv.passwordMin || 10, reset: !!resetSender() && !!srv.passwordCmd, smime: !!smimeConfig(), admin: !!srv.adminCmd, debug: debugOn() && (await isAdmin(srv.adminCmd, req.session.account.email)) });
   }),
 );
 
-// The Debug window (goodmail.conf debug=true): what the server did for this user lately
+// The Debug window (goodmail.conf debug=true), for administrators only: what the server did for them lately
 r.get(
   '/api/debug',
   auth,
   wrap(async (req, res) => {
-    if (!debugOn()) return res.status(404).json({ error: 'debug is off' });
     const s = req.session;
+    if (!debugOn() || !(await isAdmin((await srvFor(req)).adminCmd, s.account.email))) return res.status(404).json({ error: 'debug is off' });
     res.json({ events: debugEventsFor({ sid: s.id, accounts: [s.account.email, ...[...s.extra.values()].map((c) => c.account.email)] }, Number(req.query.since) || 0) });
   }),
 );

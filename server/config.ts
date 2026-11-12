@@ -26,7 +26,7 @@
 //   smimeca=auto                   # who issues certificates: auto = a CA goodmail creates itself, off = users import their own
 //   smimecaname=Example Mail CA    # name of that CA   ·   smimedays=730  certificate lifetime   ·   smimetrust=/etc/goodmail/roots.pem extra trusted roots
 //   autodiscover=false             # true = guess servers for domains not listed (ISPDB / imap.<domain>)
-//   debug=true                     # optional: a Debug window (bug icon in the top bar) with what goodmail does in the background — IMAP commands, timings
+//   debug=true                     # optional: a Debug window (bug icon in the top bar, administrators only) with what goodmail does in the background — IMAP commands, timings
 //   spamthreshold=6                # optional: spam score shown as fully red (default: rspamd 6 / SpamAssassin required=)
 //   title=goodmail                 # optional app name (sign-in page, and domains without their own titleN)
 //   title.da=goodmail              # optional: per-language variants of title (language codes as in the language picker)
