@@ -1063,7 +1063,6 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
             </button>
           ))}
         </nav>
-        {view === 'mail' && <ActionPills acts={pillActs} />}
         <form
           className="search"
           onSubmit={(e) => {
@@ -1086,6 +1085,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
             </button>
           )}
         </form>
+        {view === 'mail' && <ActionPills acts={pillActs} />}
         <div className="top-right">
           {view === 'mail' && (
             <span className="desk-only">
