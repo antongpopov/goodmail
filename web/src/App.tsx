@@ -6,7 +6,7 @@ import type { MailAccount } from './api.ts';
 import { Dialogs } from './Dialogs.tsx';
 import type { Dialog } from './Dialogs.tsx';
 import { MessageView } from './MessageView.tsx';
-import { TextBtn } from './actions.tsx';
+import { TextBtn, ActionPills, idleAct } from './actions.tsx';
 import type { Act } from './actions.tsx';
 import { MoveDropdown, MoveSheet } from './MovePicker.tsx';
 import type { MoveTargets } from './MovePicker.tsx';
@@ -777,6 +777,22 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
     unread: { icon: 'unread', label: t('Mark unread'), run: () => { void setFlag([m.uid], '\\Seen', false); closeMessage(); } },
   });
 
+  // The pills in the top bar: the open message's own actions, or greyed out while none is open.
+  const ma = open ? messageActs(open) : null;
+  const pillActs = {
+    reply: ma?.reply ?? idleAct('reply', t('Reply (r)')),
+    replyAll: ma?.replyAll ?? idleAct('replyAll', t('Reply all (a)')),
+    forward: ma?.forward ?? idleAct('forward', t('Forward (f)')),
+    archive: act.archive,
+    delete: act.delete,
+    junk: ma?.junk ?? act.junk,
+    move: act.move,
+    flag: ma?.flag ?? act.flag,
+    headers: ma?.headers ?? idleAct('code', t('View headers')),
+    rule: ma?.rule,
+    unread: ma?.unread ?? idleAct('unread', t('Mark unread')),
+  };
+
   const openFolder = (aid: string, path: string) => {
     setSearching('');
     setQuery('');
@@ -1047,6 +1063,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
             </button>
           ))}
         </nav>
+        {view === 'mail' && <ActionPills acts={pillActs} />}
         <form
           className="search"
           onSubmit={(e) => {

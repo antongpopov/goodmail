@@ -5,7 +5,7 @@ import { Avatar } from './Avatar.tsx';
 import { Icon } from './icons.tsx';
 import { MailBody } from './MailBody.tsx';
 import { SmimeBadge } from './Smime.tsx';
-import { IconBtn } from './actions.tsx';
+import { IconBtn, MoreMenu } from './actions.tsx';
 import type { Act } from './actions.tsx';
 import { displayName, fullTime, humanSize, save, store } from './util.ts';
 import { t } from './i18n.ts';
@@ -49,20 +49,11 @@ export function MessageView({ msg, folder, known, acts, onBack, onAddContact, on
           <Icon name="chevronRight" />
         </button>
         <h2>{msg.subject || t('(no subject)')}</h2>
-        <div className="msg-actions">
+        <div className="msg-actions phone-only">
           <IconBtn a={acts.reply} />
           <IconBtn a={acts.replyAll} />
           <IconBtn a={acts.forward} />
-          <IconBtn a={acts.junk} />
-          <IconBtn a={acts.headers} />
-          {acts.rule && <IconBtn a={acts.rule} />}
-          <span className="phone-only phone-actions">
-            <IconBtn a={acts.delete} />
-            <IconBtn a={acts.archive} />
-            <IconBtn a={acts.move} />
-            <IconBtn a={acts.flag} />
-            <IconBtn a={acts.unread} />
-          </span>
+          <MoreMenu acts={[acts.archive, acts.delete, acts.junk, acts.move, acts.flag, acts.unread, acts.headers, ...(acts.rule ? [acts.rule] : [])]} />
         </div>
       </div>
       <div className="card">
