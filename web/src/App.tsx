@@ -25,7 +25,7 @@ import { Tasks } from './Tasks.tsx';
 import { SidePanel } from './SidePanel.tsx';
 import { bucket, displayName, fullAddr, save, store } from './util.ts';
 import { t, localTitle } from './i18n.ts';
-import { listCache, msgCache, msgKey, rememberMsg } from './cache.ts';
+import { listCache, msgCache, msgKey, rememberMsg, rememberList, hydrateLists, persistLists, persistSoon, clearLists } from './cache.ts';
 import { folderLabel, buildTree } from './folders.ts';
 import type { FolderNode } from './folders.ts';
 import { Avatar } from './Avatar.tsx';
@@ -42,7 +42,10 @@ export default function App() {
   const [cfg, setCfg] = useState<{ appName: string; appNames?: Record<string, string>; reset?: boolean; source: string }>({ appName: 'goodmail', source: 'https://github.com/antongpopov/goodmail' });
 
   useEffect(() => {
-    setUnauthorizedHandler(() => setMe(null));
+    setUnauthorizedHandler(() => {
+      clearLists();
+      setMe(null);
+    });
     api.config().then(setCfg).catch(() => {});
     api.me().then(setMe).catch(() => setMe(null));
   }, []);
@@ -55,7 +58,10 @@ export default function App() {
 
   if (me === undefined) return <div className="splash" />;
   if (!me) return <Login onLogin={setMe} appName={localTitle(cfg.appName, cfg.appNames)} source={cfg.source} canReset={cfg.reset} />;
-  return <Mail me={me} onName={(name) => setMe({ ...me, name })} appName={appName} source={cfg.source} onLogout={() => api.logout().finally(() => setMe(null))} />;
+  return <Mail me={me} onName={(name) => setMe({ ...me, name })} appName={appName} source={cfg.source} onLogout={() => {
+    clearLists();
+    void api.logout().finally(() => setMe(null));
+  }} />;
 }
 
 function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name: string) => void; appName: string; source: string; onLogout: () => void }) {
@@ -65,6 +71,12 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   useAccount(acct); // every mail API call below acts on this mailbox
   const [allFolders, setAllFolders] = useState<Record<string, Folder[]>>({});
   const [debugOpen, setDebugOpen] = useState(false);
+  useState(() => hydrateLists(me.email)); // the lists of before a reload, shown at once while the fresh ones load
+  useEffect(() => {
+    const save = () => persistLists(me.email);
+    window.addEventListener('pagehide', save);
+    return () => window.removeEventListener('pagehide', save);
+  }, [me.email]);
   const allFoldersRef = useRef(allFolders);
   allFoldersRef.current = allFolders;
   const folders = allFolders[acct] ?? [];
@@ -261,7 +273,8 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
         if (merge && listFor.current !== where) return; // refresh of a folder that is no longer the one on screen
         listFor.current = where;
         if (p === 0) {
-          listCache.set(lkey, { messages: r.messages, hasMore: r.hasMore });
+          rememberList(lkey, { messages: r.messages, hasMore: r.hasMore });
+          persistSoon(me.email);
           void prefetch(acctId, f, r.messages.slice(0, 4), id);
         }
         setHasMore(r.hasMore);

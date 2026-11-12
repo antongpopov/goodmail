@@ -104,7 +104,7 @@ More documentation: the [wiki](https://github.com/antongpopov/goodmail/wiki).
 - **View headers**: the `</>` button in the message toolbar shows the raw header block (Received chain, SPF/DKIM/DMARC
   results, spam scores) with a Copy button
 - **Fast on slow servers**: opened messages are cached server-side (`GOODMAIL_CACHE_MB`, default 150), folder lists
-  show instantly from the last visit and refresh behind, and the next messages are prefetched without marking them read
+  show instantly from the last visit and refresh behind, and the next messages are prefetched without marking them read Message lists you have visited are kept in the tab's `sessionStorage` (per user, at most 16 lists / ~1 MB, never searches, gone when the tab closes or you sign out), so a page reload shows them at once while the fresh ones load. After a sign-in or a restart goodmail connects to your other mailboxes in the background and selects their Inbox, so the first click there is not a cold start. Nothing about your mail is written to the server's disk.
 - **Languages**: English, Dansk, Deutsch, Svenska, Norsk, Français, Español — picked from the browser,
   switchable on the sign-in page and under ⚙. Dates and weekdays follow the language. Adding a language is one
   file in `web/src/locales/` (English text is the key, so anything untranslated falls back to English).

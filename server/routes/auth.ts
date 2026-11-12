@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import type { ImapFlow } from 'imapflow';
 import { Session, addSession, dropSession, connectImap } from '../session.ts';
 import { attachAccounts } from '../accounts.ts';
+import { warmExtras } from '../warm.ts';
 import type { Account } from '../session.ts';
 import { appTitle, appTitles, titleFor, titlesFor, normalizeLogin, resetSender } from '../config.ts';
 import { seal, userKey } from '../vault.ts';
@@ -71,6 +72,7 @@ export async function issueLogin(res: Response, account: Account, remember: bool
   sess.userKey = userKey(account.email, account.pass);
   await attachAccounts(sess).catch((e) => console.warn('extra accounts:', e.message));
   addSession(sess);
+  void warmExtras(sess);
   res.setHeader(
     'Set-Cookie',
     `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict${remember ? `; Max-Age=${YEAR}` : ''}${SECURE_COOKIE ? '; Secure' : ''}`,

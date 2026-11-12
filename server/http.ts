@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { Session, addSession, getSession } from './session.ts';
 import { attachAccounts } from './accounts.ts';
+import { warmExtras } from './warm.ts';
 import type { Account } from './session.ts';
 import crypto from 'node:crypto';
 import { serversFor } from './config.ts';
@@ -63,6 +64,7 @@ export async function auth(req: Request, res: Response, next: NextFunction) {
     s.userKey = userKey(v!.email, v!.pass);
     await attachAccounts(s).catch((e) => console.warn('extra accounts:', e.message));
     addSession(s);
+    void warmExtras(s); // restart / idle expiry: get the other mailboxes connected before the first click on them
   }
   (req as Authed).session = s;
   next();
