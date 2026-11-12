@@ -53,6 +53,7 @@ async function session(opts, prefs) {
   await page.goto(URL);
   await page.evaluate((p) => { for (const [k, v] of Object.entries(p)) localStorage.setItem('gm:' + k, JSON.stringify(v)); }, prefs);
   await page.goto(URL);
+  await page.waitForSelector('input[type=password], .item', { timeout: 15000 }); // the form may render a moment after load
   if (await page.locator('input[type=password]').count()) {
     await page.fill('input[autocomplete=username]', 'alex');
     await page.fill('input[type=password]', 'demo');
@@ -144,7 +145,9 @@ const prefs = { preview: true, pane: 'right', theme: 'light', calView: 'week', f
   await page.click('text=Photos from Saturday');
   await page.waitForTimeout(1200);
   await page.screenshot({ path: `${OUT}/phone-message.png` });
-  await page.locator('.phone-actions button[title="Move"]').click();
+  await page.locator('.msg-actions button[aria-label="More"]').click();
+  await page.screenshot({ path: `${OUT}/phone-more.png` });
+  await page.locator('.more-menu button:has-text("Move")').click();
   await page.waitForSelector('.sheet');
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${OUT}/phone-move.png` });
@@ -241,7 +244,7 @@ const prefs = { preview: true, pane: 'right', theme: 'light', calView: 'week', f
   await page.locator('.folders .folder', { hasText: 'Inbox' }).first().click();
   await page.click('text=Design review moved to Thursday');
   await page.waitForTimeout(1000);
-  await page.locator('.msg-actions button[title="View headers"]').click();
+  await page.locator('.top-acts button[title="View headers"]').click();
   await page.waitForSelector('.headers-text');
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${OUT}/headers.png` });

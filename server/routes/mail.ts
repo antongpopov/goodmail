@@ -6,6 +6,7 @@ import * as sm from '../smime.ts';
 import { nameFor } from '../prefs.ts';
 const smimeOn = sm.smimeOn;
 import { attachments } from '../mime.ts';
+import { bulkCriteria, peopleCriteria } from '../bulk.ts';
 import { spamInfo } from '../spam.ts';
 import { messageCache, msgKey, dropMessages, patchFlag } from '../cache.ts';
 import { Router } from 'express';
@@ -64,9 +65,9 @@ async function listPage(cn: Conn, folder: string, page: number, filter: string, 
         const messages = top.length ? dir(await listMessages(cn, c, folder, top, true, lazy)) : [];
         return { total: uids.length, messages, hasMore: false };
       }
-      if (filter === 'unread' || filter === 'flagged' || filter === 'tome') {
+      if (filter === 'unread' || filter === 'flagged' || filter === 'tome' || filter === 'bulk' || filter === 'people') {
         // Ask the server for every match in the folder, not just the loaded page (big folders like Gmail's All Mail).
-        const uids = await byDate(c, (await c.search(filter === 'unread' ? { seen: false } : filter === 'tome' ? { to: cn.account.email } : { flagged: true }, { uid: true })) || [], asc);
+        const uids = await byDate(c, (await c.search(filter === 'unread' ? { seen: false } : filter === 'tome' ? { to: cn.account.email } : filter === 'bulk' ? bulkCriteria : filter === 'people' ? peopleCriteria : { flagged: true }, { uid: true })) || [], asc);
         if (filter === 'unread') noteUnseen(cn, folder, uids.length);
         const slice = uids.slice(page * PAGE, (page + 1) * PAGE);
         const messages = slice.length ? dir(await listMessages(cn, c, folder, slice, true, lazy)) : [];

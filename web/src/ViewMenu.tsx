@@ -33,7 +33,7 @@ export function PaneMenu({ pane, onPane }: { pane: PaneMode; onPane: (p: PaneMod
   );
 }
 
-type MsgFilter = 'all' | 'unread' | 'flagged' | 'attachments' | 'tome';
+type MsgFilter = 'all' | 'unread' | 'flagged' | 'attachments' | 'tome' | 'bulk' | 'people';
 const SORT_KEYS: [SortKey, () => string][] = [['date', () => t('Date')], ['from', () => t('From')], ['subject', () => t('Subject')], ['size', () => t('Size')], ['flagged', () => t('Flagged')]];
 /** Names of the two directions for each sort key: [ascending, descending]. */
 const DIRECTIONS: Record<SortKey, [() => string, () => string]> = {
@@ -54,7 +54,7 @@ export function FilterMenu({ filter, onFilter, sortKey, onSortKey, oldestFirst, 
     document.addEventListener('mousedown', close);
     return () => document.removeEventListener('mousedown', close);
   }, [open]);
-  const FILTERS: [MsgFilter, string, string][] = [['unread', 'unread', t('Unread')], ['flagged', 'flag', t('Flagged')], ['tome', 'people', t('To me')], ['attachments', 'clip', t('Has files')]];
+  const FILTERS: [MsgFilter, string, string][] = [['unread', 'unread', t('Unread')], ['flagged', 'flag', t('Flagged')], ['tome', 'people', t('To me')], ['attachments', 'clip', t('Has files')], ['people', 'compose', t('From people')], ['bulk', 'list', t('Newsletters and notifications')]];
   const item = (on: boolean, icon: string | null, label: string, onClick: () => void) => (
     <button role="menuitemradio" aria-checked={on} className={on ? 'menu-on' : ''} onClick={onClick}>
       {icon ? <Icon name={icon} size={18} /> : <span className="menu-gap" />} <span className="grow">{label}</span>

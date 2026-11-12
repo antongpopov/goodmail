@@ -3,31 +3,31 @@
 A webmail client that talks plain IMAP + SMTP to **any** mail server, with an Outlook-style
 three-pane UI: folder tree, date-grouped message list with previews, reading pane, inline composer.
 
-![goodmail inbox with reading pane](docs/screenshots/mail-light.png?v=20261112)
+![goodmail inbox with reading pane](docs/screenshots/mail-light.png?v=20261113)
 
 | Dark mode, remote images blocked | Calendar — week view |
 |---|---|
-| ![Dark mode with a newsletter; tracking image blocked](docs/screenshots/mail-dark.png?v=20261112) | ![Calendar week view](docs/screenshots/calendar.png?v=20261112) |
+| ![Dark mode with a newsletter; tracking image blocked](docs/screenshots/mail-dark.png?v=20261113) | ![Calendar week view](docs/screenshots/calendar.png?v=20261113) |
 | **To-Do** — My Day, Important, Planned, your own lists | **Calendar side panel** — month and upcoming events |
-| ![To-Do with a task open](docs/screenshots/tasks.png?v=20261112) | ![Mail with the calendar side panel](docs/screenshots/side-panel.png?v=20261112) |
+| ![To-Do with a task open](docs/screenshots/tasks.png?v=20261113) | ![Mail with the calendar side panel](docs/screenshots/side-panel.png?v=20261113) |
 | **Folders** — ⋯ menu, subfolders, drag and drop | **Mail rules** — run on the server |
-| ![Folder menu with new subfolder, rename and delete](docs/screenshots/folders.png?v=20261112) | ![Mail rules list](docs/screenshots/rules.png?v=20261112) |
+| ![Folder menu with new subfolder, rename and delete](docs/screenshots/folders.png?v=20261113) | ![Mail rules list](docs/screenshots/rules.png?v=20261113) |
 | **Create a rule from any message** | **Composer** — signature and templates |
-| ![Rule editor pre-filled from a message](docs/screenshots/rule-editor.png?v=20261112) | ![Composer with signature and the templates menu](docs/screenshots/compose.png?v=20261112) |
+| ![Rule editor pre-filled from a message](docs/screenshots/rule-editor.png?v=20261113) | ![Composer with signature and the templates menu](docs/screenshots/compose.png?v=20261113) |
 | **S/MIME** — signed and encrypted message | **S/MIME settings** — certificate, CA, correspondents |
-| ![An encrypted, signed and verified message](docs/screenshots/smime.png?v=20261112) | ![Secure mail settings](docs/screenshots/smime-settings.png?v=20261112) |
+| ![An encrypted, signed and verified message](docs/screenshots/smime.png?v=20261113) | ![Secure mail settings](docs/screenshots/smime-settings.png?v=20261113) |
 | **Sign-in security** — password, 2-step, passkeys, reset address | **Address book** |
-| ![Sign-in security dialog](docs/screenshots/security.png?v=20261112) | ![Address book](docs/screenshots/contacts.png?v=20261112) |
+| ![Sign-in security dialog](docs/screenshots/security.png?v=20261113) | ![Address book](docs/screenshots/contacts.png?v=20261113) |
 | **Administration** — mailboxes and aliases of a domain | **Domains** — for the main administrator |
-| ![Administration: a domain's mailboxes](docs/screenshots/admin.png?v=20261112) | ![Administration: domains and their administrators (main administrator)](docs/screenshots/admin-domains.png?v=20261112) |
+| ![Administration: a domain's mailboxes](docs/screenshots/admin.png?v=20261113) | ![Administration: domains and their administrators (main administrator)](docs/screenshots/admin-domains.png?v=20261113) |
 | **View headers** — the raw header block | **Settings** — colour, date, time and language |
-| ![Raw message headers](docs/screenshots/headers.png?v=20261112) | ![Settings menu with the accent colours and dropdowns for date format, time format and language](docs/screenshots/settings-menu.png?v=20261112) |
-| **Filter and sort** — unread, flagged, to me, has files; sort by date, from, subject, size or flag | |
-| <img src="docs/screenshots/filter-menu.png?v=20261112" alt="Filter and sort menu" width="45%"> | |
+| ![Raw message headers](docs/screenshots/headers.png?v=20261113) | ![Settings menu with the accent colours and dropdowns for date format, time format and language](docs/screenshots/settings-menu.png?v=20261113) |
+| **Filter and sort** — unread, flagged, to me, has files, from people, newsletters and notifications; sort by date, from, subject, size or flag | |
+| <img src="docs/screenshots/filter-menu.png?v=20261113" alt="Filter and sort menu" width="45%"> | |
 | **Select all** — toolbar tickbox, day-header tickboxes | **Debug window** — admin-only, what goodmail does in the background |
-| ![Select all: every message in the list selected, tickboxes on the toolbar and the day headers](docs/screenshots/select-all.png?v=20261112) | ![Debug window with browser calls, server calls and IMAP commands with timings](docs/screenshots/debug.png?v=20261112) |
+| ![Select all: every message in the list selected, tickboxes on the toolbar and the day headers](docs/screenshots/select-all.png?v=20261113) | ![Debug window with browser calls, server calls and IMAP commands with timings](docs/screenshots/debug.png?v=20261113) |
 | **On a phone** | **Phone — folder drawer with ⋯ buttons** |
-| <img src="docs/screenshots/phone-list.png?v=20261112" alt="Message list on a phone" width="32%"> <img src="docs/screenshots/phone-message.png?v=20261112" alt="Reading a message on a phone" width="32%"> <img src="docs/screenshots/phone-move.png?v=20261112" alt="Moving a message on a phone" width="32%"> | <img src="docs/screenshots/phone-menu.png?v=20261112" alt="Folder drawer on a phone" width="60%"> |
+| <img src="docs/screenshots/phone-list.png?v=20261113" alt="Message list on a phone" width="32%"> <img src="docs/screenshots/phone-message.png?v=20261113" alt="Reading a message on a phone" width="32%"> <img src="docs/screenshots/phone-move.png?v=20261113" alt="Moving a message on a phone" width="32%"> | <img src="docs/screenshots/phone-menu.png?v=20261113" alt="Folder drawer on a phone" width="60%"> |
 
 <sub>Screenshots use invented demo data — see [scripts/screenshots](scripts/screenshots).</sub>
 
@@ -42,7 +42,7 @@ More documentation: the [wiki](https://github.com/antongpopov/goodmail/wiki).
   so). Inbox, Sent, Drafts, Trash, Junk and Archive can't be renamed, moved or deleted
 - **Move or copy between mailboxes**: the Move menu lists the folders of all your accounts with a Move / Copy switch; the message is read from one mailbox and added to the other (flags and date kept; a moved original goes to the source Trash)
 - Message list grouped Today / Yesterday / This week…, preview lines, unread/flag/attachment markers,
-  hover actions, Ctrl/Shift multi-select and Select all (Ctrl/Cmd-A, a toolbar tickbox, a tickbox on each day header), infinite scroll, a Filter and sort menu
+  hover actions, message actions as grouped buttons in the top bar (reply · archive/delete/junk · move/flag/headers; on a phone reply, reply all, forward and a ⋯ menu), Ctrl/Shift multi-select and Select all (Ctrl/Cmd-A, a toolbar tickbox, a tickbox on each day header), infinite scroll, a Filter and sort menu
 - Server-side search (subject, from, to, body)
 - Reading pane renders HTML mail sanitized (DOMPurify) in a script-less sandboxed iframe with its own CSP;
   **remote images and trackers are blocked** until you allow them once or per sender
@@ -63,7 +63,7 @@ More documentation: the [wiki](https://github.com/antongpopov/goodmail/wiki).
   duplicate merge by email, "add sender" button, To/Cc autocomplete
 - **To-Do**: an Outlook-style task list: My Day, Important, Planned, Tasks and your own lists, steps, due dates, repeating tasks
   and notes; "Flagged email" jumps to your flagged mail. Stored per account as a small JSON file on the server, so it follows you to every device
-- **Filter and sort** menu in the message list (Unread, Flagged, To me, Has files; sort by date, from, subject, size or flag, either direction)
+- **Filter and sort** menu in the message list (Unread, Flagged, To me, Has files, From people, Newsletters and notifications; sort by date, from, subject, size or flag, either direction). *Newsletters and notifications* is every message with a `List-Unsubscribe` / `List-Id` / `Precedence: bulk` header or from a `no-reply`-style address — found by a search on the mail server, no classifier; *From people* is everything else
 - **Calendar side panel** in the mail view (toggle in the top bar): a month and your upcoming events, like Outlook
 - **Calendar**: Outlook-style day / work week / week / month views, mini month, recurring events,
   .ics import/export, and an "Add to calendar" button on invitations (Outlook/Teams time zones understood)

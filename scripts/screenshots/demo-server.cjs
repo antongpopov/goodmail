@@ -9,10 +9,10 @@ const at = (daysAgo, h, m) => {
   return d > now ? new Date(now - (daysAgo + 1) * 3600e3) : d;
 };
 let n = 0;
-function mail({ from, subject, when, text, html, seen = true, flagged = false, attach, ics, spam = -0.8 }) {
+function mail({ from, subject, when, text, html, seen = true, flagged = false, attach, ics, spam = -0.8, bulk = false }) {
   n++;
   const flags = [...(seen ? ['\\Seen'] : []), ...(flagged ? ['\\Flagged'] : [])];
-  const head = `X-Spamd-Result: default: False [${spam.toFixed(2)} / 15.00];\r\n\tDMARC_POLICY_ALLOW(-0.50)[example.com,none]\r\nFrom: ${from}\r\nTo: ${ME}\r\nSubject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=\r\nMessage-ID: <demo${n}@example.com>\r\nDate: ${when.toUTCString()}\r\nMIME-Version: 1.0\r\n`;
+  const head = `X-Spamd-Result: default: False [${spam.toFixed(2)} / 15.00];\r\n\tDMARC_POLICY_ALLOW(-0.50)[example.com,none]\r\nFrom: ${from}\r\nTo: ${ME}\r\nSubject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=\r\nMessage-ID: <demo${n}@example.com>\r\n${bulk ? 'List-Unsubscribe: <mailto:unsubscribe@example.com>\r\n' : ''}Date: ${when.toUTCString()}\r\nMIME-Version: 1.0\r\n`;
   const alt = `--alt\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${text}\r\n--alt\r\nContent-Type: text/html; charset=utf-8\r\n\r\n${html || text.split('\n\n').map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')}\r\n--alt--\r\n`;
   let raw;
   if (attach || ics) {
@@ -44,7 +44,7 @@ const inbox = [
     text: 'Hi Alex,\n\nQuick heads-up: the design review is moving to Thursday at 15:00 so Jonas can join from Berlin. Invite attached.\n\nI will bring printed versions of the new onboarding screens. If you have notes on the empty states, send them over before Wednesday evening and I will fold them in.\n\nThanks!\nPriya' }),
   mail({ from: 'Jonas Becker <jonas@example.de>', subject: 'Re: Q4 roadmap draft', when: at(0, 8, 15), seen: false, attach: 'Roadmap-Q4-v3.pdf',
     text: 'Alex,\n\nAttached is v3 with your comments merged. I moved the offline mode to January; everything else stays as discussed.\n\nCan we lock this on Friday?\n\nJonas' }),
-  mail({ from: 'The Weekend Read <hello@weekendread.example>', subject: 'Slow mornings, small gardens', when: at(0, 7, 3), html: newsletter, spam: 3.9,
+  mail({ from: 'The Weekend Read <hello@weekendread.example>', subject: 'Slow mornings, small gardens', bulk: true, when: at(0, 7, 3), html: newsletter, spam: 3.9,
     text: 'This week: a balcony herb garden, three soups that freeze beautifully, and quiet cafés in Lisbon.' }),
   mail({ from: 'Maria Santos <maria.santos@example.com>', subject: 'Photos from Saturday 📸', when: at(1, 19, 20), flagged: true,
     text: 'Hey!\n\nFinally sorted the photos from the lake — the shared album link is below. The one of the dog jumping off the pier is my favourite.\n\nDinner at ours next week? Thursday or Friday both work.\n\nM.' }),
@@ -52,7 +52,7 @@ const inbox = [
     text: 'Your statement for the period ending 31 October is now available in online banking. This is an automated message.' }),
   mail({ from: 'Sam Okafor <sam.okafor@example.net>', subject: 'Lunch tomorrow?', when: at(1, 9, 31),
     text: 'Free for lunch tomorrow around 12:30? The new ramen place on Elm Street finally opened.' }),
-  mail({ from: 'Harbor Coworking <community@harbor.example>', subject: 'November members’ evening', when: at(2, 16, 0),
+  mail({ from: 'Harbor Coworking <community@harbor.example>', subject: 'November members’ evening', bulk: true, when: at(2, 16, 0),
     text: 'Join us on the 20th for pizza, short talks and the annual "worst desk setup" competition. RSVP by replying to this email.' }),
   mail({ from: 'Lena Fischer <lena.fischer@example.de>', subject: 'Invoice 2026-114', when: at(3, 11, 12), attach: 'Invoice-2026-114.pdf',
     text: 'Hello Alex,\n\nplease find attached the invoice for the October workshop. Payment within 14 days would be great.\n\nBest regards,\nLena' }),
@@ -64,7 +64,7 @@ const inbox = [
     text: 'Your booking is confirmed. Departure 12 December, 08:35. Online check-in opens 24 hours before departure.' }),
   mail({ from: 'Priya Raman <priya.raman@example.org>', subject: 'Onboarding screens — first pass', when: at(8, 17, 2),
     text: 'First pass of the onboarding screens is in the shared folder. Rough, but the flow is there.' }),
-  mail({ from: 'City Library <library@city.example>', subject: 'Reminder: 2 items due next week', when: at(10, 8, 0),
+  mail({ from: 'City Library <library@city.example>', subject: 'Reminder: 2 items due next week', bulk: true, when: at(10, 8, 0),
     text: 'This is a friendly reminder that 2 items are due on the 18th. You can renew them online.' }),
   mail({ from: 'Sam Okafor <sam.okafor@example.net>', subject: 'Running club starts again', when: at(13, 18, 30),
     text: 'Tuesdays 7am by the river, 5k easy pace. Bring a friend.' }),

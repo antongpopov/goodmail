@@ -473,7 +473,7 @@ export const fr: Dict = {
   Attachments: 'Pièces jointes',
   'Sort order': 'Tri', 'Newest first': 'Plus récents en premier', 'Oldest first': 'Plus anciens en premier',
   'Forward mail to': 'Transférer le courrier à', 'one address per line, empty = no forwarding': 'une adresse par ligne, vide = pas de transfert', 'Also keep a copy in this mailbox': 'Garder aussi une copie dans cette boîte', 'Forwards only to': 'Transfère uniquement à',
-  'Filter and sort': 'Filtrer et trier', 'Filter by': 'Filtrer par', 'Sort by': 'Trier par', 'To me': 'À moi', 'Has files': 'Avec fichiers', 'Date': 'Date', 'Size': 'Taille', 'Oldest on top': 'Plus anciens en haut', 'Newest on top': 'Plus récents en haut', 'A to Z': 'A à Z', 'Z to A': 'Z à A', 'Smallest on top': 'Plus petits en haut', 'Largest on top': 'Plus gros en haut', 'Flagged last': 'Marqués en dernier', 'Flagged on top': 'Marqués en haut',
+  'Filter and sort': 'Filtrer et trier', 'Filter by': 'Filtrer par', 'Sort by': 'Trier par', 'To me': 'À moi', 'Has files': 'Avec fichiers', 'From people': 'De personnes', 'Newsletters and notifications': 'Newsletters et notifications', 'Date': 'Date', 'Size': 'Taille', 'Oldest on top': 'Plus anciens en haut', 'Newest on top': 'Plus récents en haut', 'A to Z': 'A à Z', 'Z to A': 'Z à A', 'Smallest on top': 'Plus petits en haut', 'Largest on top': 'Plus gros en haut', 'Flagged last': 'Marqués en dernier', 'Flagged on top': 'Marqués en haut',
   'Calendar panel': 'Panneau du calendrier', 'Open calendar': 'Ouvrir le calendrier', 'No upcoming events': 'Aucun événement à venir',
   'Pick any color': 'Choisir n’importe quelle couleur',
   'Copied {n} to {folder}': '{n} copié(s) vers {folder}', 'Move or copy': 'Déplacer ou copier',

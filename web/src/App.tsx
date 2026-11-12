@@ -120,7 +120,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   const [compose, setCompose] = useState<ComposeInit | null>(null);
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState('');
-  const [filter, setFilter] = useState<'all' | 'unread' | 'flagged' | 'attachments' | 'tome'>('all');
+  const [filter, setFilter] = useState<'all' | 'unread' | 'flagged' | 'attachments' | 'tome' | 'bulk' | 'people'>('all');
   const oldestRef = useRef(false);
   const filterRef = useRef(filter);
   filterRef.current = filter;
