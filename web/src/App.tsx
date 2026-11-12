@@ -318,6 +318,15 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
         }
         // The server reconciles a folder's unread counter with this search; pick the corrected number up now.
         if (flt === 'unread' && p === 0 && !q && acctId !== UNI_ACCOUNT) void loadFolders();
+        // A complete first page of the unfiltered folder is the truth about what is unread there: when the folder's counter
+        // disagrees (mail read or removed with another client since the last poll), fix it at once instead of waiting for a reload.
+        if (flt === 'all' && p === 0 && !q && !r.hasMore && acctId !== UNI_ACCOUNT) {
+          const n = r.messages.filter((m) => !m.seen).length;
+          const cur = allFoldersRef.current[acctId]?.find((x) => x.path === f);
+          if (cur && cur.unseen !== n) {
+            setAllFolders((all) => ({ ...all, [acctId]: (all[acctId] ?? []).map((x) => (x.path === f ? { ...x, unseen: n } : x)) }));
+          }
+        }
         setList((old) => {
           if (p === 0) return r.messages;
           const seen = new Set(old.map((m) => m.uid));
