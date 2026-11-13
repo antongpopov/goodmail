@@ -37,6 +37,20 @@ export function useLayout() {
   return { collapsed, setCollapsed, foldersHidden, setFoldersHidden, pane, setPane, preview, setPreview, oldestFirst, setOldestFirst, sortKey, setSortKey, listH, setListH, folderW, setFolderW, listW, setListW };
 }
 
+export type SwipeAction = 'archive' | 'delete' | 'off';
+/** What swiping a message row to the left does on a touch screen. Kept per browser; archive unless the user picks otherwise. */
+export function useSwipePref() {
+  const [swipe, setSwipeState] = useState<SwipeAction>(() => {
+    const v = store<string>('swipe', 'archive');
+    return v === 'delete' || v === 'off' ? v : 'archive';
+  });
+  const setSwipe = (v: SwipeAction) => {
+    setSwipeState(v);
+    save('swipe', v);
+  };
+  return { swipe, setSwipe };
+}
+
 /** True on phone-width screens (re-evaluated when the window crosses the breakpoint). */
 export function usePhoneWidth() {
   const [phoneWidth, setPhoneWidth] = useState(() => window.matchMedia('(max-width: 760px)').matches);

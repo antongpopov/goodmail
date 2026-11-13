@@ -34,7 +34,7 @@ import { Splitter } from './Splitter.tsx';
 import { MessageItem } from './MessageItem.tsx';
 import { FolderRow } from './FolderRow.tsx';
 import { ViewMenu, PaneMenu, ThemeMenu, FilterMenu, Appearance } from './ViewMenu.tsx';
-import { useAddressBook, useLayout, useNotifyPrefs, usePhoneWidth, useToast } from './hooks.ts';
+import { useAddressBook, useLayout, useNotifyPrefs, useSwipePref, usePhoneWidth, useToast } from './hooks.ts';
 
 const POLL_MS = 30_000;
 
@@ -128,6 +128,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
   const previewRef = useRef(preview);
   previewRef.current = preview;
   const notify = useNotifyPrefs();
+  const { swipe, setSwipe } = useSwipePref();
   const lastCounts = useRef<Record<string, InboxCount> | null>(null);
   // New mail: compare the Inbox counts with the previous look (they are polled anyway) and chime / badge / notify.
   useEffect(() => {
@@ -1104,7 +1105,7 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
           )}
           <span className="desk-only"><ThemeMenu /></span>
           <span className="desk-only">
-            <ViewMenu notify={{ ...notify, test: playChime }} onAccounts={() => setDialog({ kind: 'accounts' })} onSecurity={() => setDialog({ kind: 'security' })} onRules={features?.rules ? () => setDialog({ kind: 'rules' }) : undefined} onSmime={features?.smime ? () => setDialog({ kind: 'smime' }) : undefined} onSignatures={() => setDialog({ kind: 'signatures', tab: 'signature' })} onAdmin={adminMe?.admin ? () => setDialog({ kind: 'admin' }) : undefined} source={source} />
+            <ViewMenu swipe={swipe} onSwipe={setSwipe} notify={{ ...notify, test: playChime }} onAccounts={() => setDialog({ kind: 'accounts' })} onSecurity={() => setDialog({ kind: 'security' })} onRules={features?.rules ? () => setDialog({ kind: 'rules' }) : undefined} onSmime={features?.smime ? () => setDialog({ kind: 'smime' }) : undefined} onSignatures={() => setDialog({ kind: 'signatures', tab: 'signature' })} onAdmin={adminMe?.admin ? () => setDialog({ kind: 'admin' }) : undefined} source={source} />
           </span>
           <button className="top-btn desk-only" onClick={onLogout} title={t('Sign out')}>
             <Icon name="signout" />
@@ -1209,6 +1210,8 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
                         onFlag={setFlag}
                         onToggleJunk={toggleJunk}
                         onDelete={doDelete}
+                        onArchive={(u) => void doMove('archive', u)}
+                        swipe={swipe}
                         onRule={features?.rules && (acct === 'main' || (isAll && m.account === 'main')) ? ruleFrom : undefined}
                       />
                     ))}

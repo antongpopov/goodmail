@@ -820,3 +820,10 @@ a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
 .menu-check { display: flex; align-items: center; gap: 8px; padding: 4px 4px; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .menu-check input { accent-color: var(--brand); }
 .link-btn { margin-left: auto; color: var(--brand); font-size: 12px; text-decoration: underline; }
+
+/* swipe a message row to the left to archive or delete it (touch screens; the action is a setting) */
+.swipe-wrap { position: relative; overflow: hidden; }
+.swipe-wrap .item { touch-action: pan-y; }
+.swipe-wrap .item.swiping { background: var(--surface); }
+.swipe-bg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-right: 18px; color: #fff; font-weight: 600; background: var(--brand); }
+.swipe-bg.delete { background: var(--danger); }

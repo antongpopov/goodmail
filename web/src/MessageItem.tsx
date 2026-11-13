@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Avatar } from './Avatar.tsx';
 import { SpamBar } from './SpamBar.tsx';
@@ -7,6 +7,7 @@ import { Icon } from './icons.tsx';
 import type { Addr, Summary } from './api.ts';
 import { displayName, listTime } from './util.ts';
 import { t } from './i18n.ts';
+import type { SwipeAction } from './hooks.ts';
 
 interface Props {
   m: Summary;
@@ -21,13 +22,50 @@ interface Props {
   onFlag: (uids: number[], flag: '\\Seen' | '\\Flagged', on: boolean) => void;
   onToggleJunk: (uids: number[]) => void;
   onDelete: (uids: number[]) => void;
+  onArchive: (uids: number[]) => void;
+  /** What a swipe to the left does on a touch screen (a setting). */
+  swipe: SwipeAction;
   /** Present when mail rules are available: adds the ⋯ / right-click menu with "Create rule from this message…". */
   onRule?: (m: Summary) => void;
 }
 
 /** One row of the message list. */
-export function MessageItem({ m, who, isSentFolder, selected, selectedUids, preview, inJunk, compact, onSelect, onFlag, onToggleJunk, onDelete, onRule }: Props) {
+export function MessageItem({ m, who, isSentFolder, selected, selectedUids, preview, inJunk, compact, onSelect, onFlag, onToggleJunk, onDelete, onArchive, swipe, onRule }: Props) {
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  // swipe to the left: the row follows the finger, and past the threshold the action runs
+  const [dx, setDx] = useState(0);
+  const [leaving, setLeaving] = useState(false);
+  const touch = useRef<{ x: number; y: number; dir: '' | 'h' | 'v'; w: number } | null>(null);
+  const swiped = useRef(0); // time of the last swipe, so the click that may follow it does not open the message
+  const swipeOn = swipe !== 'off';
+  const swipeHandlers = swipeOn
+    ? {
+        onTouchStart: (e: React.TouchEvent) => {
+          const p = e.touches[0];
+          touch.current = e.touches.length === 1 ? { x: p.clientX, y: p.clientY, dir: '', w: e.currentTarget.getBoundingClientRect().width } : null;
+        },
+        onTouchMove: (e: React.TouchEvent) => {
+          const s = touch.current;
+          if (!s || leaving) return;
+          const p = e.touches[0];
+          const [mx, my] = [p.clientX - s.x, p.clientY - s.y];
+          if (!s.dir && Math.max(Math.abs(mx), Math.abs(my)) > 8) s.dir = Math.abs(mx) > Math.abs(my) * 1.5 ? 'h' : 'v';
+          if (s.dir === 'h') setDx(Math.max(-s.w, Math.min(0, mx)));
+        },
+        onTouchEnd: () => {
+          const s = touch.current;
+          touch.current = null;
+          if (!s || s.dir !== 'h') return;
+          swiped.current = Date.now();
+          if (-dx >= Math.min(120, s.w * 0.35)) {
+            setLeaving(true);
+            setDx(-s.w);
+            setTimeout(() => { void (swipe === 'delete' ? onDelete([m.uid]) : onArchive([m.uid])); }, 180);
+          } else setDx(0);
+        },
+        onTouchCancel: () => { touch.current = null; setDx(0); },
+      }
+    : {};
   useEffect(() => {
     if (!menu) return;
     const close = () => setMenu(null);
@@ -95,7 +133,7 @@ export function MessageItem({ m, who, isSentFolder, selected, selectedUids, prev
   );
   const common = {
     'data-uid': m.uid,
-    onClick: (e: React.MouseEvent) => onSelect(m, e),
+    onClick: (e: React.MouseEvent) => { if (Date.now() - swiped.current > 400) onSelect(m, e); },
     onContextMenu: (e: React.MouseEvent) => {
       if (!onRule) return;
       e.preventDefault();
@@ -107,11 +145,24 @@ export function MessageItem({ m, who, isSentFolder, selected, selectedUids, prev
       e.dataTransfer.setData('application/x-goodmail', JSON.stringify(uids));
     },
   };
-  const state = `${m.seen ? '' : 'unread'} ${selected ? 'sel' : ''} ${m.flagged ? 'flagged' : ''} ${isSpam ? 'spam' : ''}`;
+  const moving = swipeOn && dx !== 0;
+  const style = swipeOn ? { transform: dx ? `translateX(${dx}px)` : undefined, transition: touch.current?.dir === 'h' ? 'none' : 'transform .18s ease-out' } : undefined;
+  const wrap = (row: React.ReactElement) =>
+    swipeOn ? (
+      <div className="swipe-wrap">
+        <div className={`swipe-bg ${swipe}`} style={{ visibility: moving ? 'visible' : 'hidden' }} aria-hidden="true">
+          <Icon name={swipe === 'delete' ? 'trash' : 'archive'} size={20} /> {swipe === 'delete' ? t('Delete') : t('Archive')}
+        </div>
+        {row}
+      </div>
+    ) : (
+      row
+    );
+  const state = `${moving ? 'swiping' : ''} ${m.seen ? '' : 'unread'} ${selected ? 'sel' : ''} ${m.flagged ? 'flagged' : ''} ${isSpam ? 'spam' : ''}`;
 
   if (compact) {
-    return (
-      <div {...common} className={`item compact ${state}`}>
+    return wrap(
+      <div {...common} {...swipeHandlers} style={style} className={`item compact ${state}`}>
         <span className="c-sender">{label}</span>
         <span className="c-text">
           <span className="c-subject">{m.subject || t('(no subject)')}</span>
@@ -122,12 +173,12 @@ export function MessageItem({ m, who, isSentFolder, selected, selectedUids, prev
         {actions}
         {more}
         {popup}
-      </div>
+      </div>,
     );
   }
 
-  return (
-    <div {...common} className={`item ${state}`}>
+  return wrap(
+    <div {...common} {...swipeHandlers} style={style} className={`item ${state}`}>
       <Avatar addr={who} />
       <div className="item-main">
         <div className="row1">
@@ -143,6 +194,6 @@ export function MessageItem({ m, who, isSentFolder, selected, selectedUids, prev
         {isSpam && m.spam && <SpamBar spam={m.spam} />}
       </div>
       {popup}
-    </div>
+    </div>,
   );
 }

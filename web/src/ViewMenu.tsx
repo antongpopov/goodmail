@@ -6,6 +6,7 @@ import type { Theme } from './theme.ts';
 import { t, clockPref, setClock, dateFmtPref, setDateFmt } from './i18n.ts';
 import type { Clock, DateFmt } from './i18n.ts';
 import type { SortKey } from './unified.ts';
+import type { SwipeAction } from './hooks.ts';
 
 const THEMES: { id: Theme; label: string; icon: string }[] = [
   { id: 'auto', label: t('Auto (system)'), icon: 'auto' },
@@ -121,7 +122,7 @@ function Choice({ label, value, options, onChange }: { label: string; value: str
 
 export type NotifyPrefs = { sound: boolean; setSound: (v: boolean) => void; desktop: boolean; setDesktop: (v: boolean) => void; badge: boolean; setBadge: (v: boolean) => void; test: () => void };
 
-export function ViewMenu({ onAccounts, onSecurity, onRules, onSmime, onSignatures, onAdmin, source, notify }: { notify?: NotifyPrefs; onAccounts: () => void; onSecurity: () => void; onRules?: () => void; onSmime?: () => void; onSignatures?: () => void; onAdmin?: () => void; source: string }) {
+export function ViewMenu({ onAccounts, onSecurity, onRules, onSmime, onSignatures, onAdmin, source, notify, swipe, onSwipe }: { swipe: SwipeAction; onSwipe: (v: SwipeAction) => void; notify?: NotifyPrefs; onAccounts: () => void; onSecurity: () => void; onRules?: () => void; onSmime?: () => void; onSignatures?: () => void; onAdmin?: () => void; source: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -160,6 +161,15 @@ export function ViewMenu({ onAccounts, onSecurity, onRules, onSmime, onSignature
           <div className="menu-row">
             <div className="menu-label">{t('Language')}</div>
             <LangPicker className="wide" />
+          </div>
+          <div className="menu-row">
+            <div className="menu-label">{t('Swipe left on a message')}</div>
+            <Choice
+              label={t('Swipe left on a message')}
+              value={swipe}
+              options={[['archive', t('Archive')], ['delete', t('Delete')], ['off', t('Off')]]}
+              onChange={(id) => onSwipe(id as SwipeAction)}
+            />
           </div>
           {notify && (
             <>
