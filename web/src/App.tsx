@@ -946,6 +946,19 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
                         <span>{a.email}</span>
                         {collapsed[k] && unseen > 0 && <span className="count">{unseen}</span>}
                       </button>
+                      {orderedAccounts.length > 1 && (
+                        <span className="acct-move">
+                          {(['up', 'down'] as const).map((dir) => {
+                            const i = orderedAccounts.findIndex((x) => x.id === a.id);
+                            const to = orderedAccounts[i + (dir === 'up' ? -1 : 1)];
+                            return (
+                              <button key={dir} disabled={!to} title={dir === 'up' ? t('Move up') : t('Move down')} aria-label={dir === 'up' ? t('Move up') : t('Move down')} onClick={() => to && moveAccount(a.id, to.id, dir === 'down')}>
+                                <Icon name={dir === 'up' ? 'chevronUp' : 'chevronDown'} size={16} />
+                              </button>
+                            );
+                          })}
+                        </span>
+                      )}
                       {a.locked && (
                         <button className="folder muted" onClick={() => setDialog({ kind: 'accounts' })}>
                           <span className="twisty" />

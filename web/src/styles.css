@@ -827,3 +827,10 @@ a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
 .swipe-wrap .item.swiping { background: var(--surface); }
 .swipe-bg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-right: 18px; color: #fff; font-weight: 600; background: var(--brand); }
 .swipe-bg.delete { background: var(--danger); }
+
+/* touch screens can't drag accounts: small up / down buttons on each account heading instead */
+.acct-tree { position: relative; }
+.acct-move { display: none; position: absolute; right: 6px; top: 0; gap: 2px; }
+.acct-move button { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 4px; color: var(--text-2); }
+.acct-move button:disabled { opacity: .3; }
+@media (hover: none) { .acct-move { display: flex; } .acct-tree .account { padding-right: 76px; } }

@@ -15,6 +15,7 @@ const P: Record<string, string> = {
   search: 'M8.5 3.5a5 5 0 1 0 0.01 0 M12.2 12.2L16.5 16.5',
   chevronRight: 'M8 5l5 5-5 5',
   chevronDown: 'M5 8l5 5 5-5',
+  chevronUp: 'M5 12l5-5 5 5',
   inbox: 'M3.5 4.5h13v11h-13z M3.5 11h4l1 2h3l1-2h4',
   send: 'M3 10l14-6.5-5 13-2.5-5.5z M9.5 11L17 3.5',
   drafts: 'M5 3.5h7l3 3v10H5z M12 3.5v3h3 M7.5 10h5 M7.5 13h5',
