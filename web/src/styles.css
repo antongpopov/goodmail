@@ -834,3 +834,6 @@ a.pill-btn { color: var(--text); display: inline-flex; align-items: center; }
 .acct-move button { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 4px; color: var(--text-2); }
 .acct-move button:disabled { opacity: .3; }
 @media (hover: none) { .acct-move { display: flex; } .acct-tree .account { padding-right: 76px; } }
+.top-btn.spin .ico { animation: spin .8s linear infinite; }
+.top-btn.phone-only { align-items: center; justify-content: center; flex: none; }
+

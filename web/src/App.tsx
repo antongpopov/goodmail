@@ -1100,6 +1100,11 @@ function Mail({ me, onName, appName, source, onLogout }: { me: Me; onName: (name
           )}
         </form>
         {view === 'mail' && <ActionPills acts={pillActs} />}
+        {view === 'mail' && (
+          <button className={`top-btn phone-only ${loading ? 'spin' : ''}`} title={t('Sync')} aria-label={t('Sync')} onClick={sync}>
+            <Icon name="sync" />
+          </button>
+        )}
         <div className="top-right">
           {view === 'mail' && (
             <span className="desk-only">
