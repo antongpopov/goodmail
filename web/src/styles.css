@@ -249,7 +249,7 @@ body.resizing iframe, body.resizing-h iframe { pointer-events: none; }
 .att:hover { background: var(--hover); }
 .att-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .att .x { display: grid; place-items: center; color: var(--text-2); }
-.mail-frame { width: 100%; border: 0; display: block; background: #fff; border-radius: 4px; min-height: 120px; }
+.mail-frame { width: 100%; border: 0; display: block; background: var(--surface); border-radius: 4px; min-height: 120px; }
 
 /* ---------- compose ---------- */
 .compose { display: flex; flex-direction: column; min-height: 100%; }
